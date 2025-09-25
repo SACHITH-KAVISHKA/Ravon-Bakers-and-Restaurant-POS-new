@@ -56,19 +56,4 @@
             @endif
         </div>
     </form>
-
-    <!-- Demo Credentials -->
-    <div class="mt-4 p-3 bg-light rounded">
-        <h6 class="mb-2"><i class="bi bi-info-circle"></i> Demo Credentials</h6>
-        <div class="row">
-            <div class="col-6">
-                <strong>Admin:</strong><br>
-                <small>admin@revon.com<br>password</small>
-            </div>
-            <div class="col-6">
-                <strong>Staff:</strong><br>
-                <small>staff@revon.com<br>password</small>
-            </div>
-        </div>
-    </div>
 </x-guest-layout>

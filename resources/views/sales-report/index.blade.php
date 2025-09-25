@@ -61,36 +61,10 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="small">Total Subtotal</div>
+                            <div class="small">Total of Subtotal</div>
                             <div class="h4">Rs. {{ number_format($totals->total_subtotal ?? 0, 2) }}</div>
                         </div>
                         <i class="bi bi-cash-coin fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Customer Payment</div>
-                            <div class="h4">Rs. {{ number_format($totals->total_customer_payment ?? 0, 2) }}</div>
-                        </div>
-                        <i class="bi bi-credit-card fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-dark">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Total Balance</div>
-                            <div class="h4">Rs. {{ number_format($totals->total_balance ?? 0, 2) }}</div>
-                        </div>
-                        <i class="bi bi-wallet2 fa-2x"></i>
                     </div>
                 </div>
             </div>

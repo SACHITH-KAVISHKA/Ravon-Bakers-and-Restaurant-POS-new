@@ -195,18 +195,64 @@
         <div class="receipt-info" style="margin-top: 15px;">
             <div>
                 <span>Payment Method:</span>
-                <span>{{ $sale->payment_method }}</span>
+                <span>{{ strtoupper($sale->payment_method) }}</span>
             </div>
             
-            @if(in_array($sale->payment_method, ['CASH', 'CARD & CASH']) && $sale->customer_payment)
-            <div>
-                <span>Amount Paid:</span>
-                <span>Rs. {{ number_format($sale->customer_payment, 2) }}</span>
+            {{-- Debug: Show actual database values --}}
+            <div style="background: #f0f0f0; padding: 5px; margin: 5px 0; font-size: 8px; border: 1px solid #ccc;">
+                Debug Info:<br>
+                Payment Method DB: "{{ $sale->payment_method }}"<br>
+                Customer Payment: {{ $sale->customer_payment ?? 'NULL' }}<br>
+                Card Payment: {{ $sale->card_payment ?? 'NULL' }}<br>
+                Balance: {{ $sale->balance ?? 'NULL' }}
             </div>
-            <div>
-                <span>Balance:</span>
-                <span>Rs. {{ number_format($sale->balance, 2) }}</span>
-            </div>
+            
+            @if($sale->payment_method === 'cash')
+                <div>
+                    <span>Amount Paid:</span>
+                    <span>Rs. {{ number_format($sale->customer_payment, 2) }}</span>
+                </div>
+                <div>
+                    <span>Balance:</span>
+                    <span>Rs. {{ number_format($sale->balance, 2) }}</span>
+                </div>
+            @elseif(in_array($sale->payment_method, ['card_and_cash', 'CARD & CASH']) || 
+                    str_contains(strtolower($sale->payment_method), 'card') && str_contains(strtolower($sale->payment_method), 'cash'))
+                <div>
+                    <span>Customer Payment:</span>
+                    <span>Rs. {{ number_format($sale->customer_payment ?? 0, 2) }}</span>
+                </div>
+                <div>
+                    <span>Card Payment:</span>
+                    <span>Rs. {{ number_format($sale->card_payment ?? 0, 2) }}</span>
+                </div>
+                <div>
+                    <span>Total Paid:</span>
+                    <span>Rs. {{ number_format(($sale->customer_payment ?? 0) + ($sale->card_payment ?? 0), 2) }}</span>
+                </div>
+                <div>
+                    <span>Balance:</span>
+                    <span>Rs. {{ number_format((($sale->customer_payment ?? 0) + ($sale->card_payment ?? 0)) - $sale->total, 2) }}</span>
+                </div>
+            @elseif($sale->payment_method === 'card')
+                <div>
+                    <span>Card Payment:</span>
+                    <span>Rs. {{ number_format($sale->total, 2) }}</span>
+                </div>
+            @elseif($sale->payment_method === 'credit')
+                <div>
+                    <span>Amount Due:</span>
+                    <span>Rs. {{ number_format($sale->total, 2) }}</span>
+                </div>
+                <div>
+                    <span>Credit Balance:</span>
+                    <span>Rs. {{ number_format($sale->credit_balance ?? $sale->total, 2) }}</span>
+                </div>
+            @else
+                {{-- Fallback for unrecognized payment methods --}}
+                <div style="color: red; font-size: 10px;">
+                    Unrecognized payment method: "{{ $sale->payment_method }}"
+                </div>
             @endif
         </div>
         
@@ -309,14 +355,15 @@
             "time": "{{ $sale->created_at->format('H:i:s') }}",
             "subtotal": "{{ number_format($sale->subtotal, 2) }}",
             "total": "{{ number_format($sale->total, 2) }}",
-            "paymentMethod": "{{ $sale->payment_method }}",
-            @if(in_array($sale->payment_method, ['CASH', 'CARD & CASH']) && $sale->customer_payment)
-            "amountPaid": "{{ number_format($sale->customer_payment, 2) }}",
-            "balance": "{{ number_format($sale->balance, 2) }}",
-            "showCashDetails": true,
-            @else
-            "showCashDetails": false,
-            @endif
+            "paymentMethod": "{{ strtoupper($sale->payment_method) }}",
+            "paymentMethodOriginal": "{{ $sale->payment_method }}",
+            "customerPayment": "{{ number_format($sale->customer_payment ?? 0, 2) }}",
+            "cardPayment": "{{ number_format($sale->card_payment ?? 0, 2) }}",
+            "balance": "{{ number_format($sale->balance ?? 0, 2) }}",
+            "showCashDetails": {{ $sale->payment_method === 'cash' ? 'true' : 'false' }},
+            "showCardCashDetails": {{ (in_array($sale->payment_method, ['card_and_cash', 'CARD & CASH']) || str_contains(strtolower($sale->payment_method), 'card') && str_contains(strtolower($sale->payment_method), 'cash')) ? 'true' : 'false' }},
+            "showCardOnly": {{ $sale->payment_method === 'card' ? 'true' : 'false' }},
+            "showCredit": {{ $sale->payment_method === 'credit' ? 'true' : 'false' }},
             "items": [
                 @foreach($sale->saleItems as $item)
                 {
@@ -474,11 +521,48 @@
                     yPosition += 6;
 
                     if (receiptData.showCashDetails) {
+                        // CASH payment method
                         pdf.text('Amount Paid:', 5, yPosition);
-                        pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-5, yPosition, { align: 'right' });
+                        pdf.text(`Rs. ${receiptData.customerPayment}`, pageWidth-5, yPosition, { align: 'right' });
                         yPosition += 5;
                         pdf.text('Balance:', 5, yPosition);
                         pdf.text(`Rs. ${receiptData.balance}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 6;
+                    } else if (receiptData.showCardCashDetails || 
+                               receiptData.paymentMethodOriginal.includes('card_and_cash') || 
+                               receiptData.paymentMethodOriginal.includes('CARD & CASH')) {
+                        // CARD & CASH payment method
+                        pdf.text('Customer Payment:', 5, yPosition);
+                        pdf.text(`Rs. ${receiptData.customerPayment}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 5;
+                        pdf.text('Card Payment:', 5, yPosition);
+                        pdf.text(`Rs. ${receiptData.cardPayment}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 5;
+                        const totalPaid = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment)).toFixed(2);
+                        pdf.text('Total Paid:', 5, yPosition);
+                        pdf.text(`Rs. ${totalPaid}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 5;
+                        const calculatedBalance = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment) - parseFloat(receiptData.total)).toFixed(2);
+                        pdf.text('Balance:', 5, yPosition);
+                        pdf.text(`Rs. ${calculatedBalance}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 6;
+                    } else if (receiptData.showCardOnly) {
+                        // CARD only payment method
+                        pdf.text('Card Payment:', 5, yPosition);
+                        pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 6;
+                    } else if (receiptData.showCredit) {
+                        // CREDIT payment method
+                        pdf.text('Amount Due:', 5, yPosition);
+                        pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 5;
+                        pdf.text('Credit Balance:', 5, yPosition);
+                        pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 6;
+                    } else {
+                        // Debug: Unknown payment method
+                        pdf.text('Payment Method Unknown:', 5, yPosition);
+                        pdf.text(receiptData.paymentMethodOriginal, pageWidth-5, yPosition, { align: 'right' });
                         yPosition += 6;
                     }
 

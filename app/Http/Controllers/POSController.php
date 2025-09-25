@@ -118,7 +118,7 @@ class POSController extends Controller
                 $customerPayment = 0;
                 $cardPayment = 0;
                 $balance = 0;
-                $creditBalance = -$total; // Negative value representing debt
+                $creditBalance = $total;
                 break;
                 
             default:
@@ -181,7 +181,9 @@ class POSController extends Controller
             'subtotal' => number_format($subtotal, 2),
             'total' => number_format($total, 2),
             'customer_payment' => number_format($customerPayment, 2),
+            'card_payment' => number_format($cardPayment, 2),
             'balance' => number_format($balance, 2),
+            'payment_method' => $request->payment_method,
             'redirect_url' => route('pos.receipt', $saleId)
         ]);
     }

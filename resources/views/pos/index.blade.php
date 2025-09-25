@@ -1907,7 +1907,8 @@
                         paymentMethod: selectedPaymentMethod,
                         customerPayment: customerPayment,
                         cardPayment: cardPaymentValue,
-                        receiptData: data
+                        receiptData: data,
+                        backendData: data // Store the complete backend response
                     };
 
                     // Directly print receipt without showing modal
@@ -2016,15 +2017,36 @@
             document.getElementById('receipt-total').textContent = `Rs. ${data.total ? formatNumber(data.total) : '0.00'}`;
 
             // Populate payment details
-            document.getElementById('payment-method-display').textContent = selectedPaymentMethod;
+            document.getElementById('payment-method-display').textContent = data.payment_method || selectedPaymentMethod;
 
             // Show/hide payment details based on method
             const cashDetails = document.getElementById('cash-payment-details');
+            const paymentMethod = data.payment_method || selectedPaymentMethod;
 
-            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
+            if (paymentMethod === 'CASH') {
                 cashDetails.style.display = 'block';
                 document.getElementById('amount-paid-display').textContent = `Rs. ${formatNumber(data.customer_payment || customerPayment)}`;
                 document.getElementById('balance-display-receipt').textContent = `Rs. ${formatNumber(data.balance || 0)}`;
+            } else if (paymentMethod === 'CARD & CASH') {
+                cashDetails.style.display = 'block';
+                
+                // For card & cash, we need to show both payment amounts
+                const cardPaymentValue = parseFloat(data.card_payment) || parseFloat(document.getElementById('card-payment').value) || 0;
+                const customerPaymentValue = parseFloat(data.customer_payment) || customerPayment;
+                const totalPaid = customerPaymentValue + cardPaymentValue;
+                const balanceValue = parseFloat(data.balance) || (totalPaid - getTotalAmount());
+                
+                // Update display to show detailed breakdown
+                const amountDisplay = document.getElementById('amount-paid-display');
+                if (amountDisplay) {
+                    amountDisplay.innerHTML = `
+                        Customer: Rs. ${formatNumber(customerPaymentValue)}<br>
+                        Card: Rs. ${formatNumber(cardPaymentValue)}<br>
+                        <strong>Total: Rs. ${formatNumber(totalPaid)}</strong>
+                    `;
+                }
+                
+                document.getElementById('balance-display-receipt').textContent = `Rs. ${formatNumber(balanceValue)}`;
             } else {
                 cashDetails.style.display = 'none';
             }
@@ -2048,24 +2070,49 @@
             // Get stored cart data or use current cart
             const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
             const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
-            const customerPaymentAmount = window.lastSaleData ? window.lastSaleData.customerPayment : parseFloat(document.getElementById('customer-payment').value) || 0;
+            const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ? 
+                parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) : 
+                (window.lastSaleData ? window.lastSaleData.customerPayment : parseFloat(document.getElementById('customer-payment').value) || 0);
+            const cardPaymentAmount = window.lastSaleData?.backendData?.card_payment ? 
+                parseFloat(window.lastSaleData.backendData.card_payment.replace(/,/g, '')) : 
+                (window.lastSaleData ? window.lastSaleData.cardPayment : parseFloat(document.getElementById('card-payment').value) || 0);
 
             // Calculate totals from cart
             const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const balance = customerPaymentAmount - subtotal;
+            
+            // Calculate balance based on payment method
+            let balance = 0;
+            let totalPaid = 0;
+            
+            if (paymentMethod === 'CASH') {
+                totalPaid = customerPaymentAmount;
+                balance = customerPaymentAmount - subtotal;
+            } else if (paymentMethod === 'CARD & CASH') {
+                totalPaid = customerPaymentAmount + cardPaymentAmount;
+                balance = totalPaid - subtotal;
+            } else if (paymentMethod === 'CARD') {
+                totalPaid = subtotal; // For card, amount paid equals total
+                balance = 0;
+            } else if (paymentMethod === 'CREDIT') {
+                totalPaid = 0;
+                balance = -subtotal; // Negative balance for credit
+            }
 
             // Build receipt data object from cart
             const receiptData = {
-                receiptNo: document.getElementById('receipt-no').textContent,
-                userName: '{{ Auth::user()->name }}',
+                receiptNo: window.lastSaleData?.backendData?.receipt_no || document.getElementById('receipt-no').textContent,
+                userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
                 date: new Date().toLocaleDateString('en-GB'),
                 time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-                subtotal: subtotal.toFixed(2),
-                total: subtotal.toFixed(2),
+                subtotal: window.lastSaleData?.backendData?.subtotal || subtotal.toFixed(2),
+                total: window.lastSaleData?.backendData?.total || subtotal.toFixed(2),
                 paymentMethod: paymentMethod,
                 showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
-                amountPaid: customerPaymentAmount.toFixed(2),
-                balance: balance.toFixed(2),
+                showCardCashDetails: paymentMethod === 'CARD & CASH',
+                customerPayment: customerPaymentAmount.toFixed(2),
+                cardPayment: cardPaymentAmount.toFixed(2),
+                amountPaid: totalPaid.toFixed(2),
+                balance: window.lastSaleData?.backendData?.balance || balance.toFixed(2),
                 items: cartData.map(item => ({
                     name: item.name,
                     quantity: item.quantity,
@@ -2232,10 +2279,43 @@
             yPosition += 6;
 
             if (receiptData.showCashDetails) {
-                pdf.text('Amount Paid:', leftMargin, yPosition);
-                pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                if (receiptData.showCardCashDetails) {
+                    // For CARD & CASH payment method
+                    pdf.text('Customer Payment:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${receiptData.customerPayment}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                    yPosition += 5;
+                    
+                    pdf.text('Card Payment:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${receiptData.cardPayment}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                    yPosition += 5;
+                    
+                    pdf.text('Total Paid:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                    yPosition += 5;
+                    
+                    // Calculate balance correctly: (Customer Payment + Card Payment) - Total
+                    const calculatedBalance = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment) - parseFloat(receiptData.total)).toFixed(2);
+                    pdf.text('Balance:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${calculatedBalance}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                    yPosition += 6;
+                } else {
+                    // For CASH only payment method
+                    pdf.text('Amount Paid:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                    yPosition += 5;
+                    
+                    // Balance (common for CASH)
+                    pdf.text('Balance:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${receiptData.balance}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                    yPosition += 6;
+                }
+            } else if (receiptData.paymentMethod === 'CREDIT') {
+                // For CREDIT payment method
+                pdf.text('Amount Due:', leftMargin, yPosition);
+                pdf.text(`Rs. ${receiptData.total}`, pageWidth-rightMargin, yPosition, { align: 'right' });
                 yPosition += 5;
-                pdf.text('Balance:', leftMargin, yPosition);
+                
+                pdf.text('Credit Balance:', leftMargin, yPosition);
                 pdf.text(`Rs. ${receiptData.balance}`, pageWidth-rightMargin, yPosition, { align: 'right' });
                 yPosition += 6;
             }

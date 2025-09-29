@@ -136,16 +136,16 @@
         <div class="header">
             <div class="restaurant-name">RAVON BAKERS</div>
             <div style="font-size: 12px;">Restaurant & Bakery</div>
+            <div style="font-size: 10px; margin-top: 5px;">
+                <div>Address: 282/A 2, Kaduwela</div>
+                <div>Phone: 076 200 6007</div>
+            </div>
         </div>
         
         <div class="receipt-info">
             <div>
                 <span>RECEIPT NO:</span>
                 <span>{{ $sale->receipt_no }}</span>
-            </div>
-            <div>
-                <span>BRANCH:</span>
-                <span>{{ $sale->branch }}</span>
             </div>
             <div>
                 <span>TERMINAL:</span>
@@ -205,26 +205,15 @@
                 <span>Rs. {{ number_format($sale->balance, 2) }}</span>
             </div>
             @endif
-            
-            @if($sale->card_type)
-            <div>
-                <span>Card Type:</span>
-                <span>{{ $sale->card_type }}</span>
-            </div>
-            @endif
-            
-            @if($sale->card_no)
-            <div>
-                <span>Card No:</span>
-                <span>{{ $sale->card_no }}</span>
-            </div>
-            @endif
         </div>
         
         <div class="footer">
             <div>Thank you for visiting</div>
             <div><strong>RAVON RESTAURANT</strong></div>
             <div>Come again!</div>
+            <div style="margin-top: 10px; font-size: 8px; color: #666;">
+                <div>System by SKM Labs</div>
+            </div>
         </div>
     </div>
     

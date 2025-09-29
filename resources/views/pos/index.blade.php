@@ -852,6 +852,10 @@
             <div class="header">
                 <div class="restaurant-name">RAVON BAKERS</div>
                 <div style="font-size: 12px;">Restaurant & Bakery</div>
+                <div style="font-size: 10px; margin-top: 5px;">
+                    <div>Address: 282/A 2, Kaduwela</div>
+                    <div>Phone: 076 200 6007</div>
+                </div>
             </div>
             
             <div class="receipt-info">
@@ -906,22 +910,16 @@
                     </div>
                 </div>
                 
-                <div id="card-payment-details" style="display: none;">
-                    <div>
-                        <span>Card Type:</span>
-                        <span id="card-type-display"></span>
-                    </div>
-                    <div>
-                        <span>Card No:</span>
-                        <span id="card-no-display"></span>
-                    </div>
-                </div>
+
             </div>
             
             <div class="footer">
                 <div>Thank you for visiting</div>
                 <div><strong>RAVON RESTAURANT</strong></div>
                 <div>Come again!</div>
+                <div style="margin-top: 10px; font-size: 8px; color: #666;">
+                    <div>System by SKM Labs</div>
+                </div>
             </div>
         </div>
         
@@ -1414,7 +1412,6 @@
             
             // Show/hide payment details based on method
             const cashDetails = document.getElementById('cash-payment-details');
-            const cardDetails = document.getElementById('card-payment-details');
             
             if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
                 cashDetails.style.display = 'block';
@@ -1422,14 +1419,6 @@
                 document.getElementById('balance-display-receipt').textContent = `Rs. ${formatNumber(data.balance || 0)}`;
             } else {
                 cashDetails.style.display = 'none';
-            }
-            
-            if (selectedPaymentMethod === 'CARD' || selectedPaymentMethod === 'CARD & CASH') {
-                cardDetails.style.display = 'block';
-                document.getElementById('card-type-display').textContent = data.card_type || 'N/A';
-                document.getElementById('card-no-display').textContent = data.card_no || 'N/A';
-            } else {
-                cardDetails.style.display = 'none';
             }
         }
 

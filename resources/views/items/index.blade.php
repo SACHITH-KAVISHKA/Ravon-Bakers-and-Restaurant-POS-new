@@ -1,6 +1,9 @@
 <x-app-layout>
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">Item Management</h1>
+        <h1 class="h3 mb-0">
+            <i class="bi bi-box-seam me-2"></i>
+            Item Management
+        </h1>
         @can('create', App\Models\Item::class)
         <a href="{{ route('items.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add New Item

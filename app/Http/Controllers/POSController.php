@@ -22,9 +22,7 @@ class POSController extends Controller
         
         $items = Item::with('inventory')
             ->where('is_active', true)
-            ->whereHas('inventory', function ($query) {
-                $query->where('current_stock', '>', 0);
-            })
+            ->inStock()
             ->orderBy('category')
             ->get()
             ->groupBy('category');
@@ -39,12 +37,11 @@ class POSController extends Controller
             'items.*.id' => 'required|exists:items,id',
             'items.*.quantity' => 'required|integer|min:1',
             'payment_method' => 'required|in:CASH,CARD,CARD & CASH,CREDIT,COMPLIMENTARY,ONLINE',
-            'card_type' => 'nullable|string',
-            'card_no' => 'nullable|string',
             'customer_payment' => 'nullable|numeric|min:0',
         ]);
 
         // Generate receipt number: RCP + year(last digit) + month + date + auto number (0001-9999)
+        // The counter resets to 0001 every day
         $today = now();
         $datePrefix = $today->format('ymd'); // Last 2 digits of year + month + date
         $dailyCount = Sale::whereDate('created_at', $today->toDateString())->count() + 1;
@@ -109,7 +106,6 @@ class POSController extends Controller
             // Create sale record
             $sale = Sale::create([
                 'receipt_no' => $receiptNo,
-                'branch' => 'KOTHALAWALA',
                 'terminal' => '01',
                 'user_name' => Auth::user()->name,
                 'subtotal' => $subtotal,
@@ -125,8 +121,6 @@ class POSController extends Controller
                     'ONLINE' => 'online',
                     default => 'cash'
                 },
-                'card_type' => $request->card_type,
-                'card_no' => $request->card_no,
                 'customer_payment' => $customerPayment,
                 'balance' => $balance,
             ]);
@@ -138,11 +132,10 @@ class POSController extends Controller
                 $saleItem['sale_id'] = $sale->id;
                 SaleItem::create($saleItem);
 
-                // Update inventory
-                $inventory = Inventory::where('item_id', $saleItem['item_id'])->first();
-                if ($inventory) {
-                    $inventory->current_stock -= $saleItem['quantity'];
-                    $inventory->save();
+                // Use the Item model's reduceStock method for consistency
+                $item = Item::with('inventory')->find($saleItem['item_id']);
+                if ($item) {
+                    $item->reduceStock($saleItem['quantity']);
                 }
             }
 
@@ -157,8 +150,6 @@ class POSController extends Controller
             'total' => number_format($total, 2),
             'customer_payment' => number_format($customerPayment, 2),
             'balance' => number_format($balance, 2),
-            'card_type' => $request->card_type,
-            'card_no' => $request->card_no,
             'redirect_url' => route('pos.receipt', $saleId)
         ]);
     }

@@ -1,6 +1,8 @@
 <x-app-layout>
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Daily Sales Report</h1>
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="bi bi-bar-chart-fill me-2"></i> Daily Sales Report
+        </h1>
         <div class="text-muted">
             <i class="bi bi-calendar3"></i>
             {{ now()->format('l, F j, Y') }}

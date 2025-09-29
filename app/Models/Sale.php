@@ -9,7 +9,6 @@ class Sale extends Model
 {
     protected $fillable = [
         'receipt_no',
-        'branch',
         'terminal',
         'user_name',
         'subtotal',
@@ -17,8 +16,6 @@ class Sale extends Model
         'tax',
         'total',
         'payment_method',
-        'card_type',
-        'card_no',
         'customer_payment',
         'balance',
     ];

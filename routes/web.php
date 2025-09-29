@@ -28,6 +28,13 @@ Route::middleware('auth')->group(function () {
 
     // Item Management - All users can view, only admin can modify
     Route::resource('items', ItemController::class);
+    
+    // Stock Management routes (admin only)
+    Route::middleware('can:manage-users')->group(function () {
+        Route::post('/items/{item}/update-stock', [ItemController::class, 'updateStock'])->name('items.update-stock');
+        Route::get('/items/low-stock', [ItemController::class, 'lowStockItems'])->name('items.low-stock');
+        Route::get('/items/out-of-stock', [ItemController::class, 'outOfStockItems'])->name('items.out-of-stock');
+    });
 
     // Category Management - All users can view, only admin can modify
     Route::resource('categories', CategoryController::class);

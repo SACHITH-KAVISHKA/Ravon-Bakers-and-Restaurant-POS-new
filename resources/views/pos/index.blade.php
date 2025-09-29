@@ -182,14 +182,27 @@
             line-height: 1.3;
         }
         
-        .item-code {
+        .item-stock {
             font-size: 11px;
             color: #6c757d;
-            background: #f8f9fa;
+            background: #e8f5e8;
             padding: 2px 6px;
             border-radius: 4px;
             margin-bottom: 8px;
             display: inline-block;
+            border: 1px solid #d4edda;
+        }
+        
+        .item-stock.low-stock {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .item-stock.out-of-stock {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         
         .item-price {
@@ -729,15 +742,24 @@
                 <div class="items-grid" id="items-container">
                     @foreach($items as $category => $categoryItems)
                         @foreach($categoryItems as $item)
+                            @php
+                                $currentStock = $item->getCurrentStock();
+                                $stockClass = '';
+                                if ($currentStock == 0) {
+                                    $stockClass = 'out-of-stock';
+                                } elseif ($currentStock <= 5) {
+                                    $stockClass = 'low-stock';
+                                }
+                            @endphp
                             <div class="item-card" 
                                  data-category="{{ $category }}" 
                                  data-item-id="{{ $item->id }}" 
                                  data-item-name="{{ $item->item_name }}" 
-                                 data-item-code="{{ $item->item_code }}" 
                                  data-item-price="{{ $item->price }}" 
+                                 data-item-stock="{{ $item->getCurrentStock() }}"
                                  onclick="addToCartFromCard(this)">
                                 <div class="item-name">{{ $item->item_name }}</div>
-                                <div class="item-code">{{ $item->item_code }}</div>
+                                <div class="item-stock {{ $stockClass }}">Available: {{ $item->getCurrentStock() }}</div>
                                 <div class="item-price">Rs. {{ number_format($item->price, 2) }}</div>
                             </div>
                         @endforeach
@@ -980,25 +1002,30 @@
         function addToCartFromCard(card) {
             const itemId = parseInt(card.dataset.itemId);
             const itemName = card.dataset.itemName;
-            const itemCode = card.dataset.itemCode;
             const price = parseFloat(card.dataset.itemPrice);
+            const availableStock = parseInt(card.dataset.itemStock);
             
-            addToCart(itemId, itemName, itemCode, price);
+            addToCart(itemId, itemName, price, availableStock);
         }
 
         // Add item to cart
-        function addToCart(itemId, itemName, itemCode, price) {
+        function addToCart(itemId, itemName, price, availableStock) {
             const existingItem = cart.find(item => item.id === itemId);
             
             if (existingItem) {
-                existingItem.quantity += 1;
+                if (existingItem.quantity < availableStock) {
+                    existingItem.quantity += 1;
+                } else {
+                    showError(`Only ${availableStock} items available in stock`);
+                    return;
+                }
             } else {
                 cart.push({
                     id: itemId,
                     name: itemName,
-                    code: itemCode,
                     price: parseFloat(price),
-                    quantity: 1
+                    quantity: 1,
+                    availableStock: availableStock
                 });
             }
             
@@ -1016,6 +1043,10 @@
             const item = cart.find(item => item.id === itemId);
             if (item) {
                 const newQuantity = Math.max(1, parseInt(quantity));
+                if (newQuantity > item.availableStock) {
+                    showError(`Only ${item.availableStock} items available in stock`);
+                    return;
+                }
                 item.quantity = newQuantity;
                 updateCartDisplay();
             }
@@ -1042,14 +1073,14 @@
                         <div class="cart-item">
                             <div class="cart-item-details">
                                 <div class="cart-item-name">${item.name}</div>
-                                <div class="cart-item-price">${item.code} - Rs. ${item.price.toFixed(2)} each</div>
+                                <div class="cart-item-price">Rs. ${item.price.toFixed(2)} each | Stock: ${item.availableStock || 'N/A'}</div>
                             </div>
                             <div class="quantity-controls">
                                 <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">
                                     <i class="bi bi-dash"></i>
                                 </button>
                                 <input type="number" class="qty-input" value="${item.quantity}" 
-                                       onchange="updateQuantity(${item.id}, this.value)" min="1">
+                                       onchange="updateQuantity(${item.id}, this.value)" min="1" max="${item.availableStock || 999}">
                                 <button type="button" class="qty-btn plus" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">
                                     <i class="bi bi-plus"></i>
                                 </button>
@@ -1353,9 +1384,8 @@
             
             items.forEach(item => {
                 const itemName = item.dataset.itemName.toLowerCase();
-                const itemCode = item.dataset.itemCode.toLowerCase();
                 
-                if (itemName.includes(searchTerm) || itemCode.includes(searchTerm)) {
+                if (itemName.includes(searchTerm)) {
                     item.style.display = 'block';
                 } else {
                     item.style.display = 'none';

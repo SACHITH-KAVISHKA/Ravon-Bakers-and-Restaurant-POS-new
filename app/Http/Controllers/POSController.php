@@ -22,9 +22,7 @@ class POSController extends Controller
         
         $items = Item::with('inventory')
             ->where('is_active', true)
-            ->whereHas('inventory', function ($query) {
-                $query->where('current_stock', '>', 0);
-            })
+            ->inStock()
             ->orderBy('category')
             ->get()
             ->groupBy('category');
@@ -134,11 +132,10 @@ class POSController extends Controller
                 $saleItem['sale_id'] = $sale->id;
                 SaleItem::create($saleItem);
 
-                // Update inventory
-                $inventory = Inventory::where('item_id', $saleItem['item_id'])->first();
-                if ($inventory) {
-                    $inventory->current_stock -= $saleItem['quantity'];
-                    $inventory->save();
+                // Use the Item model's reduceStock method for consistency
+                $item = Item::with('inventory')->find($saleItem['item_id']);
+                if ($item) {
+                    $item->reduceStock($saleItem['quantity']);
                 }
             }
 

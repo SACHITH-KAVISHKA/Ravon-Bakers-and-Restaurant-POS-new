@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo.jpg') }}">
+    
     <title>Ravon Bakers - POS System</title>
     
     <!-- Bootstrap CSS -->
@@ -691,7 +697,8 @@
             <span id="current-time">{{ now()->format('d/m/Y H:i:s') }}</span>
         </div>
         <div class="header-center">
-            <i class="bi bi-shop"></i> RAVON BAKERS - POS SYSTEM
+            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%; vertical-align: middle;">
+            RAVON BAKERS - POS SYSTEM
         </div>
         <div class="header-right">
             <button class="header-btn" onclick="clearAllOrders()" style="margin-right: 10px; background: #dc3545;">
@@ -872,6 +879,9 @@
     <template id="receiptTemplate">
         <div class="receipt">
             <div class="header">
+                <div style="text-align: center; margin-bottom: 10px;">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 40px; height: 40px; border-radius: 50%; margin-bottom: 8px;">
+                </div>
                 <div class="restaurant-name">RAVON BAKERS</div>
                 <div style="font-size: 12px;">Restaurant & Bakery</div>
                 <div style="font-size: 10px; margin-top: 5px;">

@@ -16,6 +16,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
         body {
             background: #f8f9fa;
@@ -650,38 +654,6 @@
             transform: translateY(-2px);
             filter: brightness(110%);
         }
-
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            
-            #receiptModal, #receiptModal * {
-                visibility: visible;
-            }
-
-            #receiptModal {
-                position: absolute;
-                left: 0;
-                top: 0;
-            }
-
-            .receipt {
-                padding: 0;
-            }
-            
-            .receipt-actions {
-                display: none !important;
-            }
-
-            .btn-close {
-                display: none;
-            }
-
-            .modal-header {
-                display: none;
-            }
-        }
     </style>
 </head>
 <body>
@@ -956,8 +928,8 @@
         </div>
         
         <div class="receipt-actions">
-            <button type="button" class="print-btn" onclick="window.print()">
-                <i class="bi bi-printer"></i> Print Receipt
+            <button type="button" class="print-btn" onclick="downloadReceiptPDF()">
+                <i class="bi bi-download"></i> Download PDF
             </button>
             <button type="button" class="new-order-btn" onclick="startNewOrder()">
                 <i class="bi bi-plus-circle"></i> New Order
@@ -1350,6 +1322,14 @@
                     // Show success modal briefly
                     showSuccess('Payment Successful!');
                     
+                    // Store cart data before clearing for PDF generation
+                    window.lastSaleData = {
+                        cart: [...cart],
+                        paymentMethod: selectedPaymentMethod,
+                        customerPayment: customerPayment,
+                        receiptData: data
+                    };
+                    
                     // Populate and show receipt modal
                     populateReceipt(data);
                     
@@ -1419,7 +1399,8 @@
             // Populate items
             const itemsContainer = document.getElementById('receipt-items');
             let itemsHtml = '';
-            cart.forEach(item => {
+            const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
+            cartData.forEach(item => {
                 itemsHtml += `
                     <div class="item">
                         <div class="item-details">
@@ -1474,6 +1455,203 @@
             
             // Hide receipt modal
             bootstrap.Modal.getInstance(document.getElementById('receiptModal')).hide();
+        }
+
+        // Download receipt as PDF
+        function downloadReceiptPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [80, 200] // Receipt paper size
+            });
+
+            // Get stored cart data or use current cart
+            const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
+            const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
+            const customerPaymentAmount = window.lastSaleData ? window.lastSaleData.customerPayment : parseFloat(document.getElementById('customer-payment').value) || 0;
+            
+            // Calculate totals
+            const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const balance = customerPaymentAmount - subtotal;
+
+            // Get receipt data with detailed information
+            const receiptData = {
+                receiptNo: document.getElementById('receipt-no-display') ? document.getElementById('receipt-no-display').textContent : document.getElementById('receipt-no').textContent,
+                userName: '{{ Auth::user()->name }}',
+                date: new Date().toLocaleDateString('en-GB'),
+                time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
+                subtotal: `Rs. ${subtotal.toFixed(2)}`,
+                total: `Rs. ${subtotal.toFixed(2)}`,
+                paymentMethod: paymentMethod,
+                showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
+                amountPaid: `Rs. ${customerPaymentAmount.toFixed(2)}`,
+                balance: `Rs. ${balance.toFixed(2)}`,
+                items: cartData.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    subtotal: item.price * item.quantity
+                }))
+            };
+
+            // PDF generation code
+            let yPosition = 10;
+            const lineHeight = 3.5;
+            const pageWidth = 80;
+            
+            // Add RB logo circle
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
+            pdf.circle(pageWidth/2, yPosition + 5, 8);
+            pdf.text('RB', pageWidth/2, yPosition + 7, { align: 'center' });
+            yPosition += 18;
+            
+            // Header - Company Name
+            pdf.setFontSize(14);
+            pdf.setFont('courier', 'bold');
+            pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 6;
+            
+            pdf.setFontSize(10);
+            pdf.setFont('courier', 'normal');
+            pdf.text('Restaurant & Bakery', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 5;
+            
+            pdf.setFontSize(8);
+            pdf.text('Address: 282/A 2, Kaduwela', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.text('Phone: 076 200 6007', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 8;
+            
+            // Draw thick line
+            pdf.setLineWidth(0.5);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            yPosition += 6;
+            
+            // Receipt info section
+            pdf.setFontSize(9);
+            pdf.setFont('courier', 'normal');
+            
+            // Receipt details with proper spacing
+            pdf.text('RECEIPT NO:', 5, yPosition);
+            pdf.text(receiptData.receiptNo, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+            
+            pdf.text('USER:', 5, yPosition);
+            pdf.text(receiptData.userName, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+            
+            pdf.text('DATE:', 5, yPosition);
+            pdf.text(receiptData.date, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+            
+            pdf.text('TIME:', 5, yPosition);
+            pdf.text(receiptData.time, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 8;
+            
+            // Items section header
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 6;
+            
+            // Items details
+            receiptData.items.forEach((item, index) => {
+                // Item name (bold)
+                pdf.setFont('courier', 'bold');
+                pdf.setFontSize(9);
+                pdf.text(item.name, 5, yPosition);
+                yPosition += 5;
+                
+                // Quantity x Unit Price = Subtotal
+                pdf.setFont('courier', 'normal');
+                pdf.setFontSize(8);
+                const qtyPriceText = `${item.quantity} x Rs. ${item.unitPrice.toFixed(2)}`;
+                const subtotalText = `Rs. ${item.subtotal.toFixed(2)}`;
+                
+                pdf.text(qtyPriceText, 5, yPosition);
+                pdf.text(subtotalText, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 6;
+                
+                // Add small gap between items
+                if (index < receiptData.items.length - 1) {
+                    yPosition += 2;
+                }
+            });
+            
+            // Dotted line before totals
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 6;
+            
+            // Totals section
+            pdf.setFont('courier', 'normal');
+            pdf.setFontSize(9);
+            pdf.text('Sub Total:', 5, yPosition);
+            pdf.text(receiptData.subtotal, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 6;
+            
+            // TOTAL in bold
+            pdf.setFont('courier', 'bold');
+            pdf.setFontSize(11);
+            pdf.text('TOTAL:', 5, yPosition);
+            pdf.text(receiptData.total, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 8;
+            
+            // Dotted line before payment
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 6;
+            
+            // Payment information section
+            pdf.setFontSize(9);
+            pdf.setFont('courier', 'normal');
+            pdf.text('Payment Method:', 5, yPosition);
+            pdf.text(receiptData.paymentMethod, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 6;
+            
+            // Cash payment details if applicable
+            if (receiptData.showCashDetails) {
+                pdf.text('Amount Paid:', 5, yPosition);
+                pdf.text(receiptData.amountPaid, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 5;
+                
+                pdf.text('Balance:', 5, yPosition);
+                pdf.text(receiptData.balance, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 6;
+            }
+            
+            // Bottom dotted line
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 8;
+            
+            // Footer
+            pdf.setFontSize(8);
+            pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.setFont('courier', 'bold');
+            pdf.text('RAVON RESTAURANT', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.setFont('courier', 'normal');
+            pdf.text('Come again!', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 8;
+            
+            pdf.setFontSize(6);
+            pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
+            
+            // Generate filename
+            const filename = `Receipt_${receiptData.receiptNo}_${new Date().toISOString().slice(0,10)}.pdf`;
+            
+            // Download the PDF
+            pdf.save(filename);
+            
+            // Show success message
+            showSuccess('Receipt PDF downloaded successfully!');
         }
 
         // Initialize on page load

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt - {{ $sale->receipt_no }}</title>
+    
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body {
             font-family: 'Courier New', monospace;
@@ -238,6 +241,26 @@
             </svg>
             Print Receipt
         </button>
+        <button type="button" onclick="downloadReceiptPDF()" style="
+            background: linear-gradient(135deg, #fd7e14 0%, #e55a1b 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(253, 126, 20, 0.3);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+            </svg>
+            Download PDF
+        </button>
         <a href="#" onclick="startNewOrder()" style="
             background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
             color: white;
@@ -277,7 +300,181 @@
         }
     </style>
     
+    <!-- Receipt Data for PDF -->
+    <script type="application/json" id="receipt-data">
+        {
+            "receiptNo": "{{ $sale->receipt_no }}",
+            "userName": "{{ $sale->user_name }}",
+            "date": "{{ $sale->created_at->format('d/m/Y') }}",
+            "time": "{{ $sale->created_at->format('H:i:s') }}",
+            "subtotal": "{{ number_format($sale->subtotal, 2) }}",
+            "total": "{{ number_format($sale->total, 2) }}",
+            "paymentMethod": "{{ $sale->payment_method }}",
+            @if(in_array($sale->payment_method, ['CASH', 'CARD & CASH']) && $sale->customer_payment)
+            "amountPaid": "{{ number_format($sale->customer_payment, 2) }}",
+            "balance": "{{ number_format($sale->balance, 2) }}",
+            "showCashDetails": true,
+            @else
+            "showCashDetails": false,
+            @endif
+            "items": [
+                @foreach($sale->saleItems as $item)
+                {
+                    "name": "{{ addslashes($item->item_name) }}",
+                    "quantity": {{ $item->quantity }},
+                    "unitPrice": "{{ number_format($item->unit_price, 2) }}",
+                    "totalPrice": "{{ number_format($item->total_price, 2) }}"
+                }@if(!$loop->last),@endif
+                @endforeach
+            ]
+        }
+    </script>
+
     <script>
+        // Function to download receipt as PDF
+        function downloadReceiptPDF() {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [80, 200] // Receipt paper size
+            });
+
+            // Get receipt data
+            const receiptData = JSON.parse(document.getElementById('receipt-data').textContent);
+
+            // PDF generation code
+            let yPosition = 10;
+            const lineHeight = 3.5;
+            const pageWidth = 80;
+            
+            // Add RB logo circle
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
+            pdf.circle(pageWidth/2, yPosition + 5, 8);
+            pdf.text('RB', pageWidth/2, yPosition + 7, { align: 'center' });
+            yPosition += 18;
+            
+            // Header - Company Name
+            pdf.setFontSize(14);
+            pdf.setFont('courier', 'bold');
+            pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 6;
+            
+            pdf.setFontSize(10);
+            pdf.setFont('courier', 'normal');
+            pdf.text('Restaurant & Bakery', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 5;
+            
+            pdf.setFontSize(8);
+            pdf.text('Address: 282/A 2, Kaduwela', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.text('Phone: 076 200 6007', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 8;
+            
+            // Draw thick line
+            pdf.setLineWidth(0.5);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            yPosition += 6;
+            
+            // Receipt info section
+            pdf.setFontSize(9);
+            pdf.setFont('courier', 'normal');
+            
+            // Receipt details with proper spacing
+            pdf.text('RECEIPT NO:', 5, yPosition);
+            pdf.text(receiptData.receiptNo, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+            
+            pdf.text('USER:', 5, yPosition);
+            pdf.text(receiptData.userName, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+            
+            pdf.text('DATE:', 5, yPosition);
+            pdf.text(receiptData.date, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+            
+            pdf.text('TIME:', 5, yPosition);
+            pdf.text(receiptData.time, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 8;
+            
+            // Items section
+            receiptData.items.forEach(item => {
+                // Item name with total price on same line
+                pdf.setFont('courier', 'bold');
+                pdf.text(item.name, 5, yPosition);
+                pdf.text(`Rs. ${item.totalPrice}`, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 4;
+                
+                // Quantity and unit price on next line
+                pdf.setFont('courier', 'normal');
+                pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, 5, yPosition);
+                yPosition += 6;
+            });
+            
+            // Dotted line
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 6;
+            
+            // Totals section
+            pdf.setFont('courier', 'normal');
+            pdf.text('Sub Total:', 5, yPosition);
+            pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 6;
+            
+            // TOTAL in bold
+            pdf.setFont('courier', 'bold');
+            pdf.setFontSize(11);
+            pdf.text('TOTAL:', 5, yPosition);
+            pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 8;
+            
+            // Payment info
+            pdf.setFontSize(9);
+            pdf.setFont('courier', 'normal');
+            pdf.text('Payment Method:', 5, yPosition);
+            pdf.text(receiptData.paymentMethod, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 6;
+            
+            // Cash payment details if applicable
+            if (receiptData.showCashDetails) {
+                pdf.text('Amount Paid:', 5, yPosition);
+                pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 5;
+                pdf.text('Balance:', 5, yPosition);
+                pdf.text(`Rs. ${receiptData.balance}`, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 6;
+            }
+            
+            // Bottom dotted line
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 8;
+            
+            // Footer
+            pdf.setFontSize(8);
+            pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.setFont('courier', 'bold');
+            pdf.text('RAVON RESTAURANT', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.setFont('courier', 'normal');
+            pdf.text('Come again!', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 8;
+            
+            pdf.setFontSize(6);
+            pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
+            
+            // Generate filename
+            const filename = `Receipt_${receiptData.receiptNo}_{{ $sale->created_at->format("Y-m-d") }}.pdf`;
+            
+            // Download the PDF
+            pdf.save(filename);
+        }
+
         // Function to start a new order
         function startNewOrder() {
             // Show loading state

@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'Ravon Bakers') }} - Restaurant Management System</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
+    <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo.jpg') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -27,6 +32,84 @@
             left: 0;
             width: 250px;
             z-index: 1000;
+        }
+        
+        .sidebar-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            object-fit: cover;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        
+        .sidebar-logo:hover {
+            border-color: rgba(255,255,255,0.6);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .sidebar.collapsed .sidebar-logo {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .sidebar.collapsed .sidebar-logo:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Fallback styling if logo fails to load */
+        .sidebar-logo-fallback {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            border: 3px solid rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar.collapsed .sidebar-logo-fallback {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar.collapsed .sidebar-header {
+            padding: 15px 10px;
+        }
+        
+        .sidebar-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            margin: 10px 0 5px 0;
+            letter-spacing: 1px;
+        }
+        
+        .sidebar-subtitle {
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            margin: 0;
+        }
+        
+        .sidebar.collapsed .sidebar-title,
+        .sidebar.collapsed .sidebar-subtitle {
+            display: none;
         }
         
         .sidebar.collapsed {
@@ -241,12 +324,15 @@
     <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
         <div class="position-sticky pt-3">
-            <div class="text-center mb-4">
-                <h4 class="text-white fw-bold">RAVON</h4>
-                <small class="text-white-50">Restaurant Management</small>
+            <div class="sidebar-header">
+                <a href="{{ route('dashboard') }}" style="text-decoration: none;">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                </a>
+                <h4 class="sidebar-title">RAVON</h4>
+                <p class="sidebar-subtitle">Bakers & Restaurant</p>
             </div>
             
-            <ul class="nav flex-column">
+            <ul class="nav flex-column px-3">
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" 
                        href="{{ route('dashboard') }}">
@@ -306,9 +392,9 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                         
-                        <a class="navbar-brand" href="{{ route('dashboard') }}">
-                            <i class="bi bi-shop"></i>
-                            Ravon Restaurant
+                        <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
+                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                            <span>Ravon Restaurant</span>
                         </a>
                         
                         <div class="d-flex align-items-center">

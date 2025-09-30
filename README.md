@@ -1,61 +1,245 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🍞 Ravon Bakers & Restaurant POS System
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="public/images/logo.jpg" width="200" alt="Ravon Bakers Logo" style="border-radius: 50%;">
 </p>
 
-## About Laravel
+<p align="center">
+  <strong>A Complete Restaurant Management & Point of Sale System</strong>
+</p>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+<p align="center">
+  <img src="https://img.shields.io/badge/Laravel-11-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 11">
+  <img src="https://img.shields.io/badge/PHP-8.1+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP">
+  <img src="https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white" alt="Bootstrap">
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite">
+</p>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📋 About Ravon Bakers POS
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Ravon Bakers POS is a comprehensive restaurant management system designed specifically for bakeries and restaurants. Built with Laravel 11, it provides a complete solution for managing daily operations, inventory, sales, and customer transactions.
 
-## Learning Laravel
+### 🎯 Key Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- **🛒 Point of Sale (POS) System** - Modern, intuitive interface for order processing
+- **📦 Inventory Management** - Real-time stock tracking with automatic updates
+- **👥 User Management** - Role-based access control (Admin/Staff)
+- **📊 Sales Reporting** - Daily sales reports and analytics
+- **🏷️ Category Management** - Organize items by categories (Bakery, Beverages, etc.)
+- **💳 Multiple Payment Methods** - Cash, Card, Credit, and Mixed payments
+- **🧾 Receipt Generation** - Professional receipts with logo branding
+- **📱 Responsive Design** - Works on desktop, tablet, and mobile devices
+- **🔄 Stock Automation** - Automatic inventory reduction on sales
+- **♻️ Soft Delete System** - Item reactivation without data loss
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 🚀 Quick Start
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Prerequisites
 
-## Laravel Sponsors
+- **PHP** >= 8.1
+- **Composer** 
+- **Node.js** & npm (for asset compilation)
+- **SQLite** (included with PHP)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Installation
 
-### Premium Partners
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/SACHITH-KAVISHKA/Ravon-Bakers-and-Restaurant-POS-new.git
+   cd Ravon-Bakers-and-Restaurant-POS-new
+   ```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+2. **Install PHP dependencies**
+   ```bash
+   composer install
+   ```
 
-## Contributing
+3. **Install Node.js dependencies**
+   ```bash
+   npm install
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+4. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-## Code of Conduct
+5. **Database setup**
+   ```bash
+   php artisan migrate
+   php artisan db:seed
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+6. **Build assets**
+   ```bash
+   npm run build
+   ```
 
-## Security Vulnerabilities
+7. **Start the development server**
+   ```bash
+   php artisan serve
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+8. **Access the application**
+   - Open your browser and visit: `http://localhost:8000`
+   - Default admin credentials will be provided after seeding
 
-## License
+## 🖥️ System Requirements
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| PHP | 8.1 | 8.2+ |
+| Memory | 512MB | 1GB+ |
+| Storage | 1GB | 2GB+ |
+| Database | SQLite | SQLite/MySQL |
+
+## 📱 Features Overview
+
+### 🏪 Point of Sale Interface
+- **Category-based item selection**
+- **Real-time cart management**
+- **Stock validation**
+- **Multiple payment processing**
+- **Receipt printing**
+- **Fullscreen mode**
+
+### 📦 Inventory Management
+- **Add/Edit/Delete items**
+- **Stock quantity tracking**
+- **Low stock alerts**
+- **Category organization**
+- **Price management**
+- **Soft delete with reactivation**
+
+### 👨‍💼 User Management
+- **Role-based permissions**
+- **Admin and Staff roles**
+- **User registration (Admin only)**
+- **Profile management**
+
+### 📊 Reporting
+- **Daily sales reports**
+- **Item-wise sales analysis**
+- **Payment method breakdown**
+- **Export capabilities**
+
+## 🛠️ Configuration
+
+### Database Configuration
+The system uses SQLite by default. To switch to MySQL:
+
+1. Update `.env` file:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=ravon_pos
+   DB_USERNAME=your_username
+   DB_PASSWORD=your_password
+   ```
+
+### Logo Setup
+1. Place your logo as `logo.jpg` in `public/images/`
+2. The logo will automatically appear in:
+   - Sidebar navigation
+   - POS header
+   - Receipt templates
+   - Browser favicon
+
+## 🚦 Running in Production
+
+### Production Deployment
+
+1. **Optimize for production**
+   ```bash
+   composer install --optimize-autoloader --no-dev
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   ```
+
+2. **Set production environment**
+   ```env
+   APP_ENV=production
+   APP_DEBUG=false
+   ```
+
+3. **Configure web server** (Apache/Nginx)
+   - Point document root to `public/` directory
+   - Configure URL rewriting
+
+## 🔧 Maintenance Commands
+
+```bash
+# Clear all caches
+php artisan optimize:clear
+
+# Backup database
+php artisan backup:run
+
+# Check system status
+php artisan about
+
+# Run queue workers (if using)
+php artisan queue:work
+```
+
+## 📚 Usage Guide
+
+### First Time Setup
+
+1. **Admin Login** - Use seeded admin credentials
+2. **Add Categories** - Create item categories (Bakery, Beverages, etc.)
+3. **Add Items** - Set up your menu items with prices and stock
+4. **Create Staff Users** - Add staff members with appropriate roles
+5. **Start Selling** - Access POS system and begin processing orders
+
+### Daily Operations
+
+1. **Morning Setup** - Check inventory levels
+2. **Process Sales** - Use POS for customer transactions
+3. **Monitor Stock** - Track low stock items
+4. **End of Day** - Generate sales reports
+
+## 🤝 Contributing
+
+We welcome contributions to improve the Ravon Bakers POS system!
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 🆘 Support
+
+If you encounter any issues or need support:
+
+1. Check the [Issues](https://github.com/SACHITH-KAVISHKA/Ravon-Bakers-and-Restaurant-POS-new/issues) page
+2. Create a new issue with detailed information
+3. Contact the development team
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👨‍💻 Development Team
+
+- **Lead Developer**: Sachith Kavishka
+- **System Design**: SKM Labs
+- **UI/UX**: Modern Bootstrap 5 Implementation
+
+## 🙏 Acknowledgments
+
+- Built with [Laravel](https://laravel.com) - The PHP Framework for Web Artisans
+- UI Components powered by [Bootstrap 5](https://getbootstrap.com)
+- Icons by [Bootstrap Icons](https://icons.getbootstrap.com)
+- Database management with [SQLite](https://sqlite.org)
+
+---
+
+<p align="center">
+  <strong>🍞 Made with ❤️ for Ravon Bakers & Restaurant</strong><br>
+  <em>Powering efficient restaurant operations since 2025</em>
+</p>

@@ -383,11 +383,20 @@
             cursor: pointer;
             transition: all 0.2s ease;
             min-height: 45px;
+            position: relative;
+            outline: none;
         }
         
         .number-btn:hover {
             background: #0056b3;
             transform: scale(1.02);
+        }
+        
+        .number-btn:active,
+        .number-btn.pressed {
+            background: #004085;
+            transform: scale(0.98);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
         
         .number-btn.clear {
@@ -396,6 +405,57 @@
         
         .number-btn.clear:hover {
             background: #c82333;
+        }
+        
+        .number-btn.clear:active,
+        .number-btn.clear.pressed {
+            background: #a71e2a;
+        }
+        
+        /* Quick Amount Buttons */
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 3px;
+            margin-top: 6px;
+        }
+        
+        .quick-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 4px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 30px;
+        }
+        
+        .quick-btn:hover {
+            background: #218838;
+            transform: scale(1.02);
+        }
+        
+        .quick-btn:active,
+        .quick-btn.pressed {
+            background: #1e7e34;
+            transform: scale(0.98);
+        }
+        
+        .quick-btn.exact-btn {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .quick-btn.exact-btn:hover {
+            background: #e0a800;
+        }
+        
+        .quick-btn.exact-btn:active,
+        .quick-btn.exact-btn.pressed {
+            background: #d39e00;
         }
         
         .payment-section {
@@ -458,16 +518,63 @@
             font-weight: 600;
             color: #856404;
             margin-bottom: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .cash-input-label small {
+            color: #6c757d;
+            font-weight: normal;
+            font-style: italic;
+        }
+        
+        .input-mode-toggle {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 8px;
+        }
+        
+        .input-mode-toggle:hover {
+            background: #0056b3;
+        }
+        
+        .input-mode-toggle.touch-only {
+            background: #6c757d;
+        }
+        
+        .input-mode-toggle.touch-only:hover {
+            background: #545b62;
         }
         
         .cash-input {
             width: 100%;
-            padding: 5px 8px;
-            border: 1px solid #d4ac0d;
-            border-radius: 6px;
-            font-size: 12px;
+            padding: 8px 12px;
+            border: 2px solid #d4ac0d;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: bold;
             text-align: center;
+            background: #fff;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .cash-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            background: #f8f9fa;
+        }
+        
+        .cash-input:hover {
+            border-color: #b8860b;
         }
         
         .balance-display {
@@ -799,8 +906,20 @@
                     <!-- Cash Input Section -->
                     <div class="cash-input-section show" id="cash-input-section">
                         <div class="cash-input-group">
-                            <div class="cash-input-label">Customer Payment</div>
-                            <input type="number" class="cash-input" id="customer-payment" placeholder="0.00" readonly>
+                            <div class="cash-input-label">
+                                Customer Payment 
+                            
+                                <button type="button" class="input-mode-toggle" id="input-mode-toggle" 
+                                        onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
+                                    <i class="bi bi-keyboard"></i>
+                                </button>
+                            </div>
+                            <input type="number" class="cash-input" id="customer-payment" placeholder="0.00" 
+                                   step="0.01" min="0" 
+                                   oninput="handleKeyboardInput()" 
+                                   onkeydown="handleKeyboardKeys(event)"
+                                   onfocus="this.select()"
+                                   title="Enter payment amount using keyboard or touch pad below">
                             
                             <!-- Number Pad -->
                             <div class="number-pad">
@@ -817,6 +936,7 @@
                                 <button type="button" class="number-btn" onclick="addToPayment('.')">.</button>
                                 <button type="button" class="number-btn clear" onclick="clearPayment()">CLR</button>
                             </div>
+<!--                          -->
                         </div>
                         <div class="balance-display" id="balance-display">
                             Balance: Rs. 0.00
@@ -1218,28 +1338,171 @@
             }
         }
 
+        // Input mode management
+        let keyboardInputEnabled = true;
+        
+        function toggleInputMode() {
+            keyboardInputEnabled = !keyboardInputEnabled;
+            const toggle = document.getElementById('input-mode-toggle');
+            const input = document.getElementById('customer-payment');
+            
+            if (keyboardInputEnabled) {
+                toggle.innerHTML = '<i class="bi bi-keyboard"></i>';
+                toggle.classList.remove('touch-only');
+                toggle.title = 'Switch to touch-only mode';
+                input.removeAttribute('readonly');
+                input.title = 'Enter payment amount using keyboard or touch pad below';
+            } else {
+                toggle.innerHTML = '<i class="bi bi-hand-index"></i>';
+                toggle.classList.add('touch-only');
+                toggle.title = 'Switch to keyboard input mode';
+                input.setAttribute('readonly', true);
+                input.title = 'Use touch pad below to enter payment amount';
+            }
+        }
+
         // Number pad functions
         function addToPayment(digit) {
             const input = document.getElementById('customer-payment');
             let currentValue = input.value || '0';
+            
+            // Highlight the pressed button
+            highlightNumberButton(digit);
             
             if (digit === '.') {
                 if (!currentValue.includes('.')) {
                     input.value = currentValue + '.';
                 }
             } else {
-                if (currentValue === '0') {
+                if (currentValue === '0' || currentValue === '0.00') {
                     input.value = digit;
                 } else {
                     input.value = currentValue + digit;
                 }
             }
             
+            // Trigger input event to ensure consistency
+            input.dispatchEvent(new Event('input'));
             calculateBalance();
         }
 
+        // Handle keyboard input
+        function handleKeyboardInput() {
+            if (!keyboardInputEnabled) return;
+            
+            const input = document.getElementById('customer-payment');
+            let value = input.value;
+            
+            // Validate input
+            if (value === '' || value === null) {
+                input.value = '0';
+                value = '0';
+            }
+            
+            // Ensure only valid numbers
+            if (isNaN(parseFloat(value))) {
+                input.value = '0';
+            }
+            
+            calculateBalance();
+        }
+        
+        // Handle special keyboard keys
+        function handleKeyboardKeys(event) {
+            if (!keyboardInputEnabled) {
+                event.preventDefault();
+                return;
+            }
+            
+            // Allow backspace, delete, tab, escape, enter
+            if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (event.keyCode === 65 && event.ctrlKey === true) ||
+                (event.keyCode === 67 && event.ctrlKey === true) ||
+                (event.keyCode === 86 && event.ctrlKey === true) ||
+                (event.keyCode === 88 && event.ctrlKey === true) ||
+                // Allow home, end, left, right
+                (event.keyCode >= 35 && event.keyCode <= 39)) {
+                return;
+            }
+            
+            // Ensure that it is a number or decimal point and stop the keypress
+            if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) && 
+                (event.keyCode < 96 || event.keyCode > 105) && 
+                event.keyCode !== 110 && event.keyCode !== 190) {
+                event.preventDefault();
+            }
+            
+            // Prevent multiple decimal points
+            if ((event.keyCode === 110 || event.keyCode === 190) && 
+                event.target.value.indexOf('.') !== -1) {
+                event.preventDefault();
+            }
+        }
+        
+        // Highlight number button when pressed
+        function highlightNumberButton(digit) {
+            const buttons = document.querySelectorAll('.number-btn');
+            buttons.forEach(button => {
+                if (button.textContent === digit) {
+                    button.classList.add('pressed');
+                    setTimeout(() => {
+                        button.classList.remove('pressed');
+                    }, 150);
+                }
+            });
+        }
+
         function clearPayment() {
-            document.getElementById('customer-payment').value = '0';
+            const input = document.getElementById('customer-payment');
+            input.value = '0';
+            input.focus();
+            
+            // Highlight clear button
+            const clearBtn = document.querySelector('.number-btn.clear');
+            if (clearBtn) {
+                clearBtn.classList.add('pressed');
+                setTimeout(() => {
+                    clearBtn.classList.remove('pressed');
+                }, 150);
+            }
+            
+            calculateBalance();
+        }
+        
+        // Quick amount functions
+        function setQuickAmount(amount) {
+            const input = document.getElementById('customer-payment');
+            input.value = amount.toString();
+            
+            // Highlight the pressed button
+            const buttons = document.querySelectorAll('.quick-btn');
+            buttons.forEach(button => {
+                if (button.textContent === amount.toString()) {
+                    button.classList.add('pressed');
+                    setTimeout(() => {
+                        button.classList.remove('pressed');
+                    }, 150);
+                }
+            });
+            
+            calculateBalance();
+        }
+        
+        function setExactAmount() {
+            const total = getTotalAmount();
+            const input = document.getElementById('customer-payment');
+            input.value = total.toFixed(2);
+            
+            // Highlight exact button
+            const exactBtn = document.querySelector('.quick-btn.exact-btn');
+            if (exactBtn) {
+                exactBtn.classList.add('pressed');
+                setTimeout(() => {
+                    exactBtn.classList.remove('pressed');
+                }, 150);
+            }
+            
             calculateBalance();
         }
 
@@ -1779,6 +2042,65 @@
             
             // Initialize payment display
             document.getElementById('customer-payment').value = '0';
+            
+            // Add keyboard shortcuts for cash input
+            document.addEventListener('keydown', function(event) {
+                // Only apply shortcuts when keyboard input is enabled and cash input section is visible
+                const cashSection = document.getElementById('cash-input-section');
+                const cashInput = document.getElementById('customer-payment');
+                
+                if (keyboardInputEnabled && cashSection && cashSection.classList.contains('show') && 
+                    document.activeElement !== cashInput) {
+                    
+                    // Number keys (0-9)
+                    if (event.keyCode >= 48 && event.keyCode <= 57) {
+                        event.preventDefault();
+                        const digit = event.key;
+                        addToPayment(digit);
+                        return;
+                    }
+                    
+                    // Numpad keys (0-9)
+                    if (event.keyCode >= 96 && event.keyCode <= 105) {
+                        event.preventDefault();
+                        const digit = (event.keyCode - 96).toString();
+                        addToPayment(digit);
+                        return;
+                    }
+                    
+                    // Decimal point
+                    if (event.keyCode === 190 || event.keyCode === 110) {
+                        event.preventDefault();
+                        addToPayment('.');
+                        return;
+                    }
+                    
+                    // Clear/Delete/Escape
+                    if (event.keyCode === 46 || event.keyCode === 8 || event.keyCode === 27) {
+                        event.preventDefault();
+                        clearPayment();
+                        return;
+                    }
+                    
+                    // Enter to focus on input for direct typing
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        cashInput.focus();
+                        cashInput.select();
+                        return;
+                    }
+                }
+            });
+            
+            // Add input focus management
+            const cashInput = document.getElementById('customer-payment');
+            cashInput.addEventListener('blur', function() {
+                // Ensure value is valid when leaving input
+                if (this.value === '' || isNaN(parseFloat(this.value))) {
+                    this.value = '0';
+                    calculateBalance();
+                }
+            });
             
             // Force initial update of cart display and totals
             updateCartDisplay();

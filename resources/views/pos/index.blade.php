@@ -918,110 +918,7 @@
         </div>
     </div>
 
-    <!-- Receipt Modal -->
-    <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="receiptModalLabel">Receipt</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-0" id="receiptContent">
-                    <!-- Receipt content will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Receipt Print Template -->
-    <template id="receiptTemplate">
-        <div class="receipt">
-            <div class="header">
-                <div style="text-align: center; margin-bottom: 10px;">
-                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 40px; height: 40px; border-radius: 50%; margin-bottom: 8px;">
-                </div>
-                <div class="restaurant-name">RAVON BAKERS</div>
-                <div style="font-size: 12px;">Restaurant & Bakery</div>
-                <div style="font-size: 10px; margin-top: 5px;">
-                    <div>Address: 282/A 2, Kaduwela</div>
-                    <div>Phone: 076 200 6007</div>
-                </div>
-            </div>
-
-            <div class="receipt-info">
-                <div>
-                    <span>RECEIPT NO:</span>
-                    <span id="receipt-no-display"></span>
-                </div>
-                <div>
-                    <span>USER:</span>
-                    <span id="user-name-display"></span>
-                </div>
-                <div>
-                    <span>DATE:</span>
-                    <span id="date-display"></span>
-                </div>
-                <div>
-                    <span>TIME:</span>
-                    <span id="time-display"></span>
-                </div>
-            </div>
-
-            <div class="items" id="receipt-items">
-                <!-- Items will be inserted here -->
-            </div>
-
-            <div class="totals">
-                <div class="total-row">
-                    <span>Sub Total:</span>
-                    <span id="receipt-subtotal"></span>
-                </div>
-
-                <div class="total-row grand-total">
-                    <span>TOTAL:</span>
-                    <span id="receipt-total"></span>
-                </div>
-            </div>
-
-            <div class="receipt-info" style="margin-top: 15px;">
-                <div>
-                    <span>Payment Method:</span>
-                    <span id="payment-method-display"></span>
-                </div>
-
-                <div id="cash-payment-details" style="display: none;">
-                    <div>
-                        <span>Amount Paid:</span>
-                        <span id="amount-paid-display"></span>
-                    </div>
-                    <div>
-                        <span>Balance:</span>
-                        <span id="balance-display-receipt"></span>
-                    </div>
-                </div>
-
-
-            </div>
-
-            <div class="footer">
-                <div>Thank you for visiting</div>
-                <div><strong>RAVON RESTAURANT</strong></div>
-                <div>Come again!</div>
-                <div style="margin-top: 10px; font-size: 8px; color: #666;">
-                    <div>System by SKM Labs</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="receipt-actions">
-            <button type="button" class="print-btn" onclick="downloadReceiptPDF()">
-                <i class="bi bi-download"></i> Download PDF
-            </button>
-            <button type="button" class="new-order-btn" onclick="startNewOrder()">
-                <i class="bi bi-plus-circle"></i> New Order
-            </button>
-        </div>
-    </template>
 
     <!-- Error Modal -->
     <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
@@ -1615,16 +1512,14 @@
                         receiptData: data
                     };
 
-                    // Populate and show receipt modal
-                    populateReceipt(data);
+                    // Directly print receipt without showing modal
+                    downloadReceiptPDF();
 
-                    // Clear the cart
+                    // Clear the cart and start new order
                     cart = [];
                     document.getElementById('customer-payment').value = '0';
-
-                    // Show receipt modal
-                    const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
-                    receiptModal.show();
+                    updateCartDisplay();
+                    calculateBalance();
                 } else {
                     showError(data.message || 'Error processing payment');
                 }
@@ -1744,9 +1639,6 @@
             // Reset payment
             document.getElementById('customer-payment').value = '0';
             calculateBalance();
-
-            // Hide receipt modal
-            bootstrap.Modal.getInstance(document.getElementById('receiptModal')).hide();
         }
     // Download receipt as PDF - CORRECTED VERSION FOR POS PAGE
     function downloadReceiptPDF() {
@@ -1769,9 +1661,7 @@
 
             // Build receipt data object from cart
             const receiptData = {
-                receiptNo: document.getElementById('receipt-no-display') ?
-                        document.getElementById('receipt-no-display').textContent :
-                        document.getElementById('receipt-no').textContent,
+                receiptNo: document.getElementById('receipt-no').textContent,
                 userName: '{{ Auth::user()->name }}',
                 date: new Date().toLocaleDateString('en-GB'),
                 time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
@@ -1905,19 +1795,70 @@
             pdf.setFontSize(6);
             pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
 
-            // Open print dialog
-            pdf.autoPrint();
+            // Create hidden iframe for printing instead of new window
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+
             const pdfBlob = pdf.output('blob');
             const blobUrl = URL.createObjectURL(pdfBlob);
-            const printWindow = window.open(blobUrl, '_blank', 'width=800,height=600');
+            iframe.src = blobUrl;
 
-            if (!printWindow) {
-                alert('Please allow popups to print the receipt');
-            } else {
-                printWindow.onload = function() {
-                    setTimeout(() => printWindow.print(), 250);
-                };
-            }
+            iframe.onload = function() {
+                try {
+                    const win = iframe.contentWindow;
+
+                    // Cleanup function to remove iframe and revoke blob URL
+                    const cleanup = () => {
+                        try {
+                            if (iframe && iframe.parentNode) {
+                                document.body.removeChild(iframe);
+                            }
+                        } catch (e) {
+                            console.warn('Error removing print iframe:', e);
+                        }
+                        try { URL.revokeObjectURL(blobUrl); } catch (e) { /* ignore */ }
+                    };
+
+                    // Prefer afterprint event to know when printing completed
+                    const onAfterPrint = () => {
+                        cleanup();
+                        try { win.removeEventListener('afterprint', onAfterPrint); } catch (e) {}
+                    };
+
+                    // Attach listener if supported
+                    try {
+                        win.addEventListener('afterprint', onAfterPrint);
+                    } catch (e) {
+                        // ignore if can't attach
+                    }
+
+                    // Trigger print and focus the iframe window
+                    setTimeout(() => {
+                        try { win.focus(); } catch (e) {}
+                        try { win.print(); } catch (e) { console.error('Print failed:', e); }
+                    }, 300);
+
+                    // Fallback: if afterprint doesn't fire, remove iframe after a safe delay
+                    setTimeout(() => {
+                        if (document.body.contains(iframe)) {
+                            cleanup();
+                        }
+                    }, 8000);
+
+                } catch (err) {
+                    console.error('Print iframe error', err);
+                    // Best-effort cleanup
+                    setTimeout(() => {
+                        try { if (iframe && iframe.parentNode) document.body.removeChild(iframe); } catch (e) {}
+                        try { URL.revokeObjectURL(blobUrl); } catch (e) {}
+                    }, 3000);
+                }
+            };
 
         } catch (error) {
             console.error('PDF Error:', error);

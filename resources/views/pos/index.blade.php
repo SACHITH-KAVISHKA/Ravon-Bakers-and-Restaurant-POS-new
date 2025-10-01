@@ -383,11 +383,20 @@
             cursor: pointer;
             transition: all 0.2s ease;
             min-height: 45px;
+            position: relative;
+            outline: none;
         }
         
         .number-btn:hover {
             background: #0056b3;
             transform: scale(1.02);
+        }
+        
+        .number-btn:active,
+        .number-btn.pressed {
+            background: #004085;
+            transform: scale(0.98);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
         
         .number-btn.clear {
@@ -396,6 +405,57 @@
         
         .number-btn.clear:hover {
             background: #c82333;
+        }
+        
+        .number-btn.clear:active,
+        .number-btn.clear.pressed {
+            background: #a71e2a;
+        }
+        
+        /* Quick Amount Buttons */
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 3px;
+            margin-top: 6px;
+        }
+        
+        .quick-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 4px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 30px;
+        }
+        
+        .quick-btn:hover {
+            background: #218838;
+            transform: scale(1.02);
+        }
+        
+        .quick-btn:active,
+        .quick-btn.pressed {
+            background: #1e7e34;
+            transform: scale(0.98);
+        }
+        
+        .quick-btn.exact-btn {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .quick-btn.exact-btn:hover {
+            background: #e0a800;
+        }
+        
+        .quick-btn.exact-btn:active,
+        .quick-btn.exact-btn.pressed {
+            background: #d39e00;
         }
         
         .payment-section {
@@ -458,16 +518,63 @@
             font-weight: 600;
             color: #856404;
             margin-bottom: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .cash-input-label small {
+            color: #6c757d;
+            font-weight: normal;
+            font-style: italic;
+        }
+        
+        .input-mode-toggle {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 8px;
+        }
+        
+        .input-mode-toggle:hover {
+            background: #0056b3;
+        }
+        
+        .input-mode-toggle.touch-only {
+            background: #6c757d;
+        }
+        
+        .input-mode-toggle.touch-only:hover {
+            background: #545b62;
         }
         
         .cash-input {
             width: 100%;
-            padding: 5px 8px;
-            border: 1px solid #d4ac0d;
-            border-radius: 6px;
-            font-size: 12px;
+            padding: 8px 12px;
+            border: 2px solid #d4ac0d;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: bold;
             text-align: center;
+            background: #fff;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .cash-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            background: #f8f9fa;
+        }
+        
+        .cash-input:hover {
+            border-color: #b8860b;
         }
         
         .balance-display {
@@ -799,8 +906,20 @@
                     <!-- Cash Input Section -->
                     <div class="cash-input-section show" id="cash-input-section">
                         <div class="cash-input-group">
-                            <div class="cash-input-label">Customer Payment</div>
-                            <input type="number" class="cash-input" id="customer-payment" placeholder="0.00" readonly>
+                            <div class="cash-input-label">
+                                Customer Payment 
+                            
+                                <button type="button" class="input-mode-toggle" id="input-mode-toggle" 
+                                        onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
+                                    <i class="bi bi-keyboard"></i>
+                                </button>
+                            </div>
+                            <input type="number" class="cash-input" id="customer-payment" placeholder="0.00" 
+                                   step="0.01" min="0" 
+                                   oninput="handleKeyboardInput()" 
+                                   onkeydown="handleKeyboardKeys(event)"
+                                   onfocus="this.select()"
+                                   title="Enter payment amount using keyboard or touch pad below">
                             
                             <!-- Number Pad -->
                             <div class="number-pad">
@@ -817,6 +936,7 @@
                                 <button type="button" class="number-btn" onclick="addToPayment('.')">.</button>
                                 <button type="button" class="number-btn clear" onclick="clearPayment()">CLR</button>
                             </div>
+<!--                          -->
                         </div>
                         <div class="balance-display" id="balance-display">
                             Balance: Rs. 0.00
@@ -976,9 +1096,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        let cart = [];
+        let cart = []; // Initialize empty cart
         let selectedPaymentMethod = 'CASH';
         let customerPayment = 0;
+
+        // Test function to debug totals (can be removed later)
+        function testTotalCalculation() {
+            console.log('Testing total calculation...');
+            console.log('Cart:', cart);
+            const total = getTotalAmount();
+            console.log('Calculated total:', total);
+            updateTotals();
+        }
 
         // Add item to cart from card click
         function addToCartFromCard(card) {
@@ -987,12 +1116,26 @@
             const price = parseFloat(card.dataset.itemPrice);
             const availableStock = parseInt(card.dataset.itemStock);
             
+            console.log('Adding item from card:', {
+                itemId,
+                itemName,
+                price,
+                availableStock
+            });
+            
+            if (isNaN(price) || price <= 0) {
+                console.error('Invalid price:', card.dataset.itemPrice);
+                showError('Invalid item price');
+                return;
+            }
+            
             addToCart(itemId, itemName, price, availableStock);
         }
 
         // Add item to cart
         function addToCart(itemId, itemName, price, availableStock) {
             const existingItem = cart.find(item => item.id === itemId);
+            const itemPrice = parseFloat(price) || 0;
             
             if (existingItem) {
                 if (existingItem.quantity < availableStock) {
@@ -1005,11 +1148,18 @@
                 cart.push({
                     id: itemId,
                     name: itemName,
-                    price: parseFloat(price),
+                    price: itemPrice,
                     quantity: 1,
                     availableStock: availableStock
                 });
             }
+            
+            console.log('Item added to cart:', {
+                id: itemId,
+                name: itemName,
+                price: itemPrice,
+                quantity: existingItem ? existingItem.quantity : 1
+            });
             
             updateCartDisplay();
         }
@@ -1024,12 +1174,13 @@
         function updateQuantity(itemId, quantity) {
             const item = cart.find(item => item.id === itemId);
             if (item) {
-                const newQuantity = Math.max(1, parseInt(quantity));
+                const newQuantity = Math.max(1, parseInt(quantity) || 1);
                 if (newQuantity > item.availableStock) {
                     showError(`Only ${item.availableStock} items available in stock`);
                     return;
                 }
                 item.quantity = newQuantity;
+                console.log('Quantity updated:', { itemId, newQuantity, price: item.price });
                 updateCartDisplay();
             }
         }
@@ -1050,20 +1201,23 @@
             } else {
                 let html = '';
                 cart.forEach(item => {
-                    const totalPrice = item.price * item.quantity;
+                    const itemPrice = parseFloat(item.price) || 0;
+                    const itemQuantity = parseInt(item.quantity) || 0;
+                    const totalPrice = itemPrice * itemQuantity;
+                    
                     html += `
                         <div class="cart-item">
                             <div class="cart-item-details">
                                 <div class="cart-item-name">${item.name}</div>
-                                <div class="cart-item-price">Rs. ${item.price.toFixed(2)} each | Stock: ${item.availableStock || 'N/A'}</div>
+                                <div class="cart-item-price">Rs. ${itemPrice.toFixed(2)} each | Stock: ${item.availableStock || 'N/A'}</div>
                             </div>
                             <div class="quantity-controls">
-                                <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">
+                                <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${itemQuantity - 1})">
                                     <i class="bi bi-dash"></i>
                                 </button>
-                                <input type="number" class="qty-input" value="${item.quantity}" 
+                                <input type="number" class="qty-input" value="${itemQuantity}" 
                                        onchange="updateQuantity(${item.id}, this.value)" min="1" max="${item.availableStock || 999}">
-                                <button type="button" class="qty-btn plus" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">
+                                <button type="button" class="qty-btn plus" onclick="updateQuantity(${item.id}, ${itemQuantity + 1})">
                                     <i class="bi bi-plus"></i>
                                 </button>
                             </div>
@@ -1082,16 +1236,40 @@
 
         // Update totals
         function updateTotals() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let subtotal = 0;
+            
+            // Calculate subtotal from cart items
+            if (cart && cart.length > 0) {
+                subtotal = cart.reduce((sum, item) => {
+                    const itemPrice = parseFloat(item.price) || 0;
+                    const itemQuantity = parseInt(item.quantity) || 0;
+                    return sum + (itemPrice * itemQuantity);
+                }, 0);
+            }
+            
             const total = subtotal; // No discount or tax
             
-            document.getElementById('subtotal').textContent = `Rs. ${subtotal.toFixed(2)}`;
-            document.getElementById('total').textContent = `Rs. ${total.toFixed(2)}`;
+            // Update subtotal element if it exists
+            const subtotalElement = document.getElementById('subtotal');
+            if (subtotalElement) {
+                subtotalElement.textContent = `Rs. ${subtotal.toFixed(2)}`;
+            }
+            
+            // Update total element
+            const totalElement = document.getElementById('total');
+            if (totalElement) {
+                totalElement.textContent = `Rs. ${total.toFixed(2)}`;
+            }
             
             // Update balance if cash payment
             if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
                 calculateBalance();
             }
+            
+            // Debug logging
+            console.log('Cart items:', cart);
+            console.log('Calculated subtotal:', subtotal);
+            console.log('Calculated total:', total);
         }
 
         // Show category items
@@ -1160,39 +1338,192 @@
             }
         }
 
+        // Input mode management
+        let keyboardInputEnabled = true;
+        
+        function toggleInputMode() {
+            keyboardInputEnabled = !keyboardInputEnabled;
+            const toggle = document.getElementById('input-mode-toggle');
+            const input = document.getElementById('customer-payment');
+            
+            if (keyboardInputEnabled) {
+                toggle.innerHTML = '<i class="bi bi-keyboard"></i>';
+                toggle.classList.remove('touch-only');
+                toggle.title = 'Switch to touch-only mode';
+                input.removeAttribute('readonly');
+                input.title = 'Enter payment amount using keyboard or touch pad below';
+            } else {
+                toggle.innerHTML = '<i class="bi bi-hand-index"></i>';
+                toggle.classList.add('touch-only');
+                toggle.title = 'Switch to keyboard input mode';
+                input.setAttribute('readonly', true);
+                input.title = 'Use touch pad below to enter payment amount';
+            }
+        }
+
         // Number pad functions
         function addToPayment(digit) {
             const input = document.getElementById('customer-payment');
             let currentValue = input.value || '0';
+            
+            // Highlight the pressed button
+            highlightNumberButton(digit);
             
             if (digit === '.') {
                 if (!currentValue.includes('.')) {
                     input.value = currentValue + '.';
                 }
             } else {
-                if (currentValue === '0') {
+                if (currentValue === '0' || currentValue === '0.00') {
                     input.value = digit;
                 } else {
                     input.value = currentValue + digit;
                 }
             }
             
+            // Trigger input event to ensure consistency
+            input.dispatchEvent(new Event('input'));
             calculateBalance();
         }
 
+        // Handle keyboard input
+        function handleKeyboardInput() {
+            if (!keyboardInputEnabled) return;
+            
+            const input = document.getElementById('customer-payment');
+            let value = input.value;
+            
+            // Validate input
+            if (value === '' || value === null) {
+                input.value = '0';
+                value = '0';
+            }
+            
+            // Ensure only valid numbers
+            if (isNaN(parseFloat(value))) {
+                input.value = '0';
+            }
+            
+            calculateBalance();
+        }
+        
+        // Handle special keyboard keys
+        function handleKeyboardKeys(event) {
+            if (!keyboardInputEnabled) {
+                event.preventDefault();
+                return;
+            }
+            
+            // Allow backspace, delete, tab, escape, enter
+            if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (event.keyCode === 65 && event.ctrlKey === true) ||
+                (event.keyCode === 67 && event.ctrlKey === true) ||
+                (event.keyCode === 86 && event.ctrlKey === true) ||
+                (event.keyCode === 88 && event.ctrlKey === true) ||
+                // Allow home, end, left, right
+                (event.keyCode >= 35 && event.keyCode <= 39)) {
+                return;
+            }
+            
+            // Ensure that it is a number or decimal point and stop the keypress
+            if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) && 
+                (event.keyCode < 96 || event.keyCode > 105) && 
+                event.keyCode !== 110 && event.keyCode !== 190) {
+                event.preventDefault();
+            }
+            
+            // Prevent multiple decimal points
+            if ((event.keyCode === 110 || event.keyCode === 190) && 
+                event.target.value.indexOf('.') !== -1) {
+                event.preventDefault();
+            }
+        }
+        
+        // Highlight number button when pressed
+        function highlightNumberButton(digit) {
+            const buttons = document.querySelectorAll('.number-btn');
+            buttons.forEach(button => {
+                if (button.textContent === digit) {
+                    button.classList.add('pressed');
+                    setTimeout(() => {
+                        button.classList.remove('pressed');
+                    }, 150);
+                }
+            });
+        }
+
         function clearPayment() {
-            document.getElementById('customer-payment').value = '0';
+            const input = document.getElementById('customer-payment');
+            input.value = '0';
+            input.focus();
+            
+            // Highlight clear button
+            const clearBtn = document.querySelector('.number-btn.clear');
+            if (clearBtn) {
+                clearBtn.classList.add('pressed');
+                setTimeout(() => {
+                    clearBtn.classList.remove('pressed');
+                }, 150);
+            }
+            
+            calculateBalance();
+        }
+        
+        // Quick amount functions
+        function setQuickAmount(amount) {
+            const input = document.getElementById('customer-payment');
+            input.value = amount.toString();
+            
+            // Highlight the pressed button
+            const buttons = document.querySelectorAll('.quick-btn');
+            buttons.forEach(button => {
+                if (button.textContent === amount.toString()) {
+                    button.classList.add('pressed');
+                    setTimeout(() => {
+                        button.classList.remove('pressed');
+                    }, 150);
+                }
+            });
+            
+            calculateBalance();
+        }
+        
+        function setExactAmount() {
+            const total = getTotalAmount();
+            const input = document.getElementById('customer-payment');
+            input.value = total.toFixed(2);
+            
+            // Highlight exact button
+            const exactBtn = document.querySelector('.quick-btn.exact-btn');
+            if (exactBtn) {
+                exactBtn.classList.add('pressed');
+                setTimeout(() => {
+                    exactBtn.classList.remove('pressed');
+                }, 150);
+            }
+            
             calculateBalance();
         }
 
         // Calculate balance for cash payments
         function calculateBalance() {
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let total = 0;
+            if (cart && cart.length > 0) {
+                total = cart.reduce((sum, item) => {
+                    const itemPrice = parseFloat(item.price) || 0;
+                    const itemQuantity = parseInt(item.quantity) || 0;
+                    return sum + (itemPrice * itemQuantity);
+                }, 0);
+            }
+            
             const customerPaymentInput = document.getElementById('customer-payment');
             const balanceDisplay = document.getElementById('balance-display');
             
             customerPayment = parseFloat(customerPaymentInput.value) || 0;
             const balance = customerPayment - total;
+            
+            console.log('Balance calculation:', { total, customerPayment, balance });
             
             if (balance >= 0) {
                 balanceDisplay.innerHTML = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
@@ -1356,7 +1687,14 @@
 
         // Get total amount
         function getTotalAmount() {
-            return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            if (!cart || cart.length === 0) {
+                return 0;
+            }
+            return cart.reduce((sum, item) => {
+                const itemPrice = parseFloat(item.price) || 0;
+                const itemQuantity = parseInt(item.quantity) || 0;
+                return sum + (itemPrice * itemQuantity);
+            }, 0);
         }
 
         // Clear all orders function
@@ -1656,6 +1994,13 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('POS page loaded, initializing...');
+            
+            // Initialize cart if not already done
+            if (!cart) {
+                cart = [];
+            }
+            
             // Check if this is a new order (coming from cleared session)
             const urlParams = new URLSearchParams(window.location.search);
             const isClearSession = urlParams.get('clear') === '1';
@@ -1697,10 +2042,73 @@
             
             // Initialize payment display
             document.getElementById('customer-payment').value = '0';
+            
+            // Add keyboard shortcuts for cash input
+            document.addEventListener('keydown', function(event) {
+                // Only apply shortcuts when keyboard input is enabled and cash input section is visible
+                const cashSection = document.getElementById('cash-input-section');
+                const cashInput = document.getElementById('customer-payment');
+                
+                if (keyboardInputEnabled && cashSection && cashSection.classList.contains('show') && 
+                    document.activeElement !== cashInput) {
+                    
+                    // Number keys (0-9)
+                    if (event.keyCode >= 48 && event.keyCode <= 57) {
+                        event.preventDefault();
+                        const digit = event.key;
+                        addToPayment(digit);
+                        return;
+                    }
+                    
+                    // Numpad keys (0-9)
+                    if (event.keyCode >= 96 && event.keyCode <= 105) {
+                        event.preventDefault();
+                        const digit = (event.keyCode - 96).toString();
+                        addToPayment(digit);
+                        return;
+                    }
+                    
+                    // Decimal point
+                    if (event.keyCode === 190 || event.keyCode === 110) {
+                        event.preventDefault();
+                        addToPayment('.');
+                        return;
+                    }
+                    
+                    // Clear/Delete/Escape
+                    if (event.keyCode === 46 || event.keyCode === 8 || event.keyCode === 27) {
+                        event.preventDefault();
+                        clearPayment();
+                        return;
+                    }
+                    
+                    // Enter to focus on input for direct typing
+                    if (event.keyCode === 13) {
+                        event.preventDefault();
+                        cashInput.focus();
+                        cashInput.select();
+                        return;
+                    }
+                }
+            });
+            
+            // Add input focus management
+            const cashInput = document.getElementById('customer-payment');
+            cashInput.addEventListener('blur', function() {
+                // Ensure value is valid when leaving input
+                if (this.value === '' || isNaN(parseFloat(this.value))) {
+                    this.value = '0';
+                    calculateBalance();
+                }
+            });
+            
+            // Force initial update of cart display and totals
+            updateCartDisplay();
+            updateTotals();
             calculateBalance();
             
-            // Update cart display to show empty state
-            updateCartDisplay();
+            console.log('Initial cart state:', cart);
+            console.log('Initial total element text:', document.getElementById('total')?.textContent);
         });
     </script>
 </body>

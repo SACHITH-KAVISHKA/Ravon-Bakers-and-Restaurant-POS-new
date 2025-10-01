@@ -87,6 +87,10 @@
             text-align: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
         .sidebar.collapsed .sidebar-header {
@@ -94,17 +98,21 @@
         }
         
         .sidebar-title {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             color: white;
-            margin: 10px 0 5px 0;
-            letter-spacing: 1px;
+            margin: 12px 0 5px 0;
+            letter-spacing: 1.5px;
+            text-align: center;
+            display: block;
         }
         
         .sidebar-subtitle {
-            font-size: 12px;
+            font-size: 11px;
             color: rgba(255,255,255,0.7);
             margin: 0;
+            text-align: center;
+            display: block;
         }
         
         .sidebar.collapsed .sidebar-title,
@@ -345,7 +353,7 @@
                     <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}" 
                        href="{{ route('categories.index') }}">
                         <i class="bi bi-tags"></i>
-                        <span>Category Management</span>
+                        <span>Categories</span>
                     </a>
                 </li>
                 

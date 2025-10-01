@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
     <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/logo.jpg') }}">
-    
+
     <title>Ravon Bakers - POS System</title>
-    
+
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    
+
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
+
     <style>
         body {
             background: #f8f9fa;
@@ -28,13 +28,13 @@
             height: 100vh;
             overflow: hidden;
         }
-        
+
         .pos-container {
             height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        
+
         .pos-header {
             background: linear-gradient(135deg, #2c5aa0 0%, #1e3d72 100%);
             color: white;
@@ -47,26 +47,26 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .header-left {
             display: flex;
             align-items: center;
             gap: 15px;
             font-size: 14px;
         }
-        
+
         .header-center {
             flex: 1;
             text-align: center;
             font-size: 20px;
         }
-        
+
         .header-right {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
+
         .header-btn {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -77,17 +77,17 @@
             font-size: 12px;
             transition: all 0.3s ease;
         }
-        
+
         .header-btn:hover {
             background: rgba(255,255,255,0.3);
         }
-        
+
         .pos-content {
             display: flex;
             flex: 1;
             height: calc(100vh - 60px); /* Adjusted for single header */
         }
-        
+
         /* Left Panel - Categories */
         .categories-panel {
             width: 250px;
@@ -96,7 +96,7 @@
             overflow-y: auto;
             padding: 0;
         }
-        
+
         /* Middle Panel - Items */
         .items-panel {
             flex: 1;
@@ -104,7 +104,7 @@
             padding: 20px;
             overflow-y: auto;
         }
-        
+
         /* Right Panel - Cart & Payment */
         .payment-panel {
             width: 400px;
@@ -114,13 +114,13 @@
             flex-direction: column;
             padding: 0;
         }
-        
-        
+
+
         /* Category List Styles */
         .category-list {
             padding: 0;
         }
-        
+
         .category-item {
             background: #fff;
             border: none;
@@ -134,24 +134,24 @@
             transition: all 0.3s ease;
             font-weight: 500;
         }
-        
+
         .category-item:hover {
             background: #f8f9fa;
             transform: translateX(5px);
         }
-        
+
         .category-item.active {
             background: #007bff;
             color: white;
             border-left: 4px solid #0056b3;
         }
-        
+
         .category-item i {
             margin-right: 10px;
             font-size: 16px;
             width: 20px;
         }
-        
+
         /* Items Grid Styles */
         .items-header {
             background: white;
@@ -160,13 +160,13 @@
             border-bottom: 2px solid #e9ecef;
             border-radius: 8px 8px 0 0;
         }
-        
+
         .items-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px;
         }
-        
+
         .item-card {
             background: white;
             border: 1px solid #dee2e6;
@@ -177,13 +177,13 @@
             transition: all 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
+
         .item-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             border-color: #007bff;
         }
-        
+
         .item-name {
             font-size: 14px;
             font-weight: 600;
@@ -191,13 +191,13 @@
             margin-bottom: 8px;
             line-height: 1.3;
         }
-        
+
         .item-price {
             font-size: 16px;
             font-weight: bold;
             color: #28a745;
         }
-        
+
         /* Payment Panel Styles */
         .receipt-info {
             background: #e3f2fd;
@@ -205,13 +205,13 @@
             border-bottom: 1px solid #dee2e6;
             text-align: center;
         }
-        
+
         .receipt-id {
             font-size: 13px;
             font-weight: bold;
             color: #1976d2;
         }
-        
+
         .cart-section {
               flex: 1;
               overflow-y: auto;
@@ -220,7 +220,7 @@
               min-height: 150px;
               max-height: 250px;
         }
-        
+
         .cart-header {
             background: #f8f9fa;
             padding: 4px 6px;
@@ -233,7 +233,7 @@
             top: 0;
             z-index: 1;
         }
-        
+
         .cart-item {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -245,29 +245,29 @@
             align-items: center;
             font-size: 14px;
         }
-        
+
         .cart-item-details {
             flex: 1;
         }
-        
+
         .cart-item-name {
             font-weight: 600;
             font-size: 14px;
             color: #343a40;
         }
-        
+
         .cart-item-price {
             font-size: 12px;
             color: #6c757d;
         }
-        
+
         .quantity-controls {
             display: flex;
             align-items: center;
             gap: 2px;
             margin: 0 4px;
         }
-        
+
         .qty-btn {
             background: #dc3545;
             color: white;
@@ -282,11 +282,11 @@
             justify-content: center;
             padding: 0;
         }
-        
+
         .qty-btn.plus {
             background: #28a745;
         }
-        
+
         .qty-input {
             width: 40px;
             text-align: center;
@@ -295,7 +295,7 @@
             font-size: 14px;
             padding: 4px;
         }
-        
+
         .remove-btn {
             background: #dc3545;
             color: white;
@@ -305,13 +305,13 @@
             font-size: 16px;
             cursor: pointer;
         }
-        
+
         .cart-total-price {
             font-weight: bold;
             color: #28a745;
             font-size: 13px;
         }
-        
+
         .totals-section {
             background: #f8f9fa;
             padding: 10px;
@@ -322,7 +322,7 @@
             bottom: 0;
             z-index: 1;
         }
-        
+
         .total-row {
             display: flex;
             justify-content: space-between;
@@ -330,7 +330,7 @@
             font-size: 14px;
             padding: 4px 0;
         }
-        
+
         .total-row.grand-total {
             font-weight: bold;
             font-size: 14px;
@@ -339,7 +339,7 @@
             padding-top: 6px;
             margin-top: 6px;
         }
-        
+
         /* Number Pad Styles */
         .number-pad {
             display: grid;
@@ -348,7 +348,7 @@
             margin-top: 6px;
             max-height: 240px;
         }
-        
+
         .number-btn {
             background: #007bff;
             color: white;
@@ -363,32 +363,32 @@
             position: relative;
             outline: none;
         }
-        
+
         .number-btn:hover {
             background: #0056b3;
             transform: scale(1.02);
         }
-        
+
         .number-btn:active,
         .number-btn.pressed {
             background: #004085;
             transform: scale(0.98);
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
         }
-        
+
         .number-btn.clear {
             background: #dc3545;
         }
-        
+
         .number-btn.clear:hover {
             background: #c82333;
         }
-        
+
         .number-btn.clear:active,
         .number-btn.clear.pressed {
             background: #a71e2a;
         }
-        
+
         /* Quick Amount Buttons */
         .quick-amounts {
             display: grid;
@@ -396,7 +396,7 @@
             gap: 3px;
             margin-top: 6px;
         }
-        
+
         .quick-btn {
             background: #28a745;
             color: white;
@@ -409,46 +409,46 @@
             transition: all 0.2s ease;
             min-height: 30px;
         }
-        
+
         .quick-btn:hover {
             background: #218838;
             transform: scale(1.02);
         }
-        
+
         .quick-btn:active,
         .quick-btn.pressed {
             background: #1e7e34;
             transform: scale(0.98);
         }
-        
+
         .quick-btn.exact-btn {
             background: #ffc107;
             color: #212529;
         }
-        
+
         .quick-btn.exact-btn:hover {
             background: #e0a800;
         }
-        
+
         .quick-btn.exact-btn:active,
         .quick-btn.exact-btn.pressed {
             background: #d39e00;
         }
-        
+
         .payment-section {
             padding: 8px;
             flex-shrink: 0;
             flex-direction: column;
             max-height: 260px;
         }
-        
+
         .payment-methods {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 6px;
             margin-bottom: 8px;
         }
-        
+
         .payment-btn {
             background: #6c757d;
             color: white;
@@ -461,16 +461,16 @@
             font-weight: 500;
             min-height: 50px;
         }
-        
+
         .payment-btn.active {
             background: #28a745;
             transform: translateY(-2px);
         }
-        
+
         .payment-btn:hover {
             transform: translateY(-2px);
         }
-        
+
         .cash-input-section {
             background: #fff3cd;
             padding: 3px;
@@ -481,15 +481,15 @@
             flex: 1;
             overflow-y: auto;
         }
-        
+
         .cash-input-section.show {
             display: block;
         }
-        
+
         .cash-input-group {
             margin-bottom: 4px;
         }
-        
+
         .cash-input-label {
             font-size: 11px;
             font-weight: 600;
@@ -500,13 +500,13 @@
             align-items: center;
             justify-content: space-between;
         }
-        
+
         .cash-input-label small {
             color: #6c757d;
             font-weight: normal;
             font-style: italic;
         }
-        
+
         .input-mode-toggle {
             background: #007bff;
             color: white;
@@ -518,19 +518,19 @@
             transition: all 0.2s ease;
             margin-left: 8px;
         }
-        
+
         .input-mode-toggle:hover {
             background: #0056b3;
         }
-        
+
         .input-mode-toggle.touch-only {
             background: #6c757d;
         }
-        
+
         .input-mode-toggle.touch-only:hover {
             background: #545b62;
         }
-        
+
         .cash-input {
             width: 100%;
             padding: 8px 12px;
@@ -543,17 +543,17 @@
             transition: all 0.3s ease;
             outline: none;
         }
-        
+
         .cash-input:focus {
             border-color: #007bff;
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
             background: #f8f9fa;
         }
-        
+
         .cash-input:hover {
             border-color: #b8860b;
         }
-        
+
         .balance-display {
             background: #d1ecf1;
             padding: 12px;
@@ -565,7 +565,7 @@
             margin: 10px 0;
             border: 2px solid #bee5eb;
         }
-        
+
         .checkout-btn {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
@@ -583,35 +583,35 @@
             bottom: 0;
             z-index: 2;
         }
-        
+
         .checkout-btn:hover {
             background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
             transform: translateY(-1px);
         }
-        
+
         .checkout-btn:disabled {
             background: #6c757d;
             cursor: not-allowed;
             transform: none;
         }
-        
+
         .empty-cart {
             text-align: center;
             color: #6c757d;
             padding: 15px 8px;
         }
-        
+
         .empty-cart i {
             font-size: 24px;
             margin-bottom: 8px;
             color: #dee2e6;
         }
-        
+
         .search-box {
             padding: 15px 20px;
             border-bottom: 1px solid #dee2e6;
         }
-        
+
         .search-input {
             width: 100%;
             padding: 8px 12px;
@@ -628,67 +628,67 @@
             background: white;
             padding: 20px;
         }
-        
+
         .receipt .header {
             text-align: center;
             border-bottom: 2px solid #000;
             padding-bottom: 10px;
             margin-bottom: 15px;
         }
-        
+
         .receipt .restaurant-name {
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 5px;
         }
-        
+
         .receipt .receipt-info {
             font-size: 12px;
             margin-bottom: 15px;
         }
-        
+
         .receipt .receipt-info div {
             display: flex;
             justify-content: space-between;
             margin-bottom: 3px;
         }
-        
+
         .receipt .items {
             border-bottom: 1px dashed #333;
             padding-bottom: 10px;
             margin-bottom: 10px;
         }
-        
+
         .receipt .item {
             display: flex;
             justify-content: space-between;
             margin-bottom: 5px;
             font-size: 12px;
         }
-        
+
         .receipt .item-details {
             flex: 1;
         }
-        
+
         .receipt .item-name {
             font-weight: bold;
         }
-        
+
         .receipt .item-qty-price {
             color: #666;
             font-size: 10px;
         }
-        
+
         .receipt .totals {
             font-size: 12px;
         }
-        
+
         .receipt .total-row {
             display: flex;
             justify-content: space-between;
             margin-bottom: 3px;
         }
-        
+
         .receipt .grand-total {
             font-weight: bold;
             font-size: 14px;
@@ -696,7 +696,7 @@
             padding-top: 5px;
             margin-top: 5px;
         }
-        
+
         .receipt .footer {
             text-align: center;
             margin-top: 20px;
@@ -801,14 +801,14 @@
                         <i class="bi bi-grid-3x3-gap me-2"></i>All Items
                     </h5>
                 </div>
-                
+
                 <div class="items-grid" id="items-container">
                     @foreach($items as $category => $categoryItems)
                         @foreach($categoryItems as $item)
-                            <div class="item-card" 
-                                 data-category="{{ $category }}" 
-                                 data-item-id="{{ $item->id }}" 
-                                 data-item-name="{{ $item->item_name }}" 
+                            <div class="item-card"
+                                 data-category="{{ $category }}"
+                                 data-item-id="{{ $item->id }}"
+                                 data-item-name="{{ $item->item_name }}"
                                  data-item-price="{{ $item->price }}"
                                  onclick="addToCartFromCard(this)">
                                 <div class="item-name">{{ $item->item_name }}</div>
@@ -873,20 +873,20 @@
                     <div class="cash-input-section show" id="cash-input-section">
                         <div class="cash-input-group">
                             <div class="cash-input-label">
-                                Customer Payment 
-                            
-                                <button type="button" class="input-mode-toggle" id="input-mode-toggle" 
+                                Customer Payment
+
+                                <button type="button" class="input-mode-toggle" id="input-mode-toggle"
                                         onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
                                     <i class="bi bi-keyboard"></i>
                                 </button>
                             </div>
-                            <input type="number" class="cash-input" id="customer-payment" placeholder="0.00" 
-                                   step="0.01" min="0" 
-                                   oninput="handleKeyboardInput()" 
+                            <input type="number" class="cash-input" id="customer-payment" placeholder="0.00"
+                                   step="0.01" min="0"
+                                   oninput="handleKeyboardInput()"
                                    onkeydown="handleKeyboardKeys(event)"
                                    onfocus="this.select()"
                                    title="Enter payment amount using keyboard or touch pad below">
-                            
+
                             <!-- Number Pad -->
                             <div class="number-pad">
                                 <button type="button" class="number-btn" onclick="addToPayment('1')">1</button>
@@ -947,7 +947,7 @@
                     <div>Phone: 076 200 6007</div>
                 </div>
             </div>
-            
+
             <div class="receipt-info">
                 <div>
                     <span>RECEIPT NO:</span>
@@ -966,29 +966,29 @@
                     <span id="time-display"></span>
                 </div>
             </div>
-            
+
             <div class="items" id="receipt-items">
                 <!-- Items will be inserted here -->
             </div>
-            
+
             <div class="totals">
                 <div class="total-row">
                     <span>Sub Total:</span>
                     <span id="receipt-subtotal"></span>
                 </div>
-                
+
                 <div class="total-row grand-total">
                     <span>TOTAL:</span>
                     <span id="receipt-total"></span>
                 </div>
             </div>
-            
+
             <div class="receipt-info" style="margin-top: 15px;">
                 <div>
                     <span>Payment Method:</span>
                     <span id="payment-method-display"></span>
                 </div>
-                
+
                 <div id="cash-payment-details" style="display: none;">
                     <div>
                         <span>Amount Paid:</span>
@@ -999,10 +999,10 @@
                         <span id="balance-display-receipt"></span>
                     </div>
                 </div>
-                
+
 
             </div>
-            
+
             <div class="footer">
                 <div>Thank you for visiting</div>
                 <div><strong>RAVON RESTAURANT</strong></div>
@@ -1012,10 +1012,10 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="receipt-actions">
-            <button type="button" class="print-btn" onclick="printReceiptPDF()">
-                <i class="bi bi-printer"></i> Print Receipt
+            <button type="button" class="print-btn" onclick="downloadReceiptPDF()">
+                <i class="bi bi-download"></i> Download PDF
             </button>
             <button type="button" class="new-order-btn" onclick="startNewOrder()">
                 <i class="bi bi-plus-circle"></i> New Order
@@ -1060,7 +1060,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
         let cart = []; // Initialize empty cart
         let selectedPaymentMethod = 'CASH';
@@ -1080,19 +1080,19 @@
             const itemId = parseInt(card.dataset.itemId);
             const itemName = card.dataset.itemName;
             const price = parseFloat(card.dataset.itemPrice);
-            
+
             console.log('Adding item from card:', {
                 itemId,
                 itemName,
                 price
             });
-            
+
             if (isNaN(price) || price <= 0) {
                 console.error('Invalid price:', card.dataset.itemPrice);
                 showError('Invalid item price');
                 return;
             }
-            
+
             addToCart(itemId, itemName, price);
         }
 
@@ -1100,7 +1100,7 @@
         function addToCart(itemId, itemName, price) {
             const existingItem = cart.find(item => item.id === itemId);
             const itemPrice = parseFloat(price) || 0;
-            
+
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
@@ -1111,14 +1111,14 @@
                     quantity: 1
                 });
             }
-            
+
             console.log('Item added to cart:', {
                 id: itemId,
                 name: itemName,
                 price: itemPrice,
                 quantity: existingItem ? existingItem.quantity : 1
             });
-            
+
             updateCartDisplay();
         }
 
@@ -1143,7 +1143,7 @@
         function updateCartDisplay() {
             const cartContainer = document.getElementById('cart-items');
             const checkoutBtn = document.getElementById('checkout-btn');
-            
+
             if (cart.length === 0) {
                 cartContainer.innerHTML = `
                     <div class="empty-cart">
@@ -1158,7 +1158,7 @@
                     const itemPrice = parseFloat(item.price) || 0;
                     const itemQuantity = parseInt(item.quantity) || 0;
                     const totalPrice = itemPrice * itemQuantity;
-                    
+
                     html += `
                         <div class="cart-item">
                             <div class="cart-item-details">
@@ -1169,7 +1169,7 @@
                                 <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${itemQuantity - 1})">
                                     <i class="bi bi-dash"></i>
                                 </button>
-                                <input type="number" class="qty-input" value="${itemQuantity}" 
+                                <input type="number" class="qty-input" value="${itemQuantity}"
                                        onchange="updateQuantity(${item.id}, this.value)" min="1">
                                 <button type="button" class="qty-btn plus" onclick="updateQuantity(${item.id}, ${itemQuantity + 1})">
                                     <i class="bi bi-plus"></i>
@@ -1184,14 +1184,14 @@
                 cartContainer.innerHTML = html;
                 checkoutBtn.disabled = false;
             }
-            
+
             updateTotals();
         }
 
         // Update totals
         function updateTotals() {
             let subtotal = 0;
-            
+
             // Calculate subtotal from cart items
             if (cart && cart.length > 0) {
                 subtotal = cart.reduce((sum, item) => {
@@ -1200,26 +1200,26 @@
                     return sum + (itemPrice * itemQuantity);
                 }, 0);
             }
-            
+
             const total = subtotal; // No discount or tax
-            
+
             // Update subtotal element if it exists
             const subtotalElement = document.getElementById('subtotal');
             if (subtotalElement) {
                 subtotalElement.textContent = `Rs. ${subtotal.toFixed(2)}`;
             }
-            
+
             // Update total element
             const totalElement = document.getElementById('total');
             if (totalElement) {
                 totalElement.textContent = `Rs. ${total.toFixed(2)}`;
             }
-            
+
             // Update balance if cash payment
             if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
                 calculateBalance();
             }
-            
+
             // Debug logging
             console.log('Cart items:', cart);
             console.log('Calculated subtotal:', subtotal);
@@ -1237,16 +1237,16 @@
                     item.style.display = 'none';
                 }
             });
-            
+
             // Update active category
             document.querySelectorAll('.category-item').forEach(btn => {
                 btn.classList.remove('active');
             });
             button.classList.add('active');
-            
-        
-            
-            document.getElementById('category-title').innerHTML = 
+
+
+
+            document.getElementById('category-title').innerHTML =
                 `<i class="${categoryIcons[category] || 'bi-tag'} me-2"></i>${category}`;
         }
 
@@ -1257,26 +1257,26 @@
             allItems.forEach(item => {
                 item.style.display = 'block';
             });
-            
+
             // Update active category
             document.querySelectorAll('.category-item').forEach(btn => {
                 btn.classList.remove('active');
             });
             button.classList.add('active');
-            
+
             // Update header
-            document.getElementById('category-title').innerHTML = 
+            document.getElementById('category-title').innerHTML =
                 '<i class="bi bi-grid-3x3-gap me-2"></i>All Items';
         }
 
         // Select payment method
         function selectPaymentMethod(method, button) {
             selectedPaymentMethod = method;
-            
+
             // Update active payment button
             document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
-            
+
             // Show/hide cash input section
             const cashInputSection = document.getElementById('cash-input-section');
             if (method === 'CASH' || method === 'CARD & CASH') {
@@ -1294,12 +1294,12 @@
 
         // Input mode management
         let keyboardInputEnabled = true;
-        
+
         function toggleInputMode() {
             keyboardInputEnabled = !keyboardInputEnabled;
             const toggle = document.getElementById('input-mode-toggle');
             const input = document.getElementById('customer-payment');
-            
+
             if (keyboardInputEnabled) {
                 toggle.innerHTML = '<i class="bi bi-keyboard"></i>';
                 toggle.classList.remove('touch-only');
@@ -1319,10 +1319,10 @@
         function addToPayment(digit) {
             const input = document.getElementById('customer-payment');
             let currentValue = input.value || '0';
-            
+
             // Highlight the pressed button
             highlightNumberButton(digit);
-            
+
             if (digit === '.') {
                 if (!currentValue.includes('.')) {
                     input.value = currentValue + '.';
@@ -1334,7 +1334,7 @@
                     input.value = currentValue + digit;
                 }
             }
-            
+
             // Trigger input event to ensure consistency
             input.dispatchEvent(new Event('input'));
             calculateBalance();
@@ -1343,31 +1343,31 @@
         // Handle keyboard input
         function handleKeyboardInput() {
             if (!keyboardInputEnabled) return;
-            
+
             const input = document.getElementById('customer-payment');
             let value = input.value;
-            
+
             // Validate input
             if (value === '' || value === null) {
                 input.value = '0';
                 value = '0';
             }
-            
+
             // Ensure only valid numbers
             if (isNaN(parseFloat(value))) {
                 input.value = '0';
             }
-            
+
             calculateBalance();
         }
-        
+
         // Handle special keyboard keys
         function handleKeyboardKeys(event) {
             if (!keyboardInputEnabled) {
                 event.preventDefault();
                 return;
             }
-            
+
             // Allow backspace, delete, tab, escape, enter
             if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
                 // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
@@ -1379,21 +1379,21 @@
                 (event.keyCode >= 35 && event.keyCode <= 39)) {
                 return;
             }
-            
+
             // Ensure that it is a number or decimal point and stop the keypress
-            if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) && 
-                (event.keyCode < 96 || event.keyCode > 105) && 
+            if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) &&
+                (event.keyCode < 96 || event.keyCode > 105) &&
                 event.keyCode !== 110 && event.keyCode !== 190) {
                 event.preventDefault();
             }
-            
+
             // Prevent multiple decimal points
-            if ((event.keyCode === 110 || event.keyCode === 190) && 
+            if ((event.keyCode === 110 || event.keyCode === 190) &&
                 event.target.value.indexOf('.') !== -1) {
                 event.preventDefault();
             }
         }
-        
+
         // Highlight number button when pressed
         function highlightNumberButton(digit) {
             const buttons = document.querySelectorAll('.number-btn');
@@ -1411,7 +1411,7 @@
             const input = document.getElementById('customer-payment');
             input.value = '0';
             input.focus();
-            
+
             // Highlight clear button
             const clearBtn = document.querySelector('.number-btn.clear');
             if (clearBtn) {
@@ -1420,15 +1420,15 @@
                     clearBtn.classList.remove('pressed');
                 }, 150);
             }
-            
+
             calculateBalance();
         }
-        
+
         // Quick amount functions
         function setQuickAmount(amount) {
             const input = document.getElementById('customer-payment');
             input.value = amount.toString();
-            
+
             // Highlight the pressed button
             const buttons = document.querySelectorAll('.quick-btn');
             buttons.forEach(button => {
@@ -1439,15 +1439,15 @@
                     }, 150);
                 }
             });
-            
+
             calculateBalance();
         }
-        
+
         function setExactAmount() {
             const total = getTotalAmount();
             const input = document.getElementById('customer-payment');
             input.value = total.toFixed(2);
-            
+
             // Highlight exact button
             const exactBtn = document.querySelector('.quick-btn.exact-btn');
             if (exactBtn) {
@@ -1456,7 +1456,7 @@
                     exactBtn.classList.remove('pressed');
                 }, 150);
             }
-            
+
             calculateBalance();
         }
 
@@ -1470,15 +1470,15 @@
                     return sum + (itemPrice * itemQuantity);
                 }, 0);
             }
-            
+
             const customerPaymentInput = document.getElementById('customer-payment');
             const balanceDisplay = document.getElementById('balance-display');
-            
+
             customerPayment = parseFloat(customerPaymentInput.value) || 0;
             const balance = customerPayment - total;
-            
+
             console.log('Balance calculation:', { total, customerPayment, balance });
-            
+
             if (balance >= 0) {
                 balanceDisplay.innerHTML = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
                 balanceDisplay.style.background = '#d1ecf1';
@@ -1500,7 +1500,7 @@
         // Fullscreen functionality
         function toggleFullscreen() {
             const fullscreenBtn = document.getElementById('fullscreen-btn');
-            
+
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen();
                 fullscreenBtn.innerHTML = '<i class="bi bi-fullscreen-exit"></i> Exit Fullscreen';
@@ -1509,7 +1509,7 @@
                 fullscreenBtn.innerHTML = '<i class="bi bi-fullscreen"></i> Fullscreen';
             }
         }
-        
+
         // Listen for fullscreen changes
         document.addEventListener('fullscreenchange', function() {
             const fullscreenBtn = document.getElementById('fullscreen-btn');
@@ -1606,7 +1606,7 @@
                 if (data.success) {
                     // Show success modal briefly
                     showSuccess('Payment Successful!');
-                    
+
                     // Store cart data before clearing for PDF generation
                     window.lastSaleData = {
                         cart: [...cart],
@@ -1614,14 +1614,14 @@
                         customerPayment: customerPayment,
                         receiptData: data
                     };
-                    
+
                     // Populate and show receipt modal
                     populateReceipt(data);
-                    
+
                     // Clear the cart
                     cart = [];
                     document.getElementById('customer-payment').value = '0';
-                    
+
                     // Show receipt modal
                     const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
                     receiptModal.show();
@@ -1663,10 +1663,10 @@
         document.getElementById('item-search').addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
             const items = document.querySelectorAll('.item-card');
-            
+
             items.forEach(item => {
                 const itemName = item.dataset.itemName.toLowerCase();
-                
+
                 if (itemName.includes(searchTerm)) {
                     item.style.display = 'block';
                 } else {
@@ -1681,13 +1681,13 @@
             const template = document.getElementById('receiptTemplate');
             const receiptContent = document.getElementById('receiptContent');
             receiptContent.innerHTML = template.innerHTML;
-            
+
             // Populate receipt info
             document.getElementById('receipt-no-display').textContent = data.receipt_no;
             document.getElementById('user-name-display').textContent = data.user_name;
             document.getElementById('date-display').textContent = new Date().toLocaleDateString('en-GB');
             document.getElementById('time-display').textContent = new Date().toLocaleTimeString('en-GB');
-            
+
             // Populate items
             const itemsContainer = document.getElementById('receipt-items');
             let itemsHtml = '';
@@ -1703,7 +1703,7 @@
                     </div>`;
             });
             itemsContainer.innerHTML = itemsHtml;
-            
+
             // Helper function to format numbers
             const formatNumber = (num) => {
                 if (typeof num === 'string') {
@@ -1719,13 +1719,13 @@
             // Populate totals
             document.getElementById('receipt-subtotal').textContent = `Rs. ${data.subtotal ? formatNumber(data.subtotal) : '0.00'}`;
             document.getElementById('receipt-total').textContent = `Rs. ${data.total ? formatNumber(data.total) : '0.00'}`;
-            
+
             // Populate payment details
             document.getElementById('payment-method-display').textContent = selectedPaymentMethod;
-            
+
             // Show/hide payment details based on method
             const cashDetails = document.getElementById('cash-payment-details');
-            
+
             if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
                 cashDetails.style.display = 'block';
                 document.getElementById('amount-paid-display').textContent = `Rs. ${formatNumber(data.customer_payment || customerPayment)}`;
@@ -1740,32 +1740,38 @@
             // Clear cart
             cart = [];
             updateCartDisplay();
-            
+
             // Reset payment
             document.getElementById('customer-payment').value = '0';
             calculateBalance();
-            
+
             // Hide receipt modal
             bootstrap.Modal.getInstance(document.getElementById('receiptModal')).hide();
         }
+    // Download receipt as PDF - CORRECTED VERSION FOR POS PAGE
+    function downloadReceiptPDF() {
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: [80, 200]
+            });
 
-        // Print receipt as PDF with exact layout
-        function printReceiptPDF() {
-            // Create a new window for printing
-            const printWindow = window.open('', '_blank', 'width=400,height=600');
-            
             // Get stored cart data or use current cart
             const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
             const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
             const customerPaymentAmount = window.lastSaleData ? window.lastSaleData.customerPayment : parseFloat(document.getElementById('customer-payment').value) || 0;
-            
-            // Calculate totals
+
+            // Calculate totals from cart
             const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const balance = customerPaymentAmount - subtotal;
 
-            // Get receipt data
+            // Build receipt data object from cart
             const receiptData = {
-                receiptNo: document.getElementById('receipt-no-display') ? document.getElementById('receipt-no-display').textContent : document.getElementById('receipt-no').textContent,
+                receiptNo: document.getElementById('receipt-no-display') ?
+                        document.getElementById('receipt-no-display').textContent :
+                        document.getElementById('receipt-no').textContent,
                 userName: '{{ Auth::user()->name }}',
                 date: new Date().toLocaleDateString('en-GB'),
                 time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
@@ -1775,127 +1781,169 @@
                 showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
                 amountPaid: customerPaymentAmount.toFixed(2),
                 balance: balance.toFixed(2),
-                items: cartData
+                items: cartData.map(item => ({
+                    name: item.name,
+                    quantity: item.quantity,
+                    unitPrice: item.price.toFixed(2),
+                    totalPrice: (item.price * item.quantity).toFixed(2)
+                }))
             };
 
-            // Write the document structure
-            printWindow.document.open();
-            printWindow.document.write('<!DOCTYPE html>');
-            printWindow.document.write('<html><head>');
-            printWindow.document.write('<meta charset="UTF-8">');
-            printWindow.document.write('<title>Receipt - ' + receiptData.receiptNo + '</title>');
-            
-            // Add styles
-            printWindow.document.write('<style>');
-            printWindow.document.write('@page { size: 80mm auto; margin: 5mm; }');
-            printWindow.document.write('@media print { body { width: 80mm; margin: 0; padding: 0; font-family: "Courier New", monospace; font-size: 12px; line-height: 1.2; } .no-print { display: none; } }');
-            printWindow.document.write('body { width: 300px; margin: 0 auto; padding: 10px; font-family: "Courier New", monospace; font-size: 12px; line-height: 1.3; background: white; }');
-            printWindow.document.write('.header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }');
-            printWindow.document.write('.logo { width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 8px; background: #2c5aa0; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }');
-            printWindow.document.write('.restaurant-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }');
-            printWindow.document.write('.restaurant-subtitle { font-size: 12px; margin-bottom: 5px; }');
-            printWindow.document.write('.restaurant-address { font-size: 10px; margin-top: 5px; }');
-            printWindow.document.write('.receipt-info { font-size: 11px; margin-bottom: 15px; }');
-            printWindow.document.write('.receipt-info-row { display: flex; justify-content: space-between; margin-bottom: 3px; }');
-            printWindow.document.write('.items-section { border-bottom: 1px dashed #333; padding-bottom: 10px; margin-bottom: 10px; }');
-            printWindow.document.write('.item { margin-bottom: 8px; font-size: 11px; }');
-            printWindow.document.write('.item-name { font-weight: bold; margin-bottom: 2px; }');
-            printWindow.document.write('.item-details { display: flex; justify-content: space-between; color: #666; font-size: 10px; }');
-            printWindow.document.write('.totals-section { font-size: 11px; }');
-            printWindow.document.write('.total-row { display: flex; justify-content: space-between; margin-bottom: 3px; }');
-            printWindow.document.write('.grand-total { font-weight: bold; font-size: 13px; border-top: 1px solid #333; padding-top: 5px; margin-top: 5px; }');
-            printWindow.document.write('.payment-section { margin-top: 15px; font-size: 11px; }');
-            printWindow.document.write('.footer { text-align: center; margin-top: 20px; font-size: 10px; border-top: 1px dashed #333; padding-top: 10px; }');
-            printWindow.document.write('.print-btn { margin: 20px auto; display: block; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }');
-            printWindow.document.write('</style>');
-            
-            printWindow.document.write('</head><body>');
-            
+            // PDF generation code
+            let yPosition = 10;
+            const pageWidth = 80;
+
+            // Add RB logo circle
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
+            pdf.circle(pageWidth/2, yPosition + 5, 8);
+            pdf.text('RB', pageWidth/2, yPosition + 7, { align: 'center' });
+            yPosition += 18;
+
             // Header
-            printWindow.document.write('<div class="header">');
-            printWindow.document.write('<div class="logo">RB</div>');
-            printWindow.document.write('<div class="restaurant-name">RAVON BAKERS</div>');
-            printWindow.document.write('<div class="restaurant-subtitle">Restaurant & Bakery</div>');
-            printWindow.document.write('<div class="restaurant-address">');
-            printWindow.document.write('<div>Address: 282/A 2, Kaduwela</div>');
-            printWindow.document.write('<div>Phone: 076 200 6007</div>');
-            printWindow.document.write('</div></div>');
-            
+            pdf.setFontSize(14);
+            pdf.setFont('courier', 'bold');
+            pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 6;
+
+            pdf.setFontSize(10);
+            pdf.setFont('courier', 'normal');
+            pdf.text('Restaurant & Bakery', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 5;
+
+            pdf.setFontSize(8);
+            pdf.text('Address: 282/A 2, Kaduwela', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.text('Phone: 076 200 6007', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 8;
+
+            // Line
+            pdf.setLineWidth(0.5);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            yPosition += 6;
+
             // Receipt info
-            printWindow.document.write('<div class="receipt-info">');
-            printWindow.document.write('<div class="receipt-info-row"><span>RECEIPT NO:</span><span>' + receiptData.receiptNo + '</span></div>');
-            printWindow.document.write('<div class="receipt-info-row"><span>USER:</span><span>' + receiptData.userName + '</span></div>');
-            printWindow.document.write('<div class="receipt-info-row"><span>DATE:</span><span>' + receiptData.date + '</span></div>');
-            printWindow.document.write('<div class="receipt-info-row"><span>TIME:</span><span>' + receiptData.time + '</span></div>');
-            printWindow.document.write('</div>');
-            
-            // Items section
-            printWindow.document.write('<div class="items-section">');
+            pdf.setFontSize(9);
+            pdf.setFont('courier', 'normal');
+
+            pdf.text('RECEIPT NO:', 5, yPosition);
+            pdf.text(receiptData.receiptNo, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+
+            pdf.text('USER:', 5, yPosition);
+            pdf.text(receiptData.userName, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+
+            pdf.text('DATE:', 5, yPosition);
+            pdf.text(receiptData.date, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 5;
+
+            pdf.text('TIME:', 5, yPosition);
+            pdf.text(receiptData.time, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 8;
+
+            // Items
             receiptData.items.forEach(item => {
-                printWindow.document.write('<div class="item">');
-                printWindow.document.write('<div class="item-name">' + item.name + '</div>');
-                printWindow.document.write('<div class="item-details">');
-                printWindow.document.write('<span>' + item.quantity + ' x Rs. ' + item.price.toFixed(2) + '</span>');
-                printWindow.document.write('<span>Rs. ' + (item.price * item.quantity).toFixed(2) + '</span>');
-                printWindow.document.write('</div></div>');
+                pdf.setFont('courier', 'bold');
+                pdf.text(item.name, 5, yPosition);
+                pdf.text(`Rs. ${item.totalPrice}`, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 4;
+
+                pdf.setFont('courier', 'normal');
+                pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, 5, yPosition);
+                yPosition += 6;
             });
-            printWindow.document.write('</div>');
-            
-            // Totals section
-            printWindow.document.write('<div class="totals-section">');
-            printWindow.document.write('<div class="total-row"><span>Sub Total:</span><span>Rs. ' + receiptData.subtotal + '</span></div>');
-            printWindow.document.write('<div class="total-row grand-total"><span>TOTAL:</span><span>Rs. ' + receiptData.total + '</span></div>');
-            printWindow.document.write('</div>');
-            
-            // Payment section
-            printWindow.document.write('<div class="payment-section">');
-            printWindow.document.write('<div class="receipt-info-row"><span>Payment Method:</span><span>' + receiptData.paymentMethod + '</span></div>');
-            
-            // Add cash payment details if applicable
+
+            // Totals
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 6;
+
+            pdf.setFont('courier', 'normal');
+            pdf.text('Sub Total:', 5, yPosition);
+            pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 6;
+
+            pdf.setFont('courier', 'bold');
+            pdf.setFontSize(11);
+            pdf.text('TOTAL:', 5, yPosition);
+            pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 8;
+
+            // Payment info
+            pdf.setFontSize(9);
+            pdf.setFont('courier', 'normal');
+            pdf.text('Payment Method:', 5, yPosition);
+            pdf.text(receiptData.paymentMethod, pageWidth-5, yPosition, { align: 'right' });
+            yPosition += 6;
+
             if (receiptData.showCashDetails) {
-                printWindow.document.write('<div class="receipt-info-row"><span>Amount Paid:</span><span>Rs. ' + receiptData.amountPaid + '</span></div>');
-                printWindow.document.write('<div class="receipt-info-row"><span>Balance:</span><span>Rs. ' + receiptData.balance + '</span></div>');
+                pdf.text('Amount Paid:', 5, yPosition);
+                pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 5;
+                pdf.text('Balance:', 5, yPosition);
+                pdf.text(`Rs. ${receiptData.balance}`, pageWidth-5, yPosition, { align: 'right' });
+                yPosition += 6;
             }
-            printWindow.document.write('</div>');
-            
+
             // Footer
-            printWindow.document.write('<div class="footer">');
-            printWindow.document.write('<div>Thank you for visiting</div>');
-            printWindow.document.write('<div><strong>RAVON RESTAURANT</strong></div>');
-            printWindow.document.write('<div>Come again!</div>');
-            printWindow.document.write('<div style="margin-top: 10px; font-size: 8px; color: #666;"><div>System by SKM Labs</div></div>');
-            printWindow.document.write('</div>');
-         
-            // Add JavaScript for auto-print functionality
-            printWindow.document.write('<script>');
-            printWindow.document.write('window.onload = function() { setTimeout(function() { window.print(); }, 1000); };');
-            printWindow.document.write('window.onafterprint = function() { setTimeout(function() { window.close(); }, 1000); };');
-            printWindow.document.write('<\/script>');
-            
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            
+            pdf.setLineDashPattern([1, 1], 0);
+            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.setLineDashPattern([], 0);
+            yPosition += 8;
+
+            pdf.setFontSize(8);
+            pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.setFont('courier', 'bold');
+            pdf.text('RAVON RESTAURANT', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 4;
+            pdf.setFont('courier', 'normal');
+            pdf.text('Come again!', pageWidth/2, yPosition, { align: 'center' });
+            yPosition += 8;
+            pdf.setFontSize(6);
+            pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
+
+            // Open print dialog
+            pdf.autoPrint();
+            const pdfBlob = pdf.output('blob');
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            const printWindow = window.open(blobUrl, '_blank', 'width=800,height=600');
+
+            if (!printWindow) {
+                alert('Please allow popups to print the receipt');
+            } else {
+                printWindow.onload = function() {
+                    setTimeout(() => printWindow.print(), 250);
+                };
+            }
+
+        } catch (error) {
+            console.error('PDF Error:', error);
+            alert('Failed to generate PDF: ' + error.message);
         }
+    }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('POS page loaded, initializing...');
-            
+
             // Initialize cart if not already done
             if (!cart) {
                 cart = [];
             }
-            
+
             // Check if this is a new order (coming from cleared session)
             const urlParams = new URLSearchParams(window.location.search);
             const isClearSession = urlParams.get('clear') === '1';
-            
+
             if (isClearSession) {
                 // Clear all cart and payment data for fresh start
                 cart = [];
                 selectedPaymentMethod = 'CASH';
                 customerPayment = 0;
-                
+
                 // Clear browser storage
                 if (typeof(Storage) !== "undefined") {
                     localStorage.removeItem('pos_cart');
@@ -1904,39 +1952,39 @@
                     localStorage.removeItem('pos_receipt_no');
                     sessionStorage.clear();
                 }
-                
+
                 // Update the receipt number display with fresh number
                 const today = new Date();
-                const dateStr = today.getFullYear().toString().substr(-2) + 
-                               String(today.getMonth() + 1).padStart(2, '0') + 
+                const dateStr = today.getFullYear().toString().substr(-2) +
+                               String(today.getMonth() + 1).padStart(2, '0') +
                                String(today.getDate()).padStart(2, '0');
                 document.getElementById('receipt-no').textContent = 'RCP' + dateStr + '0001';
-                
+
                 // Clean URL by removing the clear parameter
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
-            
+
             const cashInputSection = document.getElementById('cash-input-section');
             if (selectedPaymentMethod === 'CASH') {
                 cashInputSection.classList.add('show');
             }
-            
+
             // Update time every second
             setInterval(updateTime, 1000);
             updateTime();
-            
+
             // Initialize payment display
             document.getElementById('customer-payment').value = '0';
-            
+
             // Add keyboard shortcuts for cash input
             document.addEventListener('keydown', function(event) {
                 // Only apply shortcuts when keyboard input is enabled and cash input section is visible
                 const cashSection = document.getElementById('cash-input-section');
                 const cashInput = document.getElementById('customer-payment');
-                
-                if (keyboardInputEnabled && cashSection && cashSection.classList.contains('show') && 
+
+                if (keyboardInputEnabled && cashSection && cashSection.classList.contains('show') &&
                     document.activeElement !== cashInput) {
-                    
+
                     // Number keys (0-9)
                     if (event.keyCode >= 48 && event.keyCode <= 57) {
                         event.preventDefault();
@@ -1944,7 +1992,7 @@
                         addToPayment(digit);
                         return;
                     }
-                    
+
                     // Numpad keys (0-9)
                     if (event.keyCode >= 96 && event.keyCode <= 105) {
                         event.preventDefault();
@@ -1952,21 +2000,21 @@
                         addToPayment(digit);
                         return;
                     }
-                    
+
                     // Decimal point
                     if (event.keyCode === 190 || event.keyCode === 110) {
                         event.preventDefault();
                         addToPayment('.');
                         return;
                     }
-                    
+
                     // Clear/Delete/Escape
                     if (event.keyCode === 46 || event.keyCode === 8 || event.keyCode === 27) {
                         event.preventDefault();
                         clearPayment();
                         return;
                     }
-                    
+
                     // Enter to focus on input for direct typing
                     if (event.keyCode === 13) {
                         event.preventDefault();
@@ -1976,7 +2024,7 @@
                     }
                 }
             });
-            
+
             // Add input focus management
             const cashInput = document.getElementById('customer-payment');
             cashInput.addEventListener('blur', function() {
@@ -1986,12 +2034,12 @@
                     calculateBalance();
                 }
             });
-            
+
             // Force initial update of cart display and totals
             updateCartDisplay();
             updateTotals();
             calculateBalance();
-            
+
             console.log('Initial cart state:', cart);
             console.log('Initial total element text:', document.getElementById('total')?.textContent);
         });

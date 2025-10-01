@@ -1014,8 +1014,8 @@
         </div>
         
         <div class="receipt-actions">
-            <button type="button" class="print-btn" onclick="downloadReceiptPDF()">
-                <i class="bi bi-download"></i> Download PDF
+            <button type="button" class="print-btn" onclick="printReceiptPDF()">
+                <i class="bi bi-printer"></i> Print Receipt
             </button>
             <button type="button" class="new-order-btn" onclick="startNewOrder()">
                 <i class="bi bi-plus-circle"></i> New Order
@@ -1749,15 +1749,11 @@
             bootstrap.Modal.getInstance(document.getElementById('receiptModal')).hide();
         }
 
-        // Download receipt as PDF
-        function downloadReceiptPDF() {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: [80, 200] // Receipt paper size
-            });
-
+        // Print receipt as PDF with exact layout
+        function printReceiptPDF() {
+            // Create a new window for printing
+            const printWindow = window.open('', '_blank', 'width=400,height=600');
+            
             // Get stored cart data or use current cart
             const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
             const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
@@ -1767,183 +1763,118 @@
             const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const balance = customerPaymentAmount - subtotal;
 
-            // Get receipt data with detailed information
+            // Get receipt data
             const receiptData = {
                 receiptNo: document.getElementById('receipt-no-display') ? document.getElementById('receipt-no-display').textContent : document.getElementById('receipt-no').textContent,
                 userName: '{{ Auth::user()->name }}',
                 date: new Date().toLocaleDateString('en-GB'),
                 time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-                subtotal: `Rs. ${subtotal.toFixed(2)}`,
-                total: `Rs. ${subtotal.toFixed(2)}`,
+                subtotal: subtotal.toFixed(2),
+                total: subtotal.toFixed(2),
                 paymentMethod: paymentMethod,
                 showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
-                amountPaid: `Rs. ${customerPaymentAmount.toFixed(2)}`,
-                balance: `Rs. ${balance.toFixed(2)}`,
-                items: cartData.map(item => ({
-                    name: item.name,
-                    quantity: item.quantity,
-                    unitPrice: item.price,
-                    subtotal: item.price * item.quantity
-                }))
+                amountPaid: customerPaymentAmount.toFixed(2),
+                balance: balance.toFixed(2),
+                items: cartData
             };
 
-            // PDF generation code
-            let yPosition = 10;
-            const lineHeight = 3.5;
-            const pageWidth = 80;
+            // Write the document structure
+            printWindow.document.open();
+            printWindow.document.write('<!DOCTYPE html>');
+            printWindow.document.write('<html><head>');
+            printWindow.document.write('<meta charset="UTF-8">');
+            printWindow.document.write('<title>Receipt - ' + receiptData.receiptNo + '</title>');
             
-            // Add RB logo circle
-            pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'bold');
-            pdf.circle(pageWidth/2, yPosition + 5, 8);
-            pdf.text('RB', pageWidth/2, yPosition + 7, { align: 'center' });
-            yPosition += 18;
+            // Add styles
+            printWindow.document.write('<style>');
+            printWindow.document.write('@page { size: 80mm auto; margin: 5mm; }');
+            printWindow.document.write('@media print { body { width: 80mm; margin: 0; padding: 0; font-family: "Courier New", monospace; font-size: 12px; line-height: 1.2; } .no-print { display: none; } }');
+            printWindow.document.write('body { width: 300px; margin: 0 auto; padding: 10px; font-family: "Courier New", monospace; font-size: 12px; line-height: 1.3; background: white; }');
+            printWindow.document.write('.header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }');
+            printWindow.document.write('.logo { width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 8px; background: #2c5aa0; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }');
+            printWindow.document.write('.restaurant-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }');
+            printWindow.document.write('.restaurant-subtitle { font-size: 12px; margin-bottom: 5px; }');
+            printWindow.document.write('.restaurant-address { font-size: 10px; margin-top: 5px; }');
+            printWindow.document.write('.receipt-info { font-size: 11px; margin-bottom: 15px; }');
+            printWindow.document.write('.receipt-info-row { display: flex; justify-content: space-between; margin-bottom: 3px; }');
+            printWindow.document.write('.items-section { border-bottom: 1px dashed #333; padding-bottom: 10px; margin-bottom: 10px; }');
+            printWindow.document.write('.item { margin-bottom: 8px; font-size: 11px; }');
+            printWindow.document.write('.item-name { font-weight: bold; margin-bottom: 2px; }');
+            printWindow.document.write('.item-details { display: flex; justify-content: space-between; color: #666; font-size: 10px; }');
+            printWindow.document.write('.totals-section { font-size: 11px; }');
+            printWindow.document.write('.total-row { display: flex; justify-content: space-between; margin-bottom: 3px; }');
+            printWindow.document.write('.grand-total { font-weight: bold; font-size: 13px; border-top: 1px solid #333; padding-top: 5px; margin-top: 5px; }');
+            printWindow.document.write('.payment-section { margin-top: 15px; font-size: 11px; }');
+            printWindow.document.write('.footer { text-align: center; margin-top: 20px; font-size: 10px; border-top: 1px dashed #333; padding-top: 10px; }');
+            printWindow.document.write('.print-btn { margin: 20px auto; display: block; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }');
+            printWindow.document.write('</style>');
             
-            // Header - Company Name
-            pdf.setFontSize(14);
-            pdf.setFont('courier', 'bold');
-            pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 6;
+            printWindow.document.write('</head><body>');
             
-            pdf.setFontSize(10);
-            pdf.setFont('courier', 'normal');
-            pdf.text('Restaurant & Bakery', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 5;
+            // Header
+            printWindow.document.write('<div class="header">');
+            printWindow.document.write('<div class="logo">RB</div>');
+            printWindow.document.write('<div class="restaurant-name">RAVON BAKERS</div>');
+            printWindow.document.write('<div class="restaurant-subtitle">Restaurant & Bakery</div>');
+            printWindow.document.write('<div class="restaurant-address">');
+            printWindow.document.write('<div>Address: 282/A 2, Kaduwela</div>');
+            printWindow.document.write('<div>Phone: 076 200 6007</div>');
+            printWindow.document.write('</div></div>');
             
-            pdf.setFontSize(8);
-            pdf.text('Address: 282/A 2, Kaduwela', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.text('Phone: 076 200 6007', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 8;
+            // Receipt info
+            printWindow.document.write('<div class="receipt-info">');
+            printWindow.document.write('<div class="receipt-info-row"><span>RECEIPT NO:</span><span>' + receiptData.receiptNo + '</span></div>');
+            printWindow.document.write('<div class="receipt-info-row"><span>USER:</span><span>' + receiptData.userName + '</span></div>');
+            printWindow.document.write('<div class="receipt-info-row"><span>DATE:</span><span>' + receiptData.date + '</span></div>');
+            printWindow.document.write('<div class="receipt-info-row"><span>TIME:</span><span>' + receiptData.time + '</span></div>');
+            printWindow.document.write('</div>');
             
-            // Draw thick line
-            pdf.setLineWidth(0.5);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
-            yPosition += 6;
-            
-            // Receipt info section
-            pdf.setFontSize(9);
-            pdf.setFont('courier', 'normal');
-            
-            // Receipt details with proper spacing
-            pdf.text('RECEIPT NO:', 5, yPosition);
-            pdf.text(receiptData.receiptNo, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 5;
-            
-            pdf.text('USER:', 5, yPosition);
-            pdf.text(receiptData.userName, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 5;
-            
-            pdf.text('DATE:', 5, yPosition);
-            pdf.text(receiptData.date, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 5;
-            
-            pdf.text('TIME:', 5, yPosition);
-            pdf.text(receiptData.time, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 8;
-            
-            // Items section header
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 6;
-            
-            // Items details
-            receiptData.items.forEach((item, index) => {
-                // Item name (bold)
-                pdf.setFont('courier', 'bold');
-                pdf.setFontSize(9);
-                pdf.text(item.name, 5, yPosition);
-                yPosition += 5;
-                
-                // Quantity x Unit Price = Subtotal
-                pdf.setFont('courier', 'normal');
-                pdf.setFontSize(8);
-                const qtyPriceText = `${item.quantity} x Rs. ${item.unitPrice.toFixed(2)}`;
-                const subtotalText = `Rs. ${item.subtotal.toFixed(2)}`;
-                
-                pdf.text(qtyPriceText, 5, yPosition);
-                pdf.text(subtotalText, pageWidth-5, yPosition, { align: 'right' });
-                yPosition += 6;
-                
-                // Add small gap between items
-                if (index < receiptData.items.length - 1) {
-                    yPosition += 2;
-                }
+            // Items section
+            printWindow.document.write('<div class="items-section">');
+            receiptData.items.forEach(item => {
+                printWindow.document.write('<div class="item">');
+                printWindow.document.write('<div class="item-name">' + item.name + '</div>');
+                printWindow.document.write('<div class="item-details">');
+                printWindow.document.write('<span>' + item.quantity + ' x Rs. ' + item.price.toFixed(2) + '</span>');
+                printWindow.document.write('<span>Rs. ' + (item.price * item.quantity).toFixed(2) + '</span>');
+                printWindow.document.write('</div></div>');
             });
-            
-            // Dotted line before totals
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 6;
+            printWindow.document.write('</div>');
             
             // Totals section
-            pdf.setFont('courier', 'normal');
-            pdf.setFontSize(9);
-            pdf.text('Sub Total:', 5, yPosition);
-            pdf.text(receiptData.subtotal, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 6;
+            printWindow.document.write('<div class="totals-section">');
+            printWindow.document.write('<div class="total-row"><span>Sub Total:</span><span>Rs. ' + receiptData.subtotal + '</span></div>');
+            printWindow.document.write('<div class="total-row grand-total"><span>TOTAL:</span><span>Rs. ' + receiptData.total + '</span></div>');
+            printWindow.document.write('</div>');
             
-            // TOTAL in bold
-            pdf.setFont('courier', 'bold');
-            pdf.setFontSize(11);
-            pdf.text('TOTAL:', 5, yPosition);
-            pdf.text(receiptData.total, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 8;
+            // Payment section
+            printWindow.document.write('<div class="payment-section">');
+            printWindow.document.write('<div class="receipt-info-row"><span>Payment Method:</span><span>' + receiptData.paymentMethod + '</span></div>');
             
-            // Dotted line before payment
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 6;
-            
-            // Payment information section
-            pdf.setFontSize(9);
-            pdf.setFont('courier', 'normal');
-            pdf.text('Payment Method:', 5, yPosition);
-            pdf.text(receiptData.paymentMethod, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 6;
-            
-            // Cash payment details if applicable
+            // Add cash payment details if applicable
             if (receiptData.showCashDetails) {
-                pdf.text('Amount Paid:', 5, yPosition);
-                pdf.text(receiptData.amountPaid, pageWidth-5, yPosition, { align: 'right' });
-                yPosition += 5;
-                
-                pdf.text('Balance:', 5, yPosition);
-                pdf.text(receiptData.balance, pageWidth-5, yPosition, { align: 'right' });
-                yPosition += 6;
+                printWindow.document.write('<div class="receipt-info-row"><span>Amount Paid:</span><span>Rs. ' + receiptData.amountPaid + '</span></div>');
+                printWindow.document.write('<div class="receipt-info-row"><span>Balance:</span><span>Rs. ' + receiptData.balance + '</span></div>');
             }
-            
-            // Bottom dotted line
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 8;
+            printWindow.document.write('</div>');
             
             // Footer
-            pdf.setFontSize(8);
-            pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.setFont('courier', 'bold');
-            pdf.text('RAVON RESTAURANT', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.setFont('courier', 'normal');
-            pdf.text('Come again!', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 8;
+            printWindow.document.write('<div class="footer">');
+            printWindow.document.write('<div>Thank you for visiting</div>');
+            printWindow.document.write('<div><strong>RAVON RESTAURANT</strong></div>');
+            printWindow.document.write('<div>Come again!</div>');
+            printWindow.document.write('<div style="margin-top: 10px; font-size: 8px; color: #666;"><div>System by SKM Labs</div></div>');
+            printWindow.document.write('</div>');
+         
+            // Add JavaScript for auto-print functionality
+            printWindow.document.write('<script>');
+            printWindow.document.write('window.onload = function() { setTimeout(function() { window.print(); }, 1000); };');
+            printWindow.document.write('window.onafterprint = function() { setTimeout(function() { window.close(); }, 1000); };');
+            printWindow.document.write('<\/script>');
             
-            pdf.setFontSize(6);
-            pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
             
-            // Generate filename
-            const filename = `Receipt_${receiptData.receiptNo}_${new Date().toISOString().slice(0,10)}.pdf`;
-            
-            // Download the PDF
-            pdf.save(filename);
-            
-            // Show success message
-            showSuccess('Receipt PDF downloaded successfully!');
         }
 
         // Initialize on page load

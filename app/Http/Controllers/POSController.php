@@ -52,14 +52,7 @@ class POSController extends Controller
         foreach ($request->items as $requestItem) {
             $item = Item::find($requestItem['id']);
             
-            // Check inventory availability
-            $inventory = Inventory::where('item_id', $item->id)->first();
-            if ($inventory && $inventory->current_stock < $requestItem['quantity']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Insufficient stock for {$item->item_name}. Available: {$inventory->current_stock}"
-                ]);
-            }
+            // Note: Stock validation removed - allow all items to be processed
             
             $quantity = $requestItem['quantity'];
             $unitPrice = $item->price;
@@ -131,10 +124,12 @@ class POSController extends Controller
                 $saleItem['sale_id'] = $sale->id;
                 SaleItem::create($saleItem);
 
-                // Use the Item model's reduceStock method for consistency
+                // Update inventory (allow negative stock)
                 $item = Item::with('inventory')->find($saleItem['item_id']);
-                if ($item) {
-                    $item->reduceStock($saleItem['quantity']);
+                if ($item && $item->inventory) {
+                    $newStock = $item->inventory->current_stock - $saleItem['quantity'];
+                    $item->inventory->update(['current_stock' => $newStock]);
+                    $item->update(['stock_quantity' => $newStock]);
                 }
             }
 

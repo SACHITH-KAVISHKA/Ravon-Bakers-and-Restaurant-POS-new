@@ -364,7 +364,7 @@
                         <span>Item Management</span>
                     </a>
                 </li>
-                
+                 @can('manage-users')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" 
                        href="{{ route('sales-report.index') }}">
@@ -373,7 +373,6 @@
                     </a>
                 </li>
                 
-                @can('manage-users')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" 
                        href="{{ route('users.index') }}">

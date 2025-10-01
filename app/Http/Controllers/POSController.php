@@ -22,7 +22,6 @@ class POSController extends Controller
         
         $items = Item::with('inventory')
             ->where('is_active', true)
-            ->inStock()
             ->orderBy('category')
             ->get()
             ->groupBy('category');

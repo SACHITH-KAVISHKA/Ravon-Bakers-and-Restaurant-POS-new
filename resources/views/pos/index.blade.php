@@ -192,29 +192,6 @@
             line-height: 1.3;
         }
         
-        .item-stock {
-            font-size: 11px;
-            color: #6c757d;
-            background: #e8f5e8;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            display: inline-block;
-            border: 1px solid #d4edda;
-        }
-        
-        .item-stock.low-stock {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        
-        .item-stock.out-of-stock {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
         .item-price {
             font-size: 16px;
             font-weight: bold;
@@ -828,24 +805,13 @@
                 <div class="items-grid" id="items-container">
                     @foreach($items as $category => $categoryItems)
                         @foreach($categoryItems as $item)
-                            @php
-                                $currentStock = $item->getCurrentStock();
-                                $stockClass = '';
-                                if ($currentStock == 0) {
-                                    $stockClass = 'out-of-stock';
-                                } elseif ($currentStock <= 5) {
-                                    $stockClass = 'low-stock';
-                                }
-                            @endphp
                             <div class="item-card" 
                                  data-category="{{ $category }}" 
                                  data-item-id="{{ $item->id }}" 
                                  data-item-name="{{ $item->item_name }}" 
-                                 data-item-price="{{ $item->price }}" 
-                                 data-item-stock="{{ $item->getCurrentStock() }}"
+                                 data-item-price="{{ $item->price }}"
                                  onclick="addToCartFromCard(this)">
                                 <div class="item-name">{{ $item->item_name }}</div>
-                                <div class="item-stock {{ $stockClass }}">Available: {{ $item->getCurrentStock() }}</div>
                                 <div class="item-price">Rs. {{ number_format($item->price, 2) }}</div>
                             </div>
                         @endforeach
@@ -1114,13 +1080,11 @@
             const itemId = parseInt(card.dataset.itemId);
             const itemName = card.dataset.itemName;
             const price = parseFloat(card.dataset.itemPrice);
-            const availableStock = parseInt(card.dataset.itemStock);
             
             console.log('Adding item from card:', {
                 itemId,
                 itemName,
-                price,
-                availableStock
+                price
             });
             
             if (isNaN(price) || price <= 0) {
@@ -1129,28 +1093,22 @@
                 return;
             }
             
-            addToCart(itemId, itemName, price, availableStock);
+            addToCart(itemId, itemName, price);
         }
 
         // Add item to cart
-        function addToCart(itemId, itemName, price, availableStock) {
+        function addToCart(itemId, itemName, price) {
             const existingItem = cart.find(item => item.id === itemId);
             const itemPrice = parseFloat(price) || 0;
             
             if (existingItem) {
-                if (existingItem.quantity < availableStock) {
-                    existingItem.quantity += 1;
-                } else {
-                    showError(`Only ${availableStock} items available in stock`);
-                    return;
-                }
+                existingItem.quantity += 1;
             } else {
                 cart.push({
                     id: itemId,
                     name: itemName,
                     price: itemPrice,
-                    quantity: 1,
-                    availableStock: availableStock
+                    quantity: 1
                 });
             }
             
@@ -1175,10 +1133,6 @@
             const item = cart.find(item => item.id === itemId);
             if (item) {
                 const newQuantity = Math.max(1, parseInt(quantity) || 1);
-                if (newQuantity > item.availableStock) {
-                    showError(`Only ${item.availableStock} items available in stock`);
-                    return;
-                }
                 item.quantity = newQuantity;
                 console.log('Quantity updated:', { itemId, newQuantity, price: item.price });
                 updateCartDisplay();
@@ -1209,14 +1163,14 @@
                         <div class="cart-item">
                             <div class="cart-item-details">
                                 <div class="cart-item-name">${item.name}</div>
-                                <div class="cart-item-price">Rs. ${itemPrice.toFixed(2)} each | Stock: ${item.availableStock || 'N/A'}</div>
+                                <div class="cart-item-price">Rs. ${itemPrice.toFixed(2)} each</div>
                             </div>
                             <div class="quantity-controls">
                                 <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${itemQuantity - 1})">
                                     <i class="bi bi-dash"></i>
                                 </button>
                                 <input type="number" class="qty-input" value="${itemQuantity}" 
-                                       onchange="updateQuantity(${item.id}, this.value)" min="1" max="${item.availableStock || 999}">
+                                       onchange="updateQuantity(${item.id}, this.value)" min="1">
                                 <button type="button" class="qty-btn plus" onclick="updateQuantity(${item.id}, ${itemQuantity + 1})">
                                     <i class="bi bi-plus"></i>
                                 </button>

@@ -976,9 +976,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        let cart = [];
+        let cart = []; // Initialize empty cart
         let selectedPaymentMethod = 'CASH';
         let customerPayment = 0;
+
+        // Test function to debug totals (can be removed later)
+        function testTotalCalculation() {
+            console.log('Testing total calculation...');
+            console.log('Cart:', cart);
+            const total = getTotalAmount();
+            console.log('Calculated total:', total);
+            updateTotals();
+        }
 
         // Add item to cart from card click
         function addToCartFromCard(card) {
@@ -987,12 +996,26 @@
             const price = parseFloat(card.dataset.itemPrice);
             const availableStock = parseInt(card.dataset.itemStock);
             
+            console.log('Adding item from card:', {
+                itemId,
+                itemName,
+                price,
+                availableStock
+            });
+            
+            if (isNaN(price) || price <= 0) {
+                console.error('Invalid price:', card.dataset.itemPrice);
+                showError('Invalid item price');
+                return;
+            }
+            
             addToCart(itemId, itemName, price, availableStock);
         }
 
         // Add item to cart
         function addToCart(itemId, itemName, price, availableStock) {
             const existingItem = cart.find(item => item.id === itemId);
+            const itemPrice = parseFloat(price) || 0;
             
             if (existingItem) {
                 if (existingItem.quantity < availableStock) {
@@ -1005,11 +1028,18 @@
                 cart.push({
                     id: itemId,
                     name: itemName,
-                    price: parseFloat(price),
+                    price: itemPrice,
                     quantity: 1,
                     availableStock: availableStock
                 });
             }
+            
+            console.log('Item added to cart:', {
+                id: itemId,
+                name: itemName,
+                price: itemPrice,
+                quantity: existingItem ? existingItem.quantity : 1
+            });
             
             updateCartDisplay();
         }
@@ -1024,12 +1054,13 @@
         function updateQuantity(itemId, quantity) {
             const item = cart.find(item => item.id === itemId);
             if (item) {
-                const newQuantity = Math.max(1, parseInt(quantity));
+                const newQuantity = Math.max(1, parseInt(quantity) || 1);
                 if (newQuantity > item.availableStock) {
                     showError(`Only ${item.availableStock} items available in stock`);
                     return;
                 }
                 item.quantity = newQuantity;
+                console.log('Quantity updated:', { itemId, newQuantity, price: item.price });
                 updateCartDisplay();
             }
         }
@@ -1050,20 +1081,23 @@
             } else {
                 let html = '';
                 cart.forEach(item => {
-                    const totalPrice = item.price * item.quantity;
+                    const itemPrice = parseFloat(item.price) || 0;
+                    const itemQuantity = parseInt(item.quantity) || 0;
+                    const totalPrice = itemPrice * itemQuantity;
+                    
                     html += `
                         <div class="cart-item">
                             <div class="cart-item-details">
                                 <div class="cart-item-name">${item.name}</div>
-                                <div class="cart-item-price">Rs. ${item.price.toFixed(2)} each | Stock: ${item.availableStock || 'N/A'}</div>
+                                <div class="cart-item-price">Rs. ${itemPrice.toFixed(2)} each | Stock: ${item.availableStock || 'N/A'}</div>
                             </div>
                             <div class="quantity-controls">
-                                <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${item.quantity - 1})">
+                                <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${itemQuantity - 1})">
                                     <i class="bi bi-dash"></i>
                                 </button>
-                                <input type="number" class="qty-input" value="${item.quantity}" 
+                                <input type="number" class="qty-input" value="${itemQuantity}" 
                                        onchange="updateQuantity(${item.id}, this.value)" min="1" max="${item.availableStock || 999}">
-                                <button type="button" class="qty-btn plus" onclick="updateQuantity(${item.id}, ${item.quantity + 1})">
+                                <button type="button" class="qty-btn plus" onclick="updateQuantity(${item.id}, ${itemQuantity + 1})">
                                     <i class="bi bi-plus"></i>
                                 </button>
                             </div>
@@ -1082,16 +1116,40 @@
 
         // Update totals
         function updateTotals() {
-            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let subtotal = 0;
+            
+            // Calculate subtotal from cart items
+            if (cart && cart.length > 0) {
+                subtotal = cart.reduce((sum, item) => {
+                    const itemPrice = parseFloat(item.price) || 0;
+                    const itemQuantity = parseInt(item.quantity) || 0;
+                    return sum + (itemPrice * itemQuantity);
+                }, 0);
+            }
+            
             const total = subtotal; // No discount or tax
             
-            document.getElementById('subtotal').textContent = `Rs. ${subtotal.toFixed(2)}`;
-            document.getElementById('total').textContent = `Rs. ${total.toFixed(2)}`;
+            // Update subtotal element if it exists
+            const subtotalElement = document.getElementById('subtotal');
+            if (subtotalElement) {
+                subtotalElement.textContent = `Rs. ${subtotal.toFixed(2)}`;
+            }
+            
+            // Update total element
+            const totalElement = document.getElementById('total');
+            if (totalElement) {
+                totalElement.textContent = `Rs. ${total.toFixed(2)}`;
+            }
             
             // Update balance if cash payment
             if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
                 calculateBalance();
             }
+            
+            // Debug logging
+            console.log('Cart items:', cart);
+            console.log('Calculated subtotal:', subtotal);
+            console.log('Calculated total:', total);
         }
 
         // Show category items
@@ -1187,12 +1245,22 @@
 
         // Calculate balance for cash payments
         function calculateBalance() {
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            let total = 0;
+            if (cart && cart.length > 0) {
+                total = cart.reduce((sum, item) => {
+                    const itemPrice = parseFloat(item.price) || 0;
+                    const itemQuantity = parseInt(item.quantity) || 0;
+                    return sum + (itemPrice * itemQuantity);
+                }, 0);
+            }
+            
             const customerPaymentInput = document.getElementById('customer-payment');
             const balanceDisplay = document.getElementById('balance-display');
             
             customerPayment = parseFloat(customerPaymentInput.value) || 0;
             const balance = customerPayment - total;
+            
+            console.log('Balance calculation:', { total, customerPayment, balance });
             
             if (balance >= 0) {
                 balanceDisplay.innerHTML = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
@@ -1356,7 +1424,14 @@
 
         // Get total amount
         function getTotalAmount() {
-            return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            if (!cart || cart.length === 0) {
+                return 0;
+            }
+            return cart.reduce((sum, item) => {
+                const itemPrice = parseFloat(item.price) || 0;
+                const itemQuantity = parseInt(item.quantity) || 0;
+                return sum + (itemPrice * itemQuantity);
+            }, 0);
         }
 
         // Clear all orders function
@@ -1656,6 +1731,13 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('POS page loaded, initializing...');
+            
+            // Initialize cart if not already done
+            if (!cart) {
+                cart = [];
+            }
+            
             // Check if this is a new order (coming from cleared session)
             const urlParams = new URLSearchParams(window.location.search);
             const isClearSession = urlParams.get('clear') === '1';
@@ -1697,10 +1779,14 @@
             
             // Initialize payment display
             document.getElementById('customer-payment').value = '0';
+            
+            // Force initial update of cart display and totals
+            updateCartDisplay();
+            updateTotals();
             calculateBalance();
             
-            // Update cart display to show empty state
-            updateCartDisplay();
+            console.log('Initial cart state:', cart);
+            console.log('Initial total element text:', document.getElementById('total')?.textContent);
         });
     </script>
 </body>

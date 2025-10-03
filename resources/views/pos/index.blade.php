@@ -2040,15 +2040,10 @@
             document.getElementById('customer-payment').value = '0';
             calculateBalance();
         }
-    // Download receipt as PDF - CORRECTED VERSION FOR POS PAGE
+    // Download receipt as PDF - DYNAMIC LENGTH VERSION
     function downloadReceiptPDF() {
         try {
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: [80, 200]
-            });
 
             // Get stored cart data or use current cart
             const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
@@ -2079,18 +2074,60 @@
                 }))
             };
 
-            // PDF generation code
+            // Create PDF with fixed width (80mm) and let height be dynamic
+            const pdf = new jsPDF({ 
+                orientation: 'portrait', 
+                unit: 'mm', 
+                format: [80, 297] // Start with A4 height, will extend if needed
+            });
+
             let yPosition = 10;
             const pageWidth = 80;
+            const pageHeight = 297; // A4 height in mm
+            const leftMargin = 5;
+            const rightMargin = 5;
+            const maxPageHeight = pageHeight - 20; // Leave margin at bottom
 
-            // Add RB logo circle
+            // Helper function to check if we need a new page
+            function checkPageBreak(requiredSpace) {
+                if (yPosition + requiredSpace > maxPageHeight) {
+                    pdf.addPage();
+                    yPosition = 10;
+                    
+                    // Add simplified header for continuation pages
+                    pdf.setFontSize(10);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.circle(pageWidth/2, yPosition + 5, 6);
+                    pdf.text('RB', pageWidth/2, yPosition + 6, { align: 'center' });
+                    yPosition += 14;
+                    
+                    pdf.setFontSize(12);
+                    pdf.setFont('courier', 'bold');
+                    pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
+                    yPosition += 6;
+                    
+                    pdf.setFontSize(8);
+                    pdf.setFont('courier', 'normal');
+                    pdf.text('(Continued)', pageWidth/2, yPosition, { align: 'center' });
+                    yPosition += 8;
+                    
+                    // Separator line
+                    pdf.setLineWidth(0.3);
+                    pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
+                    yPosition += 6;
+                    
+                    return true;
+                }
+                return false;
+            }
+
+            // Header section - only on first page
             pdf.setFontSize(10);
             pdf.setFont('helvetica', 'bold');
             pdf.circle(pageWidth/2, yPosition + 5, 8);
             pdf.text('RB', pageWidth/2, yPosition + 7, { align: 'center' });
             yPosition += 18;
 
-            // Header
             pdf.setFontSize(14);
             pdf.setFont('courier', 'bold');
             pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
@@ -2107,83 +2144,111 @@
             pdf.text('Phone: 076 200 6007', pageWidth/2, yPosition, { align: 'center' });
             yPosition += 8;
 
-            // Line
+            // Separator line
             pdf.setLineWidth(0.5);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
             yPosition += 6;
 
-            // Receipt info
+            // Receipt information
             pdf.setFontSize(9);
             pdf.setFont('courier', 'normal');
 
-            pdf.text('RECEIPT NO:', 5, yPosition);
-            pdf.text(receiptData.receiptNo, pageWidth-5, yPosition, { align: 'right' });
+            checkPageBreak(25); // Check space for receipt info block
+            
+            pdf.text('RECEIPT NO:', leftMargin, yPosition);
+            pdf.text(receiptData.receiptNo, pageWidth-rightMargin, yPosition, { align: 'right' });
             yPosition += 5;
 
-            pdf.text('USER:', 5, yPosition);
-            pdf.text(receiptData.userName, pageWidth-5, yPosition, { align: 'right' });
+            pdf.text('USER:', leftMargin, yPosition);
+            pdf.text(receiptData.userName, pageWidth-rightMargin, yPosition, { align: 'right' });
             yPosition += 5;
 
-            pdf.text('DATE:', 5, yPosition);
-            pdf.text(receiptData.date, pageWidth-5, yPosition, { align: 'right' });
+            pdf.text('DATE:', leftMargin, yPosition);
+            pdf.text(receiptData.date, pageWidth-rightMargin, yPosition, { align: 'right' });
             yPosition += 5;
 
-            pdf.text('TIME:', 5, yPosition);
-            pdf.text(receiptData.time, pageWidth-5, yPosition, { align: 'right' });
+            pdf.text('TIME:', leftMargin, yPosition);
+            pdf.text(receiptData.time, pageWidth-rightMargin, yPosition, { align: 'right' });
             yPosition += 8;
 
-            // Items
-            receiptData.items.forEach(item => {
+            // Items section
+            checkPageBreak(15); // Check space for items header
+            
+            pdf.setLineWidth(0.3);
+            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
+            yPosition += 6;
+
+            // Process each item with automatic page breaks
+            receiptData.items.forEach((item, index) => {
+                checkPageBreak(12); // Each item needs about 12mm space
+                
+                // Item name and total price
                 pdf.setFont('courier', 'bold');
-                pdf.text(item.name, 5, yPosition);
-                pdf.text(`Rs. ${item.totalPrice}`, pageWidth-5, yPosition, { align: 'right' });
+                pdf.setFontSize(9);
+                
+                // Truncate long item names if necessary
+                let itemName = item.name;
+                if (itemName.length > 22) {
+                    itemName = itemName.substring(0, 19) + '...';
+                }
+                
+                pdf.text(itemName, leftMargin, yPosition);
+                pdf.text(`Rs. ${item.totalPrice}`, pageWidth-rightMargin, yPosition, { align: 'right' });
                 yPosition += 4;
 
+                // Quantity and unit price
                 pdf.setFont('courier', 'normal');
-                pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, 5, yPosition);
+                pdf.setFontSize(8);
+                pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, leftMargin + 2, yPosition);
                 yPosition += 6;
             });
 
-            // Totals
+            // Totals section
+            checkPageBreak(40); // Check space for totals and footer
+            
+            yPosition += 2;
             pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
             pdf.setLineDashPattern([], 0);
             yPosition += 6;
 
             pdf.setFont('courier', 'normal');
-            pdf.text('Sub Total:', 5, yPosition);
-            pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth-5, yPosition, { align: 'right' });
+            pdf.setFontSize(9);
+            pdf.text('Sub Total:', leftMargin, yPosition);
+            pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth-rightMargin, yPosition, { align: 'right' });
             yPosition += 6;
 
             pdf.setFont('courier', 'bold');
             pdf.setFontSize(11);
-            pdf.text('TOTAL:', 5, yPosition);
-            pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
+            pdf.text('TOTAL:', leftMargin, yPosition);
+            pdf.text(`Rs. ${receiptData.total}`, pageWidth-rightMargin, yPosition, { align: 'right' });
             yPosition += 8;
 
-            // Payment info
+            // Payment information
             pdf.setFontSize(9);
             pdf.setFont('courier', 'normal');
-            pdf.text('Payment Method:', 5, yPosition);
-            pdf.text(receiptData.paymentMethod, pageWidth-5, yPosition, { align: 'right' });
+            pdf.text('Payment Method:', leftMargin, yPosition);
+            pdf.text(receiptData.paymentMethod, pageWidth-rightMargin, yPosition, { align: 'right' });
             yPosition += 6;
 
             if (receiptData.showCashDetails) {
-                pdf.text('Amount Paid:', 5, yPosition);
-                pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-5, yPosition, { align: 'right' });
+                pdf.text('Amount Paid:', leftMargin, yPosition);
+                pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-rightMargin, yPosition, { align: 'right' });
                 yPosition += 5;
-                pdf.text('Balance:', 5, yPosition);
-                pdf.text(`Rs. ${receiptData.balance}`, pageWidth-5, yPosition, { align: 'right' });
+                pdf.text('Balance:', leftMargin, yPosition);
+                pdf.text(`Rs. ${receiptData.balance}`, pageWidth-rightMargin, yPosition, { align: 'right' });
                 yPosition += 6;
             }
 
             // Footer
+            yPosition += 4;
             pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
+            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
             pdf.setLineDashPattern([], 0);
             yPosition += 8;
 
             pdf.setFontSize(8);
+            pdf.setFont('courier', 'normal');
             pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
             yPosition += 4;
             pdf.setFont('courier', 'bold');

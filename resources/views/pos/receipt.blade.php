@@ -331,22 +331,27 @@
     </script>
 
     <script>
+
         // Function to download receipt as PDF
         function downloadReceiptPDF() {
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: [80, 200] // Receipt paper size
-            });
 
             // Get receipt data
             const receiptData = JSON.parse(document.getElementById('receipt-data').textContent);
 
+            // Compute dynamic height based on items
+            const itemCount = receiptData.items ? receiptData.items.length : 0;
+            const itemHeight = 6; // mm per item
+            const headerFooterHeight = 80;
+            const dynamicHeight = Math.max(200, headerFooterHeight + itemCount * itemHeight);
+
+            // Use a fixed page size and paginate items across pages for reliable printing
+            const pageWidth = 80;
+            const pageHeight = 200; // mm
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pageWidth, pageHeight] });
+
             // PDF generation code
             let yPosition = 10;
-            const lineHeight = 3.5;
-            const pageWidth = 80;
             
             // Add RB logo circle
             pdf.setFontSize(10);
@@ -398,75 +403,104 @@
             pdf.text(receiptData.time, pageWidth-5, yPosition, { align: 'right' });
             yPosition += 8;
             
-            // Items section
-            receiptData.items.forEach(item => {
-                // Item name with total price on same line
-                pdf.setFont('courier', 'bold');
-                pdf.text(item.name, 5, yPosition);
-                pdf.text(`Rs. ${item.totalPrice}`, pageWidth-5, yPosition, { align: 'right' });
-                yPosition += 4;
-                
-                // Quantity and unit price on next line
-                pdf.setFont('courier', 'normal');
-                pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, 5, yPosition);
-                yPosition += 6;
-            });
-            
-            // Dotted line
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 6;
-            
-            // Totals section
-            pdf.setFont('courier', 'normal');
-            pdf.text('Sub Total:', 5, yPosition);
-            pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 6;
-            
-            // TOTAL in bold
-            pdf.setFont('courier', 'bold');
-            pdf.setFontSize(11);
-            pdf.text('TOTAL:', 5, yPosition);
-            pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 8;
-            
-            // Payment info
-            pdf.setFontSize(9);
-            pdf.setFont('courier', 'normal');
-            pdf.text('Payment Method:', 5, yPosition);
-            pdf.text(receiptData.paymentMethod, pageWidth-5, yPosition, { align: 'right' });
-            yPosition += 6;
-            
-            // Cash payment details if applicable
-            if (receiptData.showCashDetails) {
-                pdf.text('Amount Paid:', 5, yPosition);
-                pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-5, yPosition, { align: 'right' });
-                yPosition += 5;
-                pdf.text('Balance:', 5, yPosition);
-                pdf.text(`Rs. ${receiptData.balance}`, pageWidth-5, yPosition, { align: 'right' });
-                yPosition += 6;
+            // Paginate items
+            const approxItemHeight = 10; // title + qty line
+            const headerSpace = yPosition; // used header height
+            const footerReserve = 60; // reserve space for totals/footer on last page
+            const itemsPerPage = Math.max(1, Math.floor((pageHeight - headerSpace - footerReserve) / approxItemHeight));
+            const totalItems = receiptData.items.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+            for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+                if (pageIndex > 0) {
+                    pdf.addPage();
+                    yPosition = 10;
+                    // compact header for continuation pages
+                    pdf.setFontSize(10);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.circle(pageWidth/2, yPosition + 5, 8);
+                    pdf.text('RB', pageWidth/2, yPosition + 7, { align: 'center' });
+                    yPosition += 14;
+                    pdf.setFontSize(12);
+                    pdf.setFont('courier', 'bold');
+                    pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
+                    yPosition += 6;
+                    pdf.setFontSize(8);
+                    pdf.setFont('courier', 'normal');
+                    pdf.text('Continued...', pageWidth/2, yPosition, { align: 'center' });
+                    yPosition += 6;
+                    pdf.setLineWidth(0.5);
+                    pdf.line(5, yPosition, pageWidth-5, yPosition);
+                    yPosition += 6;
+                }
+
+                const start = pageIndex * itemsPerPage;
+                const end = Math.min(start + itemsPerPage, totalItems);
+
+                for (let i = start; i < end; i++) {
+                    const item = receiptData.items[i];
+                    pdf.setFont('courier', 'bold');
+                    pdf.text(item.name, 5, yPosition);
+                    pdf.text(`Rs. ${item.totalPrice}`, pageWidth-5, yPosition, { align: 'right' });
+                    yPosition += 4;
+
+                    pdf.setFont('courier', 'normal');
+                    pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, 5, yPosition);
+                    yPosition += 6;
+                }
+
+                // If last page, render totals and footer
+                if (pageIndex === totalPages - 1) {
+                    pdf.setLineDashPattern([1, 1], 0);
+                    pdf.line(5, yPosition, pageWidth-5, yPosition);
+                    pdf.setLineDashPattern([], 0);
+                    yPosition += 6;
+
+                    pdf.setFont('courier', 'normal');
+                    pdf.text('Sub Total:', 5, yPosition);
+                    pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth-5, yPosition, { align: 'right' });
+                    yPosition += 6;
+
+                    pdf.setFont('courier', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.text('TOTAL:', 5, yPosition);
+                    pdf.text(`Rs. ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
+                    yPosition += 8;
+
+                    pdf.setFontSize(9);
+                    pdf.setFont('courier', 'normal');
+                    pdf.text('Payment Method:', 5, yPosition);
+                    pdf.text(receiptData.paymentMethod, pageWidth-5, yPosition, { align: 'right' });
+                    yPosition += 6;
+
+                    if (receiptData.showCashDetails) {
+                        pdf.text('Amount Paid:', 5, yPosition);
+                        pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 5;
+                        pdf.text('Balance:', 5, yPosition);
+                        pdf.text(`Rs. ${receiptData.balance}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 6;
+                    }
+
+                    pdf.setLineDashPattern([1, 1], 0);
+                    pdf.line(5, yPosition, pageWidth-5, yPosition);
+                    pdf.setLineDashPattern([], 0);
+                    yPosition += 8;
+
+                    pdf.setFontSize(8);
+                    pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
+                    yPosition += 4;
+                    pdf.setFont('courier', 'bold');
+                    pdf.text('RAVON RESTAURANT', pageWidth/2, yPosition, { align: 'center' });
+                    yPosition += 4;
+                    pdf.setFont('courier', 'normal');
+                    pdf.text('Come again!', pageWidth/2, yPosition, { align: 'center' });
+                    yPosition += 8;
+
+                    pdf.setFontSize(6);
+                    pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
+                }
             }
-            
-            // Bottom dotted line
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(5, yPosition, pageWidth-5, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 8;
-            
-            // Footer
-            pdf.setFontSize(8);
-            pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.setFont('courier', 'bold');
-            pdf.text('RAVON RESTAURANT', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.setFont('courier', 'normal');
-            pdf.text('Come again!', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 8;
-            
-            pdf.setFontSize(6);
-            pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
             
             // Generate filename
             const filename = `Receipt_${receiptData.receiptNo}_{{ $sale->created_at->format("Y-m-d") }}.pdf`;

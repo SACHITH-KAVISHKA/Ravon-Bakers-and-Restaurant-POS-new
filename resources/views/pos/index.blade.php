@@ -113,6 +113,9 @@
             display: flex;
             flex-direction: column;
             padding: 0;
+            position: relative; /* allow absolute positioning of footer button */
+            height: calc(100vh - 60px); /* fill available viewport height under header */
+            overflow: hidden; /* keep scrolling inside payment-section */
         }
 
 
@@ -344,24 +347,27 @@
         .number-pad {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 4px;
-            margin-top: 6px;
-            max-height: 240px;
+            gap: 6px;
+            margin: 10px 0;
+            flex-shrink: 0;
         }
 
         .number-btn {
             background: #007bff;
             color: white;
             border: none;
-            padding: 8px;
+            padding: 12px 8px;
             border-radius: 6px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s ease;
-            min-height: 45px;
+            min-height: 50px;
             position: relative;
             outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .number-btn:hover {
@@ -437,29 +443,59 @@
 
         .payment-section {
             padding: 8px;
-            flex-shrink: 0;
+            flex: 1;
+            display: flex;
             flex-direction: column;
-            max-height: 260px;
+            gap: 10px;
+            overflow-y: auto;
+            max-height: calc(100vh - 60px);
+            padding-bottom: 120px; /* give room for the checkout button */
+            scrollbar-width: thin;
+            scrollbar-color: #ccc #f0f0f0;
+        }
+
+        /* Custom scrollbar for webkit browsers */
+        .payment-section::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .payment-section::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        .payment-section::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .payment-section::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
         }
 
         .payment-methods {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-            margin-bottom: 8px;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
         }
 
         .payment-btn {
             background: #6c757d;
             color: white;
             border: none;
-            padding: 12px 8px;
+            padding: 15px 8px;
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 500;
-            min-height: 50px;
+            min-height: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
 
         .payment-btn.active {
@@ -473,17 +509,123 @@
 
         .cash-input-section {
             background: #fff3cd;
-            padding: 3px;
-            border-radius: 4px;
-            margin-bottom: 6px;
+            padding: 10px; /* Increased padding */
+            border-radius: 8px;
+            margin-bottom: 10px;
             border: 1px solid #ffeaa7;
             display: none;
-            flex: 1;
-            overflow-y: auto;
+            flex-shrink: 0; /* Prevent shrinking */
         }
 
         .cash-input-section.show {
             display: block;
+        }
+
+        /* Card Input Section Styles */
+        .card-input-section {
+            background: #e7f3ff;
+            padding: 10px; /* Increased padding */
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #b3d9ff;
+            display: none;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .card-input-section.show {
+            display: block;
+        }
+
+        .card-input-group {
+            margin-bottom: 4px;
+        }
+
+        .card-input-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #0056b3;
+            margin-bottom: 4px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #0056b3;
+            background: #f8f9fa;
+        }
+
+        .card-input:focus {
+            outline: none;
+            border-color: #0056b3;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            background: #fff;
+        }
+
+        .card-input:hover {
+            border-color: #0056b3;
+        }
+
+        /* Active Input Indicator Styles */
+        .active-input-indicator {
+            display: none;
+            margin-bottom: 15px;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        .active-input-indicator.show {
+            display: block;
+        }
+
+        .input-selector {
+            display: flex;
+            gap: 5px;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .input-select-btn {
+            flex: 1;
+            background: #fff;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+            padding: 10px 12px; /* Increased padding */
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            min-height: 40px; /* Minimum touch target */
+        }
+
+        .input-select-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .input-select-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.25);
+        }
+
+        .input-select-btn.active:hover {
+            background: #0056b3;
+            border-color: #0056b3;
         }
 
         .cash-input-group {
@@ -562,8 +704,9 @@
             font-weight: bold;
             color: #0c5460;
             font-size: 14px;
-            margin: 10px 0;
+            margin: 15px 0;
             border: 2px solid #bee5eb;
+            flex-shrink: 0;
         }
 
         .checkout-btn {
@@ -574,14 +717,18 @@
             border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
-            width: 100%;
+            width: calc(100% - 24px);
             cursor: pointer;
             transition: all 0.3s ease;
-            flex-shrink: 0;
-            margin-top: 8px;
-            position: sticky;
-            bottom: 0;
-            z-index: 2;
+            flex-shrink: 0; /* Prevent shrinking */
+            margin: 1px; /* margin inside payment-panel */
+            min-height: 50px; /* Ensure good touch target */
+            position: absolute; /* position within payment-panel */
+            left: 12px;
+            right: 12px;
+            bottom: 12px;
+            z-index: 50;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.12); /* Add shadow to make it stand out */
         }
 
         .checkout-btn:hover {
@@ -869,41 +1016,71 @@
                         </button>
                     </div>
 
-                    <!-- Cash Input Section -->
-                    <div class="cash-input-section show" id="cash-input-section">
-                        <div class="cash-input-group">
-                            <div class="cash-input-label">
-                                Customer Payment
+                    <!-- Payment Input Section -->
+                    <div class="payment-input-section" id="payment-input-section">
+                        <!-- Cash Payment Input -->
+                        <div class="cash-input-section show" id="cash-input-section">
+                            <div class="cash-input-group">
+                                <div class="cash-input-label">
+                                    Customer Payment
+                                    <button type="button" class="input-mode-toggle" id="input-mode-toggle"
+                                            onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
+                                        <i class="bi bi-keyboard"></i>
+                                    </button>
+                                </div>
+                                <input type="number" class="cash-input" id="customer-payment" placeholder="0.00"
+                                       step="0.01" min="0"
+                                       oninput="handlePaymentInput()"
+                                       onkeydown="handleKeyboardKeys(event)"
+                                       onfocus="setActiveInput('customer'); this.select()"
+                                       title="Enter payment amount using keyboard or touch pad below">
+                            </div>
+                        </div>
 
-                                <button type="button" class="input-mode-toggle" id="input-mode-toggle"
-                                        onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
-                                    <i class="bi bi-keyboard"></i>
+                        <!-- Card Payment Input (for CARD & CASH) -->
+                        <div class="card-input-section" id="card-input-section">
+                            <div class="card-input-group">
+                                <div class="card-input-label">
+                                    Card Payment
+                                </div>
+                                <input type="number" class="card-input" id="card-payment" placeholder="0.00"
+                                       step="0.01" min="0"
+                                       oninput="handleCardPaymentInput()"
+                                       onkeydown="handleCardKeyboardKeys(event)"
+                                       onfocus="setActiveInput('card'); this.select()"
+                                       title="Enter card payment amount">
+                            </div>
+                        </div>
+
+                        <!-- Active Input Indicator (for CARD & CASH mode) -->
+                        <div class="active-input-indicator" id="active-input-indicator">
+                            <div class="input-selector">
+                                <button type="button" class="input-select-btn active" id="customer-btn" onclick="setActiveInput('customer')">
+                                    <i class="bi bi-cash"></i> Customer Payment
+                                </button>
+                                <button type="button" class="input-select-btn" id="card-btn" onclick="setActiveInput('card')">
+                                    <i class="bi bi-credit-card"></i> Card Payment
                                 </button>
                             </div>
-                            <input type="number" class="cash-input" id="customer-payment" placeholder="0.00"
-                                   step="0.01" min="0"
-                                   oninput="handleKeyboardInput()"
-                                   onkeydown="handleKeyboardKeys(event)"
-                                   onfocus="this.select()"
-                                   title="Enter payment amount using keyboard or touch pad below">
-
-                            <!-- Number Pad -->
-                            <div class="number-pad">
-                                <button type="button" class="number-btn" onclick="addToPayment('1')">1</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('2')">2</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('3')">3</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('4')">4</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('5')">5</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('6')">6</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('7')">7</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('8')">8</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('9')">9</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('0')">0</button>
-                                <button type="button" class="number-btn" onclick="addToPayment('.')">.</button>
-                                <button type="button" class="number-btn clear" onclick="clearPayment()">CLR</button>
-                            </div>
-<!--                          -->
                         </div>
+
+                        <!-- Shared Number Pad -->
+                        <div class="number-pad" id="shared-number-pad">
+                            <button type="button" class="number-btn" onclick="addToActiveInput('1')">1</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('2')">2</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('3')">3</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('4')">4</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('5')">5</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('6')">6</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('7')">7</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('8')">8</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('9')">9</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('0')">0</button>
+                            <button type="button" class="number-btn" onclick="addToActiveInput('.')">.</button>
+                            <button type="button" class="number-btn clear" onclick="clearActiveInput()">CLR</button>
+                        </div>
+
+                        <!-- Balance Display -->
                         <div class="balance-display" id="balance-display">
                             Balance: Rs. 0.00
                         </div>
@@ -962,6 +1139,8 @@
         let cart = []; // Initialize empty cart
         let selectedPaymentMethod = 'CASH';
         let customerPayment = 0;
+        let cardPayment = 0;
+        let activeInput = 'customer'; // Track which input is currently active
 
         // Test function to debug totals (can be removed later)
         function testTotalCalculation() {
@@ -1174,23 +1353,75 @@
             document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
-            // Show/hide cash input section
+            // Get payment input sections
             const cashInputSection = document.getElementById('cash-input-section');
-            if (method === 'CASH' || method === 'CARD & CASH') {
-                cashInputSection.classList.add('show');
-                calculateBalance();
-            } else {
-                cashInputSection.classList.remove('show');
-                // For card payments, set balance to 0
-                const balanceDisplay = document.getElementById('balance-display');
-                balanceDisplay.innerHTML = 'Balance: Rs. 0.00';
-                balanceDisplay.style.background = '#d1ecf1';
-                balanceDisplay.style.color = '#0c5460';
+            const cardInputSection = document.getElementById('card-input-section');
+            const activeInputIndicator = document.getElementById('active-input-indicator');
+            const sharedNumberPad = document.getElementById('shared-number-pad');
+            const balanceDisplay = document.getElementById('balance-display');
+
+            // Hide all sections first
+            cashInputSection.classList.remove('show');
+            cardInputSection.classList.remove('show');
+            activeInputIndicator.classList.remove('show');
+
+            // Clear inputs
+            document.getElementById('customer-payment').value = '0';
+            document.getElementById('card-payment').value = '0';
+
+            // Show appropriate sections based on payment method
+            switch(method) {
+                case 'CASH':
+                    cashInputSection.classList.add('show');
+                    sharedNumberPad.style.display = 'grid';
+                    activeInput = 'customer';
+                    setActiveInput('customer');
+                    calculateBalance();
+                    break;
+                    
+                case 'CARD':
+                    cardInputSection.classList.add('show');
+                    sharedNumberPad.style.display = 'grid';
+                    activeInput = 'card';
+                    setActiveInput('card');
+                    // For card only, hide balance section
+                    balanceDisplay.style.display = 'none';
+                    break;
+                    
+                case 'CARD & CASH':
+                    cashInputSection.classList.add('show');
+                    cardInputSection.classList.add('show');
+                    activeInputIndicator.classList.add('show');
+                    sharedNumberPad.style.display = 'grid';
+                    balanceDisplay.style.display = 'block';
+                    activeInput = 'customer';
+                    setActiveInput('customer');
+                    calculateBalance();
+                    break;
+                    
+                case 'CREDIT':
+                    // For credit, no input needed and show balance as negative total
+                    sharedNumberPad.style.display = 'none';
+                    balanceDisplay.style.display = 'block';
+                    const total = getTotalAmount();
+                    balanceDisplay.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Credit Balance: Rs. -${total.toFixed(2)}`;
+                    balanceDisplay.style.background = '#f8d7da';
+                    balanceDisplay.style.color = '#721c24';
+                    document.getElementById('checkout-btn').disabled = cart.length === 0;
+                    break;
+                    
+                default:
+                    sharedNumberPad.style.display = 'none';
+                    balanceDisplay.innerHTML = 'Balance: Rs. 0.00';
+                    balanceDisplay.style.background = '#d1ecf1';
+                    balanceDisplay.style.color = '#0c5460';
+                    balanceDisplay.style.display = 'block';
             }
         }
 
         // Input mode management
         let keyboardInputEnabled = true;
+        let cardKeyboardInputEnabled = true;
 
         function toggleInputMode() {
             keyboardInputEnabled = !keyboardInputEnabled;
@@ -1201,20 +1432,61 @@
                 toggle.innerHTML = '<i class="bi bi-keyboard"></i>';
                 toggle.classList.remove('touch-only');
                 toggle.title = 'Switch to touch-only mode';
-                input.removeAttribute('readonly');
+                // Keep input editable so keyboard always works
                 input.title = 'Enter payment amount using keyboard or touch pad below';
             } else {
                 toggle.innerHTML = '<i class="bi bi-hand-index"></i>';
                 toggle.classList.add('touch-only');
                 toggle.title = 'Switch to keyboard input mode';
-                input.setAttribute('readonly', true);
+                // In touch-only visual mode we still allow typing; this toggle is now visual only
                 input.title = 'Use touch pad below to enter payment amount';
             }
         }
 
-        // Number pad functions
-        function addToPayment(digit) {
-            const input = document.getElementById('customer-payment');
+        function toggleCardInputMode() {
+            cardKeyboardInputEnabled = !cardKeyboardInputEnabled;
+            const toggle = document.getElementById('card-input-mode-toggle');
+            const input = document.getElementById('card-payment');
+
+            if (cardKeyboardInputEnabled) {
+                toggle.innerHTML = '<i class="bi bi-keyboard"></i>';
+                toggle.classList.remove('touch-only');
+                toggle.title = 'Switch to touch-only mode';
+                // Keep input editable so keyboard always works
+                input.title = 'Enter card payment amount using keyboard or touch pad below';
+            } else {
+                toggle.innerHTML = '<i class="bi bi-hand-index"></i>';
+                toggle.classList.add('touch-only');
+                toggle.title = 'Switch to keyboard input mode';
+                // Visual-only toggle; still allow keyboard input
+                input.title = 'Use touch pad below to enter card payment amount';
+            }
+        }
+
+        // Active input management
+        function setActiveInput(inputType) {
+            activeInput = inputType;
+            
+            // Update button states
+            const customerBtn = document.getElementById('customer-btn');
+            const cardBtn = document.getElementById('card-btn');
+            
+            customerBtn.classList.remove('active');
+            cardBtn.classList.remove('active');
+            
+            if (inputType === 'customer') {
+                customerBtn.classList.add('active');
+                document.getElementById('customer-payment').focus();
+            } else {
+                cardBtn.classList.add('active');
+                document.getElementById('card-payment').focus();
+            }
+        }
+
+        // Shared number pad functions
+        function addToActiveInput(digit) {
+            const inputId = activeInput === 'card' ? 'card-payment' : 'customer-payment';
+            const input = document.getElementById(inputId);
             let currentValue = input.value || '0';
 
             // Highlight the pressed button
@@ -1234,7 +1506,32 @@
 
             // Trigger input event to ensure consistency
             input.dispatchEvent(new Event('input'));
-            calculateBalance();
+            
+            // Update balance based on payment method
+            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
+                calculateBalance();
+            }
+        }
+
+        function clearActiveInput() {
+            const inputId = activeInput === 'card' ? 'card-payment' : 'customer-payment';
+            const input = document.getElementById(inputId);
+            input.value = '0';
+            input.focus();
+
+            // Highlight clear button
+            const clearBtn = document.querySelector('.number-btn.clear');
+            if (clearBtn) {
+                clearBtn.classList.add('pressed');
+                setTimeout(() => {
+                    clearBtn.classList.remove('pressed');
+                }, 150);
+            }
+
+            // Update balance based on payment method
+            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
+                calculateBalance();
+            }
         }
 
         // Handle keyboard input
@@ -1256,6 +1553,68 @@
             }
 
             calculateBalance();
+        }
+
+        // Handle card payment input
+        function handlePaymentInput() {
+            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
+                calculateBalance();
+            }
+        }
+
+        function handleCardPaymentInput() {
+            if (!cardKeyboardInputEnabled) return;
+
+            const input = document.getElementById('card-payment');
+            let value = input.value;
+
+            // Validate input
+            if (value === '' || value === null) {
+                input.value = '0';
+                value = '0';
+            }
+
+            // Ensure only valid numbers
+            if (isNaN(parseFloat(value))) {
+                input.value = '0';
+            }
+
+            if (selectedPaymentMethod === 'CARD & CASH') {
+                calculateBalance();
+            }
+        }
+
+        // Handle card keyboard keys
+        function handleCardKeyboardKeys(event) {
+            if (!cardKeyboardInputEnabled) {
+                event.preventDefault();
+                return;
+            }
+
+            // Allow backspace, delete, tab, escape, enter
+            if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (event.keyCode === 65 && event.ctrlKey === true) ||
+                (event.keyCode === 67 && event.ctrlKey === true) ||
+                (event.keyCode === 86 && event.ctrlKey === true) ||
+                (event.keyCode === 88 && event.ctrlKey === true) ||
+                // Allow home, end, left, right
+                (event.keyCode >= 35 && event.keyCode <= 39)) {
+                return;
+            }
+
+            // Ensure that it is a number or decimal point and stop the keypress
+            if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) &&
+                (event.keyCode < 96 || event.keyCode > 105) &&
+                event.keyCode !== 110 && event.keyCode !== 190) {
+                event.preventDefault();
+            }
+
+            // Prevent multiple decimal points
+            if ((event.keyCode === 110 || event.keyCode === 190) &&
+                event.target.value.indexOf('.') !== -1) {
+                event.preventDefault();
+            }
         }
 
         // Handle special keyboard keys
@@ -1302,23 +1661,6 @@
                     }, 150);
                 }
             });
-        }
-
-        function clearPayment() {
-            const input = document.getElementById('customer-payment');
-            input.value = '0';
-            input.focus();
-
-            // Highlight clear button
-            const clearBtn = document.querySelector('.number-btn.clear');
-            if (clearBtn) {
-                clearBtn.classList.add('pressed');
-                setTimeout(() => {
-                    clearBtn.classList.remove('pressed');
-                }, 150);
-            }
-
-            calculateBalance();
         }
 
         // Quick amount functions
@@ -1369,29 +1711,75 @@
             }
 
             const customerPaymentInput = document.getElementById('customer-payment');
+            const cardPaymentInput = document.getElementById('card-payment');
             const balanceDisplay = document.getElementById('balance-display');
 
             customerPayment = parseFloat(customerPaymentInput.value) || 0;
-            const balance = customerPayment - total;
+            const cardPayment = parseFloat(cardPaymentInput.value) || 0;
 
-            console.log('Balance calculation:', { total, customerPayment, balance });
+            let balance = 0;
+            let displayMessage = '';
+            let canCheckout = cart.length > 0;
 
-            if (balance >= 0) {
-                balanceDisplay.innerHTML = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
-                balanceDisplay.style.background = '#d1ecf1';
-                balanceDisplay.style.color = '#0c5460';
-                document.getElementById('checkout-btn').disabled = cart.length === 0;
-            } else if (customerPayment > 0) {
-                balanceDisplay.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: Rs. ${Math.abs(balance).toFixed(2)}`;
-                balanceDisplay.style.background = '#f8d7da';
-                balanceDisplay.style.color = '#721c24';
-                document.getElementById('checkout-btn').disabled = true;
-            } else {
-                balanceDisplay.innerHTML = 'Balance: Rs. 0.00';
-                balanceDisplay.style.background = '#d1ecf1';
-                balanceDisplay.style.color = '#0c5460';
-                document.getElementById('checkout-btn').disabled = cart.length === 0;
+            switch(selectedPaymentMethod) {
+                case 'CASH':
+                    balance = customerPayment - total;
+                    if (balance >= 0) {
+                        displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
+                        balanceDisplay.style.background = '#d1ecf1';
+                        balanceDisplay.style.color = '#0c5460';
+                    } else if (customerPayment > 0) {
+                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: Rs. ${Math.abs(balance).toFixed(2)}`;
+                        balanceDisplay.style.background = '#f8d7da';
+                        balanceDisplay.style.color = '#721c24';
+                        canCheckout = false;
+                    } else {
+                        displayMessage = 'Balance: Rs. 0.00';
+                        balanceDisplay.style.background = '#d1ecf1';
+                        balanceDisplay.style.color = '#0c5460';
+                    }
+                    break;
+
+                case 'CARD & CASH':
+                    // Balance = customer payment - (subtotal - card payment)
+                    const remainingAfterCard = total - cardPayment;
+                    balance = customerPayment - remainingAfterCard;
+                    
+                    if (cardPayment + customerPayment >= total) {
+                        if (balance >= 0) {
+                            displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
+                            balanceDisplay.style.background = '#d1ecf1';
+                            balanceDisplay.style.color = '#0c5460';
+                        } else {
+                            displayMessage = `<i class="bi bi-check-circle me-2"></i>Exact Payment`;
+                            balanceDisplay.style.background = '#d1ecf1';
+                            balanceDisplay.style.color = '#0c5460';
+                        }
+                    } else {
+                        const shortfall = total - (cardPayment + customerPayment);
+                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: Rs. ${shortfall.toFixed(2)}`;
+                        balanceDisplay.style.background = '#f8d7da';
+                        balanceDisplay.style.color = '#721c24';
+                        canCheckout = false;
+                    }
+                    break;
+
+                default:
+                    displayMessage = 'Balance: Rs. 0.00';
+                    balanceDisplay.style.background = '#d1ecf1';
+                    balanceDisplay.style.color = '#0c5460';
             }
+
+            balanceDisplay.innerHTML = displayMessage;
+            document.getElementById('checkout-btn').disabled = !canCheckout;
+
+            console.log('Balance calculation:', { 
+                total, 
+                customerPayment, 
+                cardPayment, 
+                balance, 
+                selectedPaymentMethod 
+            });
         }
 
         // Fullscreen functionality
@@ -1471,9 +1859,17 @@
                 return;
             }
 
-            // Only validate cash payment for cash and card & cash methods
-            if ((selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH')) {
+            // Get card payment value
+            const cardPaymentValue = parseFloat(document.getElementById('card-payment').value) || 0;
+            
+            // Validate payments based on method
+            if (selectedPaymentMethod === 'CASH') {
                 if (customerPayment < getTotalAmount()) {
+                    showError('Insufficient payment amount');
+                    return;
+                }
+            } else if (selectedPaymentMethod === 'CARD & CASH') {
+                if ((customerPayment + cardPaymentValue) < getTotalAmount()) {
                     showError('Insufficient payment amount');
                     return;
                 }
@@ -1482,7 +1878,8 @@
             const orderData = {
                 items: cart,
                 payment_method: selectedPaymentMethod,
-                customer_payment: (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') ? customerPayment : getTotalAmount()
+                customer_payment: customerPayment,
+                card_payment: cardPaymentValue
             };
 
             // Disable checkout button
@@ -1509,6 +1906,7 @@
                         cart: [...cart],
                         paymentMethod: selectedPaymentMethod,
                         customerPayment: customerPayment,
+                        cardPayment: cardPaymentValue,
                         receiptData: data
                     };
 
@@ -1518,6 +1916,7 @@
                     // Clear the cart and start new order
                     cart = [];
                     document.getElementById('customer-payment').value = '0';
+                    document.getElementById('card-payment').value = '0';
                     updateCartDisplay();
                     calculateBalance();
                 } else {
@@ -1551,6 +1950,7 @@
             cart = [];
             updateCartDisplay();
             document.getElementById('customer-payment').value = '0';
+            document.getElementById('card-payment').value = '0';
             calculateBalance();
         }
 
@@ -1917,53 +2317,70 @@
             // Initialize payment display
             document.getElementById('customer-payment').value = '0';
 
-            // Add keyboard shortcuts for cash input
+            // Global keyboard shortcuts that feed the active input (customer or card)
             document.addEventListener('keydown', function(event) {
-                // Only apply shortcuts when keyboard input is enabled and cash input section is visible
-                const cashSection = document.getElementById('cash-input-section');
-                const cashInput = document.getElementById('customer-payment');
+                // Determine the active input element
+                const activeInputId = activeInput === 'card' ? 'card-payment' : 'customer-payment';
+                const activeEl = document.getElementById(activeInputId);
 
-                if (keyboardInputEnabled && cashSection && cashSection.classList.contains('show') &&
-                    document.activeElement !== cashInput) {
+                // Do nothing if user is currently typing in an input field
+                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
 
-                    // Number keys (0-9)
-                    if (event.keyCode >= 48 && event.keyCode <= 57) {
-                        event.preventDefault();
-                        const digit = event.key;
-                        addToPayment(digit);
-                        return;
-                    }
-
-                    // Numpad keys (0-9)
-                    if (event.keyCode >= 96 && event.keyCode <= 105) {
-                        event.preventDefault();
-                        const digit = (event.keyCode - 96).toString();
-                        addToPayment(digit);
-                        return;
-                    }
-
-                    // Decimal point
-                    if (event.keyCode === 190 || event.keyCode === 110) {
-                        event.preventDefault();
-                        addToPayment('.');
-                        return;
-                    }
-
-                    // Clear/Delete/Escape
-                    if (event.keyCode === 46 || event.keyCode === 8 || event.keyCode === 27) {
-                        event.preventDefault();
-                        clearPayment();
-                        return;
-                    }
-
-                    // Enter to focus on input for direct typing
-                    if (event.keyCode === 13) {
-                        event.preventDefault();
-                        cashInput.focus();
-                        cashInput.select();
-                        return;
-                    }
+                // Number keys (0-9)
+                if (event.keyCode >= 48 && event.keyCode <= 57) {
+                    event.preventDefault();
+                    const digit = event.key;
+                    addToActiveInput(digit);
+                    return;
                 }
+
+                // Numpad keys (0-9)
+                if (event.keyCode >= 96 && event.keyCode <= 105) {
+                    event.preventDefault();
+                    const digit = (event.keyCode - 96).toString();
+                    addToActiveInput(digit);
+                    return;
+                }
+
+                // Decimal point
+                if (event.keyCode === 190 || event.keyCode === 110) {
+                    event.preventDefault();
+                    addToActiveInput('.');
+                    return;
+                }
+
+                // Clear/Delete/Escape
+                if (event.keyCode === 46 || event.keyCode === 8 || event.keyCode === 27) {
+                    event.preventDefault();
+                    clearActiveInput();
+                    return;
+                }
+
+                // Enter to focus on active input for direct typing
+                if (event.keyCode === 13) {
+                    event.preventDefault();
+                    activeEl.focus();
+                    if (activeEl.select) activeEl.select();
+                    return;
+                }
+            });
+
+            // Keep both inputs in sync with variables and recalc balance on input
+            const customerInputEl = document.getElementById('customer-payment');
+            const cardInputEl = document.getElementById('card-payment');
+
+            customerInputEl.addEventListener('input', function() {
+                // sanitize value
+                if (this.value === '' || isNaN(parseFloat(this.value))) this.value = '0';
+                customerPayment = parseFloat(this.value) || 0;
+                if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') calculateBalance();
+            });
+
+            cardInputEl.addEventListener('input', function() {
+                if (this.value === '' || isNaN(parseFloat(this.value))) this.value = '0';
+                // don't shadow the local cardPayment var used elsewhere
+                cardPayment = parseFloat(this.value) || 0;
+                if (selectedPaymentMethod === 'CARD & CASH') calculateBalance();
             });
 
             // Add input focus management

@@ -37,6 +37,7 @@ class POSController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'payment_method' => 'required|in:CASH,CARD,CARD & CASH,CREDIT,COMPLIMENTARY,ONLINE',
             'customer_payment' => 'nullable|numeric|min:0',
+            'card_payment' => 'nullable|numeric|min:0',
         ]);
 
         // Generate receipt number: RCP + year(last digit) + month + date + auto number (0001-9999)
@@ -73,28 +74,63 @@ class POSController extends Controller
         $tax = 0; // No tax  
         $total = $subtotal; // Simple total calculation
         
-        // Handle customer payment and balance based on payment method
-        if (in_array($request->payment_method, ['CASH', 'CARD & CASH'])) {
-            $customerPayment = $request->customer_payment ?? 0;
-            
-            // Validate payment amount for cash transactions
-            if ($customerPayment < $total) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Insufficient payment amount'
-                ]);
-            }
-            
-            $balance = $customerPayment - $total;
-        } else {
-            // For card, credit, complimentary, and online payments
-            $customerPayment = $total; // Set customer payment equal to total
-            $balance = 0; // No balance for these payment methods
+        // Initialize payment variables
+        $customerPayment = $request->customer_payment ?? 0;
+        $cardPayment = $request->card_payment ?? 0;
+        $balance = 0;
+        $creditBalance = 0;
+        
+        // Handle payment calculations based on payment method
+        switch ($request->payment_method) {
+            case 'CASH':
+                // Validate payment amount for cash transactions
+                if ($customerPayment < $total) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Insufficient payment amount'
+                    ]);
+                }
+                $balance = $customerPayment - $total;
+                break;
+                
+            case 'CARD':
+                // For card only, set card payment to total, no customer payment needed
+                $cardPayment = $total;
+                $customerPayment = 0;
+                $balance = 0;
+                break;
+                
+            case 'CARD & CASH':
+                // Validate combined payment
+                if (($customerPayment + $cardPayment) < $total) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Insufficient payment amount'
+                    ]);
+                }
+                // Balance = customer payment - (subtotal - card payment)
+                $remainingAfterCard = $total - $cardPayment;
+                $balance = $customerPayment - $remainingAfterCard;
+                break;
+                
+            case 'CREDIT':
+                // For credit, no payment made, negative balance
+                $customerPayment = 0;
+                $cardPayment = 0;
+                $balance = 0;
+                $creditBalance = -$total; // Negative value representing debt
+                break;
+                
+            default:
+                // For complimentary and online payments
+                $customerPayment = $total;
+                $cardPayment = 0;
+                $balance = 0;
         }
 
         $saleId = null;
 
-        DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $balance, &$saleId) {
+        DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $cardPayment, $balance, $creditBalance, &$saleId) {
             // Create sale record
             $sale = Sale::create([
                 'receipt_no' => $receiptNo,
@@ -114,7 +150,9 @@ class POSController extends Controller
                     default => 'cash'
                 },
                 'customer_payment' => $customerPayment,
+                'card_payment' => $cardPayment,
                 'balance' => $balance,
+                'credit_balance' => $creditBalance,
             ]);
 
             $saleId = $sale->id;

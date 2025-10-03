@@ -139,13 +139,21 @@
                                         Rs. {{ number_format($sale->balance, 2) }}
                                     </td>
                                     <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
-                                    <td>
+                                    <td class="action-cell" data-sale-id="{{ $sale->id }}">
                                         <button class="btn btn-sm btn-outline-primary view-items-btn" 
                                                 data-sale-id="{{ $sale->id }}"
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#saleItemsModal">
                                             <i class="bi bi-eye"></i> View Items
                                         </button>
+
+                                        @if($sale->status ?? 1)
+                                            <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn" data-sale-id="{{ $sale->id }}">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        @else
+                                            <span class="badge bg-secondary ms-1">Deleted</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -237,6 +245,25 @@
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to mark this sale as deleted?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="deleteConfirmBtn">Yes, Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
         $(document).ready(function() {
@@ -283,6 +310,87 @@
                         $('#modal-items-list').html('<tr><td colspan="4" class="text-center text-danger">Error loading sale details</td></tr>');
                         $('#saleDetailsContent').show();
                     });
+            });
+
+            // Helper to show a Bootstrap alert at the top of the card
+            function showAlert(type, message) {
+                const alertId = 'dynamic-alert';
+                // remove any existing
+                $('#' + alertId).remove();
+                const alertHtml = `\
+                    <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">\
+                        ${message}\
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>\
+                    </div>`;
+                $('.card-body').first().prepend(alertHtml);
+            }
+
+            // Delete sale (soft-delete via status = 0) using confirmation modal
+            $(document).on('click', '.delete-sale-btn', function() {
+                const saleId = $(this).data('sale-id');
+                // store sale id on confirm button
+                $('#deleteConfirmBtn').data('sale-id', saleId);
+                // show modal
+                const deleteModalEl = document.getElementById('deleteConfirmModal');
+                const deleteModal = new bootstrap.Modal(deleteModalEl);
+                deleteModal.show();
+            });
+
+            // Handle confirm button in modal
+            $('#deleteConfirmBtn').off('click').on('click', function() {
+                const button = $(this);
+                const saleId = button.data('sale-id');
+                if (!saleId) return;
+
+                // disable to prevent double clicks
+                button.prop('disabled', true);
+
+                $.ajax({
+                    url: `{{ url('sales-report/sale') }}/${saleId}/status`,
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        status: 0
+                    }
+                }).done(function(resp) {
+                    if (resp.success) {
+                        // Remove the entire table row for this sale with a fade animation
+                        const row = $(`.action-cell[data-sale-id="${saleId}"]`).closest('tr');
+                        row.fadeOut(300, function() {
+                            $(this).remove();
+
+                            // If table body is empty after removal, show the empty state
+                            const tbody = $('table.table tbody');
+                            if (tbody.find('tr').length === 0) {
+                                // Replace the card body contents with the empty state
+                                const emptyHtml = `
+                                    <div class="text-center py-5">
+                                        <i class="bi bi-inbox display-1 text-muted"></i>
+                                        <h4 class="text-muted mt-3">No sales found</h4>
+                                        <p class="text-muted">Try adjusting your search criteria or date range.</p>
+                                    </div>`;
+                                // remove table and pagination and show empty
+                                $('table.table').closest('.table-responsive').remove();
+                                $('.d-flex.justify-content-center.mt-3').remove();
+                                $('.card-body').first().html(emptyHtml);
+                            }
+                        });
+
+                        showAlert('success', 'Sale marked as deleted.');
+                        // hide modal
+                        const deleteModalEl = document.getElementById('deleteConfirmModal');
+                        const deleteModal = bootstrap.Modal.getInstance(deleteModalEl);
+                        if (deleteModal) deleteModal.hide();
+                    } else {
+                        showAlert('danger', resp.message || 'Error updating status');
+                    }
+                }).fail(function(xhr) {
+                    let msg = 'Error updating status';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                    showAlert('danger', msg);
+                }).always(function() {
+                    button.prop('disabled', false);
+                });
             });
         });
     </script>

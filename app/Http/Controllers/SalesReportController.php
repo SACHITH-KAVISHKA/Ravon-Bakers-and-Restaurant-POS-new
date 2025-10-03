@@ -19,6 +19,8 @@ class SalesReportController extends Controller
     public function index(Request $request)
     {
         $query = Sale::query();
+        // Only show active sales (status = 1)
+        $query->where('status', 1);
         
         // Default to today's date
         $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
@@ -48,6 +50,7 @@ class SalesReportController extends Controller
 
         // Calculate totals for the filtered data
         $totals = Sale::query()
+            ->where('status', 1)
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
             ->when($searchTerm, function($q) use ($searchTerm) {
@@ -108,7 +111,9 @@ class SalesReportController extends Controller
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
         $searchTerm = $request->get('search');
 
-        $query = Sale::query();
+    $query = Sale::query();
+    // Only export active sales
+    $query->where('status', 1);
 
         // Apply filters
         if ($startDate) {
@@ -179,5 +184,23 @@ class SalesReportController extends Controller
             'Content-Disposition' => 'attachment;filename="' . $filename . '"',
             'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    /**
+     * Update sale status (soft-delete via status flag)
+     */
+    public function updateStatus(Request $request, Sale $sale)
+    {
+        // Validate status (accepts '0' or '1' as strings or ints)
+        $validated = $request->validate([
+            'status' => 'required|in:0,1',
+        ]);
+
+        $status = (int) $validated['status'];
+
+        $sale->status = $status;
+        $sale->save();
+
+        return response()->json(['success' => true, 'status' => $sale->status]);
     }
 }

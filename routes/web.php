@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [SalesReportController::class, 'index'])->name('index');
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
         Route::get('/export', [SalesReportController::class, 'exportExcel'])->name('export');
+        Route::post('/sale/{sale}/status', [SalesReportController::class, 'updateStatus'])->name('sale.update-status');
     });
 });
 

@@ -17,7 +17,9 @@ class Sale extends Model
         'total',
         'payment_method',
         'customer_payment',
+        'card_payment',
         'balance',
+        'credit_balance',
     ];
 
     protected $casts = [
@@ -26,7 +28,9 @@ class Sale extends Model
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
         'customer_payment' => 'decimal:2',
+        'card_payment' => 'decimal:2',
         'balance' => 'decimal:2',
+        'credit_balance' => 'decimal:2',
     ];
 
     /**

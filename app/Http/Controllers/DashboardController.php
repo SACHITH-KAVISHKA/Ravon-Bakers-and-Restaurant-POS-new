@@ -23,7 +23,9 @@ class DashboardController extends Controller
             ->sum(DB::raw('items.price * inventories.current_stock'));
         
         // Get today's sales
-        $todaySales = Sale::whereDate('created_at', today())->sum('total');
+        $todaySales = Sale::whereDate('created_at', today())
+        ->where('status', 1) // Only count completed sales
+        ->sum('total');
         
         // Get low stock items
         $lowStockItems = Inventory::with('item')

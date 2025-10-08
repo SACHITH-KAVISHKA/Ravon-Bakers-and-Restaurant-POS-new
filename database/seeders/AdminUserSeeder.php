@@ -15,19 +15,33 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         // Create admin user
-        User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@revon.com',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@revon.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+            ]
+        );
 
         // Create staff user
-        User::create([
-            'name' => 'Staff User',
-            'email' => 'staff@revon.com',
-            'password' => Hash::make('password'),
-            'role' => 'staff',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'staff@revon.com'],
+            [
+                'name' => 'Staff User',
+                'password' => Hash::make('password'),
+                'role' => 'staff',
+            ]
+        );
+
+        // Create supervisor user
+        User::updateOrCreate(
+            ['email' => 'supervisor@revon.com'],
+            [
+                'name' => 'Supervisor User',
+                'password' => Hash::make('password'),
+                'role' => 'supervisor',
+            ]
+        );
     }
 }

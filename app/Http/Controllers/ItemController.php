@@ -18,7 +18,7 @@ class ItemController extends Controller
      */
     public function index()
     {
-        $items = Item::with('inventory')
+        $items = Item::with(['inventory'])
                     ->where('is_active', true)
                     ->latest()
                     ->paginate(15);
@@ -61,8 +61,6 @@ class ItemController extends Controller
             'category' => 'required|string|exists:categories,name,status,1',
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
-            'stock_quantity' => 'required|integer|min:0',
-            'low_stock_alert' => 'required|integer|min:0',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -77,24 +75,8 @@ class ItemController extends Controller
                     'category' => $request->category,
                     'price' => $request->price,
                     'description' => $request->description,
-                    'stock_quantity' => $request->stock_quantity,
                     'is_active' => true,
                 ]);
-                
-                // Update inventory record
-                if ($existingItem->inventory) {
-                    $existingItem->inventory->update([
-                        'current_stock' => $request->stock_quantity,
-                        'low_stock_alert' => $request->low_stock_alert,
-                    ]);
-                } else {
-                    // Create inventory record if it doesn't exist
-                    Inventory::create([
-                        'item_id' => $existingItem->id,
-                        'current_stock' => $request->stock_quantity,
-                        'low_stock_alert' => $request->low_stock_alert,
-                    ]);
-                }
             } else {
                 // Generate next item code
                 $itemCode = $this->generateNextItemCode();
@@ -105,15 +87,7 @@ class ItemController extends Controller
                     'category' => $request->category,
                     'price' => $request->price,
                     'description' => $request->description,
-                    'stock_quantity' => $request->stock_quantity,
                     'is_active' => true,
-                ]);
-
-                // Create inventory record
-                Inventory::create([
-                    'item_id' => $item->id,
-                    'current_stock' => $request->stock_quantity,
-                    'low_stock_alert' => $request->low_stock_alert,
                 ]);
             }
         });
@@ -126,7 +100,7 @@ class ItemController extends Controller
      */
     public function show(Item $item)
     {
-        $item->load('inventory', 'purchases', 'saleItems');
+        $item->load('purchases', 'saleItems');
         return view('items.show', compact('item'));
     }
 
@@ -166,8 +140,6 @@ class ItemController extends Controller
             'category' => 'required|string|exists:categories,name,status,1',
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
-            'stock_quantity' => 'required|integer|min:0',
-            'low_stock_alert' => 'required|integer|min:0',
         ]);
 
         DB::transaction(function () use ($request, $item) {
@@ -177,13 +149,6 @@ class ItemController extends Controller
                 'category' => $request->category,
                 'price' => $request->price,
                 'description' => $request->description,
-                'stock_quantity' => $request->stock_quantity,
-            ]);
-
-            // Update inventory record
-            $item->inventory->update([
-                'current_stock' => $request->stock_quantity,
-                'low_stock_alert' => $request->low_stock_alert,
             ]);
         });
 
@@ -238,82 +203,5 @@ class ItemController extends Controller
             // Format as 4-digit padded string (0001, 0002, etc.)
             return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
         });
-    }
-    
-    /**
-     * Update stock quantity for an item (for restocking purposes)
-     */
-    public function updateStock(Request $request, Item $item)
-    {
-        $this->authorize('update', $item);
-        
-        $request->validate([
-            'stock_quantity' => 'required|integer|min:0',
-            'operation' => 'required|in:set,add,subtract',
-            'reason' => 'nullable|string|max:255'
-        ]);
-        
-        $success = false;
-        
-        switch ($request->operation) {
-            case 'set':
-                $success = $item->setStock($request->stock_quantity);
-                break;
-            case 'add':
-                $success = $item->addStock($request->stock_quantity);
-                break;
-            case 'subtract':
-                $currentStock = $item->getCurrentStock();
-                $newStock = max(0, $currentStock - $request->stock_quantity);
-                $success = $item->setStock($newStock);
-                break;
-        }
-        
-        if (!$success) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update stock. Please try again.'
-            ]);
-        }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Stock updated successfully',
-            'new_stock' => $item->fresh()->inventory->current_stock
-        ]);
-    }
-    
-    /**
-     * Get low stock items
-     */
-    public function lowStockItems()
-    {
-        $lowStockItems = Item::with('inventory')
-            ->where('is_active', true)
-            ->whereHas('inventory', function ($query) {
-                $query->whereRaw('current_stock <= low_stock_alert');
-            })
-            ->get();
-            
-        return response()->json([
-            'low_stock_items' => $lowStockItems
-        ]);
-    }
-    
-    /**
-     * Get out of stock items
-     */
-    public function outOfStockItems()
-    {
-        $outOfStockItems = Item::with('inventory')
-            ->where('is_active', true)
-            ->whereHas('inventory', function ($query) {
-                $query->where('current_stock', '<=', 0);
-            })
-            ->get();
-            
-        return response()->json([
-            'out_of_stock_items' => $outOfStockItems
-        ]);
     }
 }

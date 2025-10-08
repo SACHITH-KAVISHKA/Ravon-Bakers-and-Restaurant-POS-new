@@ -59,26 +59,6 @@
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="stock_quantity" class="form-label">Initial Stock Quantity *</label>
-                                <input type="number" class="form-control @error('stock_quantity') is-invalid @enderror" 
-                                       id="stock_quantity" name="stock_quantity" value="{{ old('stock_quantity', 0) }}" required>
-                                @error('stock_quantity')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            
-                            <div class="col-md-6 mb-3">
-                                <label for="low_stock_alert" class="form-label">Low Stock Alert Level *</label>
-                                <input type="number" class="form-control @error('low_stock_alert') is-invalid @enderror" 
-                                       id="low_stock_alert" name="low_stock_alert" value="{{ old('low_stock_alert', 5) }}" required>
-                                @error('low_stock_alert')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
                             <textarea class="form-control @error('description') is-invalid @enderror" 

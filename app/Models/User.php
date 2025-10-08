@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'branch_id',
     ];
 
     /**
@@ -61,5 +62,37 @@ class User extends Authenticatable
     public function isStaff(): bool
     {
         return $this->role === 'staff';
+    }
+
+    /**
+     * Check if user is supervisor
+     */
+    public function isSupervisor(): bool
+    {
+        return $this->role === 'supervisor';
+    }
+
+    /**
+     * Check if user has management privileges (admin or supervisor)
+     */
+    public function hasManagementPrivileges(): bool
+    {
+        return $this->isAdmin() || $this->isSupervisor();
+    }
+
+    /**
+     * Get the branch that the user belongs to.
+     */
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * Get inventory requests created by this user
+     */
+    public function inventoryRequests()
+    {
+        return $this->hasMany(InventoryRequest::class);
     }
 }

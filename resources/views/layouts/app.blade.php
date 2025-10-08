@@ -333,54 +333,96 @@
     <nav class="sidebar" id="sidebar">
         <div class="position-sticky pt-3">
             <div class="sidebar-header">
-                <a href="{{ route('dashboard') }}" style="text-decoration: none;">
-                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
-                </a>
+                @if(auth()->user()->isSupervisor())
+                    <a href="{{ route('supervisor.dashboard') }}" style="text-decoration: none;">
+                        <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                    </a>
+                @else
+                    <a href="{{ route('dashboard') }}" style="text-decoration: none;">
+                        <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                    </a>
+                @endif
                 <h4 class="sidebar-title">RAVON</h4>
                 <p class="sidebar-subtitle">Bakers & Restaurant</p>
             </div>
             
             <ul class="nav flex-column px-3">
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" 
-                       href="{{ route('dashboard') }}">
-                        <i class="bi bi-speedometer2"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}" 
-                       href="{{ route('categories.index') }}">
-                        <i class="bi bi-tags"></i>
-                        <span>Categories</span>
-                    </a>
-                </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('items.*') ? 'active' : '' }}" 
-                       href="{{ route('items.index') }}">
-                        <i class="bi bi-box-seam"></i>
-                        <span>Item Management</span>
-                    </a>
-                </li>
-                 @can('manage-users')
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" 
-                       href="{{ route('sales-report.index') }}">
-                        <i class="bi bi-file-earmark-bar-graph"></i>
-                        <span>Daily Sales Report</span>
-                    </a>
-                </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" 
-                       href="{{ route('users.index') }}">
-                        <i class="bi bi-people"></i>
-                        <span>User Management</span>
-                    </a>
-                </li>
-                @endcan
+                @if(auth()->user()->isSupervisor())
+                    <!-- Supervisor Navigation -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('supervisor.dashboard') ? 'active' : '' }}" 
+                           href="{{ route('supervisor.dashboard') }}">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('supervisor.add-inventory') ? 'active' : '' }}" 
+                           href="{{ route('supervisor.add-inventory') }}">
+                            <i class="bi bi-plus-circle"></i>
+                            <span>Add Inventory</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('supervisor.inventory-history') ? 'active' : '' }}" 
+                           href="{{ route('supervisor.inventory-history') }}">
+                            <i class="bi bi-clock-history"></i>
+                            <span>Inventory History</span>
+                        </a>
+                    </li>
+                @else
+                    <!-- Regular Navigation for Admin and Staff -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" 
+                           href="{{ route('dashboard') }}">
+                            <i class="bi bi-speedometer2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}" 
+                           href="{{ route('categories.index') }}">
+                            <i class="bi bi-tags"></i>
+                            <span>Categories</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('items.*') ? 'active' : '' }}" 
+                           href="{{ route('items.index') }}">
+                            <i class="bi bi-box-seam"></i>
+                            <span>Item Management</span>
+                        </a>
+                    </li>
+                     @can('manage-users')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" 
+                           href="{{ route('sales-report.index') }}">
+                            <i class="bi bi-file-earmark-bar-graph"></i>
+                            <span>Daily Sales Report</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}" 
+                           href="{{ route('users.index') }}">
+                            <i class="bi bi-people"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}" 
+                           href="{{ route('branches.index') }}">
+                            <i class="bi bi-building"></i>
+                            <span>Branch Management</span>
+                        </a>
+                    </li>
+                    @endcan
+                @endif
             </ul>
         </div>
     </nav>
@@ -399,17 +441,26 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                         
-                        <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
-                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
-                            <span>Ravon Restaurant</span>
-                        </a>
+                        @if(auth()->user()->isSupervisor())
+                            <a class="navbar-brand d-flex align-items-center" href="{{ route('supervisor.dashboard') }}">
+                                <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                                <span>Ravon Restaurant</span>
+                            </a>
+                        @else
+                            <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
+                                <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                                <span>Ravon Restaurant</span>
+                            </a>
+                        @endif
                         
                         <div class="d-flex align-items-center">
-                            <!-- POS Button -->
-                            <a href="{{ route('pos.index') }}" class="btn pos-btn me-3">
-                                <i class="bi bi-calculator"></i>
-                                POS System
-                            </a>
+                            <!-- POS Button (visible to staff only, not supervisors) -->
+                            @if(auth()->check() && auth()->user()->isStaff())
+                                <a href="{{ route('pos.index') }}" class="btn pos-btn me-3">
+                                    <i class="bi bi-calculator"></i>
+                                    POS System
+                                </a>
+                            @endif
                             
                             <!-- User Dropdown -->
                             <div class="dropdown">

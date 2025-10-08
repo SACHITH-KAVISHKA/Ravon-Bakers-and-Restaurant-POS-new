@@ -11,14 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('items', function (Blueprint $table) {
+        Schema::create('branches', function (Blueprint $table) {
             $table->id();
-            $table->string('item_name');
-            $table->string('item_code')->unique();
-            $table->string('category');
-            $table->decimal('price', 10, 2);
-            $table->text('description')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('name');
+            $table->tinyInteger('status')->default(1); // 1 = active, 0 = inactive
             $table->timestamps();
         });
     }
@@ -28,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('items');
+        Schema::dropIfExists('branches');
     }
 };

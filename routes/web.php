@@ -6,8 +6,10 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\BranchController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\SalesReportController;
+use App\Http\Controllers\SupervisorController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -28,13 +30,6 @@ Route::middleware('auth')->group(function () {
 
     // Item Management - All users can view, only admin can modify
     Route::resource('items', ItemController::class);
-    
-    // Stock Management routes (admin only)
-    Route::middleware('can:manage-users')->group(function () {
-        Route::post('/items/{item}/update-stock', [ItemController::class, 'updateStock'])->name('items.update-stock');
-        Route::get('/items/low-stock', [ItemController::class, 'lowStockItems'])->name('items.low-stock');
-        Route::get('/items/out-of-stock', [ItemController::class, 'outOfStockItems'])->name('items.out-of-stock');
-    });
 
     // Category Management - All users can view, only admin can modify
     Route::resource('categories', CategoryController::class);
@@ -44,6 +39,12 @@ Route::middleware('auth')->group(function () {
 
     // User Management - Only admin can access
     Route::resource('users', UserController::class)->middleware('can:manage-users');
+
+    // Branch Management - Only admin can access
+    Route::middleware('can:manage-users')->group(function () {
+        Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::get('/api/branches/active', [BranchController::class, 'getActiveBranches'])->name('branches.active');
+    });
 
     // POS System - All authenticated users can access
     Route::prefix('pos')->name('pos.')->group(function () {
@@ -59,6 +60,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
         Route::get('/export', [SalesReportController::class, 'exportExcel'])->name('export');
         Route::post('/sale/{sale}/status', [SalesReportController::class, 'updateStatus'])->name('sale.update-status');
+    });
+
+    // Supervisor routes - Only supervisors can access
+    Route::middleware('can:supervisor-access')->prefix('supervisor')->name('supervisor.')->group(function () {
+        Route::get('/dashboard', [SupervisorController::class, 'dashboard'])->name('dashboard');
+        Route::get('/add-inventory', [SupervisorController::class, 'addInventory'])->name('add-inventory');
+        Route::post('/store-inventory', [SupervisorController::class, 'storeInventory'])->name('store-inventory');
+        Route::get('/inventory-history', [SupervisorController::class, 'inventoryHistory'])->name('inventory-history');
+        Route::get('/create-department', [SupervisorController::class, 'createDepartment'])->name('create-department');
+        Route::post('/store-department', [SupervisorController::class, 'storeDepartment'])->name('store-department');
+        Route::get('/api/items', [SupervisorController::class, 'getItems'])->name('api.items');
     });
 });
 

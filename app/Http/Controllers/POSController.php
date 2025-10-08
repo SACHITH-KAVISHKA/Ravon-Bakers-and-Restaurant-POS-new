@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -20,8 +19,7 @@ class POSController extends Controller
             session()->put('pos_initialized', true);
         }
         
-        $items = Item::with('inventory')
-            ->where('is_active', true)
+        $items = Item::where('is_active', true)
             ->orderBy('category')
             ->get()
             ->groupBy('category');
@@ -157,18 +155,10 @@ class POSController extends Controller
 
             $saleId = $sale->id;
 
-            // Create sale items and update inventory
+            // Create sale items
             foreach ($saleItems as $saleItem) {
                 $saleItem['sale_id'] = $sale->id;
                 SaleItem::create($saleItem);
-
-                // Update inventory (allow negative stock)
-                $item = Item::with('inventory')->find($saleItem['item_id']);
-                if ($item && $item->inventory) {
-                    $newStock = $item->inventory->current_stock - $saleItem['quantity'];
-                    $item->inventory->update(['current_stock' => $newStock]);
-                    $item->update(['stock_quantity' => $newStock]);
-                }
             }
 
             session(['sale_id' => $sale->id]);

@@ -21,7 +21,7 @@
                             <th>Item Name</th>
                             <th>Category</th>
                             <th>Price</th>
-                            <th>Stock</th>
+                            <th>Current Stock</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -38,13 +38,17 @@
                             <td>
                                 @if($item->inventory)
                                     @if($item->inventory->isLowStock())
-                                        <span class="badge bg-danger">{{ $item->inventory->current_stock }}</span>
-                                        <small class="text-danger">(Low Stock)</small>
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            {{ $item->inventory->current_stock }}
+                                        </span>
                                     @else
-                                        <span class="badge bg-success">{{ $item->inventory->current_stock }}</span>
+                                        <span class="badge bg-success">
+                                            {{ $item->inventory->current_stock }}
+                                        </span>
                                     @endif
                                 @else
-                                    <span class="badge bg-warning">No Inventory</span>
+                                    <span class="badge bg-secondary">0</span>
                                 @endif
                             </td>
                             <td>
@@ -76,7 +80,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 <i class="bi bi-box-seam fa-3x mb-3"></i>
                                 <div>No items found</div>
                                 @can('create', App\Models\Item::class)

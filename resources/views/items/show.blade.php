@@ -49,66 +49,6 @@
                             </div>
                         </div>
 
-                        <!-- Inventory Information -->
-                        @if($item->inventory)
-                        <div class="card bg-light border-0 mb-4">
-                            <div class="card-header bg-transparent border-0 pb-0">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-box-seam text-info me-2"></i>
-                                    Inventory Status
-                                </h6>
-                            </div>
-                            <div class="card-body pt-2">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-shrink-0">
-                                                @if($item->inventory->isLowStock())
-                                                    <div class="bg-danger rounded-circle p-2">
-                                                        <i class="bi bi-exclamation-triangle text-white"></i>
-                                                    </div>
-                                                @else
-                                                    <div class="bg-success rounded-circle p-2">
-                                                        <i class="bi bi-check-circle text-white"></i>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <h6 class="mb-0">Current Stock</h6>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="badge {{ $item->inventory->isLowStock() ? 'bg-danger' : 'bg-success' }} me-2">
-                                                        {{ $item->inventory->current_stock }}
-                                                    </span>
-                                                    @if($item->inventory->isLowStock())
-                                                        <small class="text-danger">
-                                                            <i class="bi bi-exclamation-circle me-1"></i>
-                                                            Low Stock Alert
-                                                        </small>
-                                                    @else
-                                                        <small class="text-success">In Stock</small>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="d-flex align-items-center">
-                                            <div class="flex-shrink-0">
-                                                <div class="bg-warning rounded-circle p-2">
-                                                    <i class="bi bi-bell text-white"></i>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1 ms-3">
-                                                <h6 class="mb-0">Low Stock Alert</h6>
-                                                <span class="text-muted">{{ $item->inventory->low_stock_alert }} units</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-
                         <!-- Description -->
                         @if($item->description)
                         <div class="card bg-light border-0 mb-4">

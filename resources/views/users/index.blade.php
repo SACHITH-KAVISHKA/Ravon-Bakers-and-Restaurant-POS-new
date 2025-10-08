@@ -22,10 +22,11 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>#</th>
+                           
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
+                            <th>Branch</th>
                             <th>Created Date</th>
                             <th>Last Updated</th>
                             <th>Actions</th>
@@ -34,7 +35,7 @@
                     <tbody>
                         @foreach($users as $user)
                             <tr>
-                                <td>{{ $user->id }}</td>
+                               
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-person-circle text-muted me-2"></i>
@@ -47,9 +48,28 @@
                                         <span class="badge bg-danger">
                                             <i class="bi bi-shield-fill-check"></i> Admin
                                         </span>
+                                    @elseif($user->role === 'supervisor')
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-person-fill-gear"></i> Supervisor
+                                        </span>
                                     @else
                                         <span class="badge bg-primary">
                                             <i class="bi bi-person-badge"></i> Staff
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($user->role === 'staff' && $user->branch)
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-building"></i> {{ $user->branch->name }}
+                                        </span>
+                                    @elseif($user->role === 'staff')
+                                        <span class="text-muted">
+                                            <i class="bi bi-dash-circle"></i> No Branch
+                                        </span>
+                                    @else
+                                        <span class="text-muted">
+                                            <i class="bi bi-dash"></i> N/A
                                         </span>
                                     @endif
                                 </td>

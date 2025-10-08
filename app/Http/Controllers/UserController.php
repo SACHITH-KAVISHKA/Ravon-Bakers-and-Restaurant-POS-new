@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +22,7 @@ class UserController extends Controller
             abort(403, 'Unauthorized access to user management.');
         }
         
-        $users = User::orderBy('created_at', 'desc')->paginate(15);
+        $users = User::with('branch')->orderBy('created_at', 'desc')->paginate(15);
         return view('users.index', compact('users'));
     }
 
@@ -34,7 +35,8 @@ class UserController extends Controller
             abort(403, 'Unauthorized access to user management.');
         }
         
-        return view('users.create');
+        $branches = Branch::active()->orderBy('name')->get();
+        return view('users.create', compact('branches'));
     }
 
     /**
@@ -46,19 +48,33 @@ class UserController extends Controller
             abort(403, 'Unauthorized access to user management.');
         }
         
-        $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:admin,staff']
-        ]);
+            'role' => ['required', 'in:admin,staff,supervisor']
+        ];
 
-        User::create([
+        // Add branch validation only for staff members
+        if ($request->role === 'staff') {
+            $rules['branch_id'] = ['required', 'exists:branches,id'];
+        }
+
+        $request->validate($rules);
+
+        $userData = [
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-        ]);
+        ];
+
+        // Add branch_id only for staff members
+        if ($request->role === 'staff' && $request->branch_id) {
+            $userData['branch_id'] = $request->branch_id;
+        }
+
+        User::create($userData);
 
         return redirect()->route('users.index')
                         ->with('success', 'User created successfully.');
@@ -85,7 +101,8 @@ class UserController extends Controller
             abort(403, 'Unauthorized access to user management.');
         }
         
-        return view('users.edit', compact('user'));
+        $branches = Branch::active()->orderBy('name')->get();
+        return view('users.edit', compact('user', 'branches'));
     }
 
     /**
@@ -97,18 +114,32 @@ class UserController extends Controller
             abort(403, 'Unauthorized access to user management.');
         }
         
-        $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => ['required', 'in:admin,staff'],
+            'role' => ['required', 'in:admin,staff,supervisor'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-        ]);
+        ];
+
+        // Add branch validation only for staff members
+        if ($request->role === 'staff') {
+            $rules['branch_id'] = ['required', 'exists:branches,id'];
+        }
+
+        $request->validate($rules);
 
         $updateData = [
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
         ];
+
+        // Add or remove branch_id based on role
+        if ($request->role === 'staff' && $request->branch_id) {
+            $updateData['branch_id'] = $request->branch_id;
+        } elseif ($request->role !== 'staff') {
+            $updateData['branch_id'] = null;
+        }
 
         if ($request->filled('password')) {
             $updateData['password'] = Hash::make($request->password);

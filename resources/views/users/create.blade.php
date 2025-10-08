@@ -61,13 +61,16 @@
                         </label>
                         <div class="col-md-7">
                             <select id="role" class="form-select @error('role') is-invalid @enderror" 
-                                    name="role" required>
+                                    name="role" required onchange="toggleBranchField()">
                                 <option value="">Select Role</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>
                                     Administrator
                                 </option>
                                 <option value="staff" {{ old('role') == 'staff' ? 'selected' : '' }}>
                                     Staff Member
+                                </option>
+                                <option value="supervisor" {{ old('role') == 'supervisor' ? 'selected' : '' }}>
+                                    Supervisor
                                 </option>
                             </select>
                             @error('role')
@@ -79,7 +82,28 @@
                         </div>
                     </div>
 
-                    <!-- Password Field -->
+                    <!-- Branch Field (Hidden by default, shown for staff) -->
+                    <div class="row mb-4" id="branchField" style="display: none;">
+                        <label for="branch_id" class="col-md-3 col-form-label text-md-end fw-semibold">
+                            Branch
+                        </label>
+                        <div class="col-md-7">
+                            <select id="branch_id" class="form-select @error('branch_id') is-invalid @enderror" 
+                                    name="branch_id">
+                                <option value="">Select Branch</option>
+                                @foreach($branches as $branch)
+                                    <option value="{{ $branch->id }}" {{ old('branch_id') == $branch->id ? 'selected' : '' }}>
+                                        {{ $branch->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('branch_id')
+                                <span class="invalid-feedback" role="alert">
+                                    <strong>{{ $message }}</strong>
+                                </span>
+                            @enderror
+                        </div>
+                    </div>                    <!-- Password Field -->
                     <div class="row mb-4">
                         <label for="password" class="col-md-3 col-form-label text-md-end fw-semibold">
                             Password
@@ -126,6 +150,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Toggle branch field based on role selection
+    function toggleBranchField() {
+        const roleSelect = document.getElementById('role');
+        const branchField = document.getElementById('branchField');
+        const branchSelect = document.getElementById('branch_id');
+        
+        if (roleSelect.value === 'staff') {
+            branchField.style.display = 'flex';
+            branchSelect.setAttribute('required', 'required');
+        } else {
+            branchField.style.display = 'none';
+            branchSelect.removeAttribute('required');
+            branchSelect.value = '';
+        }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleBranchField();
+    });
+</script>
 
 <style>
     .card {

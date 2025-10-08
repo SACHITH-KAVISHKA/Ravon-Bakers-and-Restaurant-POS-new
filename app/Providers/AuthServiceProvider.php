@@ -22,14 +22,19 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Define gate for user management
+        // Define gate for user management (admin and supervisor)
         Gate::define('manage-users', function (User $user) {
-            return $user->isAdmin();
+            return $user->hasManagementPrivileges();
         });
 
-        // Define gate for modify data (create, update, delete)
+        // Define gate for modify data (create, update, delete) (admin and supervisor)
         Gate::define('modify-data', function (User $user) {
-            return $user->isAdmin();
+            return $user->hasManagementPrivileges();
+        });
+
+        // Define gate for supervisor access
+        Gate::define('supervisor-access', function (User $user) {
+            return $user->isSupervisor();
         });
     }
 }

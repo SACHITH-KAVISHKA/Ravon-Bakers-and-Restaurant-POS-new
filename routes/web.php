@@ -10,6 +10,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SupervisorController;
+use App\Http\Controllers\StockTransferController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -76,6 +77,25 @@ Route::middleware('auth')->group(function () {
         Route::get('/add-wastage', [SupervisorController::class, 'addWastage'])->name('add-wastage');
         Route::post('/store-wastage', [SupervisorController::class, 'storeWastage'])->name('store-wastage');
         Route::get('/wastage-view', [SupervisorController::class, 'wastageView'])->name('wastage-view');
+        
+        // Stock Transfer routes (Supervisor only)
+        Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
+            Route::get('/', [StockTransferController::class, 'index'])->name('index');
+            Route::get('/by-status', [StockTransferController::class, 'byStatus'])->name('by-status');
+            Route::get('/create', [StockTransferController::class, 'create'])->name('create');
+            Route::post('/', [StockTransferController::class, 'store'])->name('store');
+            Route::get('/{stockTransfer}', [StockTransferController::class, 'show'])->name('show');
+            Route::get('/api/inventory/{item}', [StockTransferController::class, 'getInventory'])->name('api.inventory');
+        });
+    });
+
+    // Stock Transfer routes for all branch staff (to receive transfers)
+    Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
+        Route::get('/transfers', [StockTransferController::class, 'showTransfers'])->name('transfers');
+        Route::get('/pending', [StockTransferController::class, 'pending'])->name('pending');
+        Route::get('/{stockTransfer}', [StockTransferController::class, 'show'])->name('show');
+        Route::post('/{stockTransfer}/accept', [StockTransferController::class, 'accept'])->name('accept');
+        Route::post('/{stockTransfer}/reject', [StockTransferController::class, 'reject'])->name('reject');
     });
 });
 

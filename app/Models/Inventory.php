@@ -9,6 +9,7 @@ class Inventory extends Model
 {
     protected $fillable = [
         'item_id',
+        'branch_id',
         'current_stock',
         'low_stock_alert',
     ];
@@ -22,10 +23,26 @@ class Inventory extends Model
     }
 
     /**
+     * Get the branch for this inventory
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    /**
      * Check if stock is low
      */
     public function isLowStock(): bool
     {
         return $this->current_stock <= $this->low_stock_alert;
+    }
+
+    /**
+     * Scope to filter by branch
+     */
+    public function scopeForBranch($query, $branchId)
+    {
+        return $query->where('branch_id', $branchId);
     }
 }

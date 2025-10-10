@@ -35,6 +35,22 @@ class Branch extends Model
     }
 
     /**
+     * Get inventories for this branch.
+     */
+    public function inventories(): HasMany
+    {
+        return $this->hasMany(Inventory::class);
+    }
+
+    /**
+     * Get stock transfers received by this branch.
+     */
+    public function receivedTransfers(): HasMany
+    {
+        return $this->hasMany(StockTransfer::class, 'to_branch_id');
+    }
+
+    /**
      * Scope a query to only include active branches.
      */
     public function scopeActive($query)

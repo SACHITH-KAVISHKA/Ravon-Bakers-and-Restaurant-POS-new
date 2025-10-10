@@ -14,15 +14,15 @@ class SupervisorUserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create a supervisor user if it doesn't exist
-        User::firstOrCreate(
+        // Create or update supervisor user without branch assignment (manages central inventory)
+        User::updateOrCreate(
             ['email' => 'supervisor@ravon.com'],
             [
                 'name' => 'Supervisor User',
                 'email' => 'supervisor@ravon.com',
                 'password' => Hash::make('supervisor123'),
                 'role' => 'supervisor',
-                'branch_id' => 1, // Assuming there's a branch with ID 1
+                'branch_id' => null, // No branch assignment - manages central inventory
             ]
         );
     }

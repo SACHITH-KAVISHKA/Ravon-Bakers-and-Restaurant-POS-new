@@ -103,4 +103,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(Wastage::class);
     }
+
+    /**
+     * Get stock transfers created by this user
+     */
+    public function createdStockTransfers()
+    {
+        return $this->hasMany(StockTransfer::class, 'created_by');
+    }
+
+    /**
+     * Get stock transfers processed by this user
+     */
+    public function processedStockTransfers()
+    {
+        return $this->hasMany(StockTransfer::class, 'processed_by');
+    }
 }

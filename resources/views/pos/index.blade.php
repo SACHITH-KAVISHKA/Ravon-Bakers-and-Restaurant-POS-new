@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,6 +22,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             background: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -41,7 +46,7 @@
             padding: 10px 20px;
             font-size: 20px;
             font-weight: bold;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
             position: relative;
             display: flex;
             justify-content: space-between;
@@ -68,7 +73,7 @@
         }
 
         .header-btn {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             color: white;
             border: none;
             padding: 6px 12px;
@@ -79,13 +84,14 @@
         }
 
         .header-btn:hover {
-            background: rgba(255,255,255,0.3);
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .pos-content {
             display: flex;
             flex: 1;
-            height: calc(100vh - 60px); /* Adjusted for single header */
+            height: calc(100vh - 60px);
+            /* Adjusted for single header */
         }
 
         /* Left Panel - Categories */
@@ -113,9 +119,12 @@
             display: flex;
             flex-direction: column;
             padding: 0;
-            position: relative; /* allow absolute positioning of footer button */
-            height: calc(100vh - 60px); /* fill available viewport height under header */
-            overflow: hidden; /* keep scrolling inside payment-section */
+            position: relative;
+            /* allow absolute positioning of footer button */
+            height: calc(100vh - 60px);
+            /* fill available viewport height under header */
+            overflow: hidden;
+            /* keep scrolling inside payment-section */
         }
 
 
@@ -178,12 +187,12 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .item-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             border-color: #007bff;
         }
 
@@ -216,12 +225,12 @@
         }
 
         .cart-section {
-              flex: 1;
-              overflow-y: auto;
-              padding: 4px;
-              height: calc(100vh - 650px);
-              min-height: 150px;
-              max-height: 250px;
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px;
+            height: calc(100vh - 650px);
+            min-height: 150px;
+            max-height: 250px;
         }
 
         .cart-header {
@@ -345,7 +354,8 @@
 
         /* Number Pad Styles */
         .number-pad {
-            display: grid;
+            display: none;
+            /* Hidden by default */
             grid-template-columns: repeat(3, 1fr);
             gap: 6px;
             margin: 10px 0;
@@ -379,7 +389,7 @@
         .number-btn.pressed {
             background: #004085;
             transform: scale(0.98);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .number-btn.clear {
@@ -397,7 +407,8 @@
 
         /* Quick Amount Buttons */
         .quick-amounts {
-            display: grid;
+            display: none;
+            /* Hidden by default */
             grid-template-columns: repeat(5, 1fr);
             gap: 3px;
             margin-top: 6px;
@@ -449,9 +460,14 @@
             gap: 10px;
             overflow-y: auto;
             max-height: calc(100vh - 60px);
-            padding-bottom: 120px; /* give room for the checkout button */
+            padding-bottom: 120px;
+            /* give room for the checkout button */
             scrollbar-width: thin;
             scrollbar-color: #ccc #f0f0f0;
+            scroll-behavior: smooth;
+            /* Enable smooth scrolling */
+            scroll-padding-top: 20px;
+            /* Add padding when scrolling to targets */
         }
 
         /* Custom scrollbar for webkit browsers */
@@ -474,7 +490,8 @@
         }
 
         .payment-methods {
-            display: grid;
+            display: none;
+            /* Hidden by default */
             grid-template-columns: repeat(2, 1fr);
             gap: 8px;
             margin-bottom: 12px;
@@ -509,12 +526,14 @@
 
         .cash-input-section {
             background: #fff3cd;
-            padding: 10px; /* Increased padding */
+            padding: 10px;
+            /* Increased padding */
             border-radius: 8px;
             margin-bottom: 10px;
             border: 1px solid #ffeaa7;
             display: none;
-            flex-shrink: 0; /* Prevent shrinking */
+            flex-shrink: 0;
+            /* Prevent shrinking */
         }
 
         .cash-input-section.show {
@@ -524,12 +543,14 @@
         /* Card Input Section Styles */
         .card-input-section {
             background: #e7f3ff;
-            padding: 10px; /* Increased padding */
+            padding: 10px;
+            /* Increased padding */
             border-radius: 8px;
             margin-bottom: 10px;
             border: 1px solid #b3d9ff;
             display: none;
-            flex-shrink: 0; /* Prevent shrinking */
+            flex-shrink: 0;
+            /* Prevent shrinking */
         }
 
         .card-input-section.show {
@@ -577,7 +598,8 @@
         .active-input-indicator {
             display: none;
             margin-bottom: 15px;
-            flex-shrink: 0; /* Prevent shrinking */
+            flex-shrink: 0;
+            /* Prevent shrinking */
         }
 
         .active-input-indicator.show {
@@ -598,7 +620,8 @@
             background: #fff;
             color: #6c757d;
             border: 1px solid #dee2e6;
-            padding: 10px 12px; /* Increased padding */
+            padding: 10px 12px;
+            /* Increased padding */
             border-radius: 6px;
             font-size: 12px;
             font-weight: 500;
@@ -608,7 +631,8 @@
             align-items: center;
             justify-content: center;
             gap: 5px;
-            min-height: 40px; /* Minimum touch target */
+            min-height: 40px;
+            /* Minimum touch target */
         }
 
         .input-select-btn:hover {
@@ -697,6 +721,8 @@
         }
 
         .balance-display {
+            display: none;
+            /* Hidden by default */
             background: #d1ecf1;
             padding: 12px;
             border-radius: 8px;
@@ -720,15 +746,20 @@
             width: calc(100% - 24px);
             cursor: pointer;
             transition: all 0.3s ease;
-            flex-shrink: 0; /* Prevent shrinking */
-            margin: 1px; /* margin inside payment-panel */
-            min-height: 50px; /* Ensure good touch target */
-            position: absolute; /* position within payment-panel */
+            flex-shrink: 0;
+            /* Prevent shrinking */
+            margin: 1px;
+            /* margin inside payment-panel */
+            min-height: 50px;
+            /* Ensure good touch target */
+            position: absolute;
+            /* position within payment-panel */
             left: 12px;
             right: 12px;
             bottom: 12px;
             z-index: 50;
-            box-shadow: 0 -4px 16px rgba(0,0,0,0.12); /* Add shadow to make it stand out */
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+            /* Add shadow to make it stand out */
         }
 
         .checkout-btn:hover {
@@ -860,7 +891,8 @@
             background: #f8f9fa;
         }
 
-        .print-btn, .new-order-btn {
+        .print-btn,
+        .new-order-btn {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
             border: none;
@@ -881,12 +913,14 @@
             box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
         }
 
-        .print-btn:hover, .new-order-btn:hover {
+        .print-btn:hover,
+        .new-order-btn:hover {
             transform: translateY(-2px);
             filter: brightness(110%);
         }
     </style>
 </head>
+
 <body>
     <!-- Header with Navigation -->
     <div class="pos-header">
@@ -925,18 +959,18 @@
                         <i class="bi bi-grid-3x3-gap"></i> All Items
                     </button>
                     @php
-                        $categoryIcons = [
-                            'Bakery' => 'bi-cookie',
-                            'Savory' => 'bi-egg-fried',
-                            'Beverages' => 'bi-cup-straw',
-                            'Desserts' => 'bi-cake2',
-                            'Snacks' => 'bi-bag'
-                        ];
+                    $categoryIcons = [
+                    'Bakery' => 'bi-cookie',
+                    'Savory' => 'bi-egg-fried',
+                    'Beverages' => 'bi-cup-straw',
+                    'Desserts' => 'bi-cake2',
+                    'Snacks' => 'bi-bag'
+                    ];
                     @endphp
                     @foreach($items as $category => $categoryItems)
-                        <button type="button" class="category-item" onclick="showCategory('{{ $category }}', this)">
-                            <i class="{{ $categoryIcons[$category] ?? 'bi-tag' }}"></i> {{ $category }}
-                        </button>
+                    <button type="button" class="category-item" onclick="showCategory('{{ $category }}', this)">
+                        <i class="{{ $categoryIcons[$category] ?? 'bi-tag' }}"></i> {{ $category }}
+                    </button>
                     @endforeach
                 </div>
             </div>
@@ -951,17 +985,17 @@
 
                 <div class="items-grid" id="items-container">
                     @foreach($items as $category => $categoryItems)
-                        @foreach($categoryItems as $item)
-                            <div class="item-card"
-                                 data-category="{{ $category }}"
-                                 data-item-id="{{ $item->id }}"
-                                 data-item-name="{{ $item->item_name }}"
-                                 data-item-price="{{ $item->price }}"
-                                 onclick="addToCartFromCard(this)">
-                                <div class="item-name">{{ $item->item_name }}</div>
-                                <div class="item-price">Rs. {{ number_format($item->price, 2) }}</div>
-                            </div>
-                        @endforeach
+                    @foreach($categoryItems as $item)
+                    <div class="item-card"
+                        data-category="{{ $category }}"
+                        data-item-id="{{ $item->id }}"
+                        data-item-name="{{ $item->item_name }}"
+                        data-item-price="{{ $item->price }}"
+                        onclick="addToCartFromCard(this)">
+                        <div class="item-name">{{ $item->item_name }}</div>
+                        <div class="item-price">Rs. {{ number_format($item->price, 2) }}</div>
+                    </div>
+                    @endforeach
                     @endforeach
                 </div>
             </div>
@@ -1002,7 +1036,7 @@
                 <!-- Payment Section -->
                 <div class="payment-section">
                     <div class="payment-methods">
-                        <button type="button" class="payment-btn active" data-method="CASH" onclick="selectPaymentMethod('CASH', this)">
+                        <button type="button" class="payment-btn" data-method="CASH" onclick="selectPaymentMethod('CASH', this)">
                             <i class="bi bi-cash"></i> CASH
                         </button>
                         <button type="button" class="payment-btn" data-method="CARD" onclick="selectPaymentMethod('CARD', this)">
@@ -1019,21 +1053,21 @@
                     <!-- Payment Input Section -->
                     <div class="payment-input-section" id="payment-input-section">
                         <!-- Cash Payment Input -->
-                        <div class="cash-input-section show" id="cash-input-section">
+                        <div class="cash-input-section" id="cash-input-section">
                             <div class="cash-input-group">
                                 <div class="cash-input-label">
                                     Customer Payment
                                     <button type="button" class="input-mode-toggle" id="input-mode-toggle"
-                                            onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
+                                        onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
                                         <i class="bi bi-keyboard"></i>
                                     </button>
                                 </div>
                                 <input type="number" class="cash-input" id="customer-payment" placeholder="0.00"
-                                       step="0.01" min="0"
-                                       oninput="handlePaymentInput()"
-                                       onkeydown="handleKeyboardKeys(event)"
-                                       onfocus="setActiveInput('customer'); this.select()"
-                                       title="Enter payment amount using keyboard or touch pad below">
+                                    step="0.01" min="0"
+                                    oninput="handlePaymentInput()"
+                                    onkeydown="handleKeyboardKeys(event)"
+                                    onfocus="setActiveInput('customer'); this.select()"
+                                    title="Enter payment amount using keyboard or touch pad below">
                             </div>
                         </div>
 
@@ -1044,11 +1078,11 @@
                                     Card Payment
                                 </div>
                                 <input type="number" class="card-input" id="card-payment" placeholder="0.00"
-                                       step="0.01" min="0"
-                                       oninput="handleCardPaymentInput()"
-                                       onkeydown="handleCardKeyboardKeys(event)"
-                                       onfocus="setActiveInput('card'); this.select()"
-                                       title="Enter card payment amount">
+                                    step="0.01" min="0"
+                                    oninput="handleCardPaymentInput()"
+                                    onkeydown="handleCardKeyboardKeys(event)"
+                                    onfocus="setActiveInput('card'); this.select()"
+                                    title="Enter card payment amount">
                             </div>
                         </div>
 
@@ -1137,7 +1171,7 @@
 
     <script>
         let cart = []; // Initialize empty cart
-        let selectedPaymentMethod = 'CASH';
+        let selectedPaymentMethod = null; // No payment method selected by default
         let customerPayment = 0;
         let cardPayment = 0;
         let activeInput = 'customer'; // Track which input is currently active
@@ -1210,7 +1244,11 @@
             if (item) {
                 const newQuantity = Math.max(1, parseInt(quantity) || 1);
                 item.quantity = newQuantity;
-                console.log('Quantity updated:', { itemId, newQuantity, price: item.price });
+                console.log('Quantity updated:', {
+                    itemId,
+                    newQuantity,
+                    price: item.price
+                });
                 updateCartDisplay();
             }
         }
@@ -1219,6 +1257,10 @@
         function updateCartDisplay() {
             const cartContainer = document.getElementById('cart-items');
             const checkoutBtn = document.getElementById('checkout-btn');
+            const paymentMethodsSection = document.querySelector('.payment-methods');
+            const sharedNumberPad = document.getElementById('shared-number-pad');
+            const quickAmounts = document.querySelector('.quick-amounts');
+            const balanceDisplay = document.getElementById('balance-display');
 
             if (cart.length === 0) {
                 cartContainer.innerHTML = `
@@ -1228,6 +1270,32 @@
                         <small>Select items to add to cart</small>
                     </div>`;
                 checkoutBtn.disabled = true;
+
+                // Hide payment methods when cart is empty
+                if (paymentMethodsSection) {
+                    paymentMethodsSection.style.display = 'none';
+                }
+
+                // Hide number pad and related elements
+                if (sharedNumberPad) {
+                    sharedNumberPad.style.display = 'none';
+                }
+                if (quickAmounts) {
+                    quickAmounts.style.display = 'none';
+                }
+                if (balanceDisplay) {
+                    balanceDisplay.style.display = 'none';
+                }
+
+                // Reset payment method selection
+                selectedPaymentMethod = null;
+                document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
+
+                // Hide all payment input sections
+                document.getElementById('cash-input-section').classList.remove('show');
+                document.getElementById('card-input-section').classList.remove('show');
+                document.getElementById('active-input-indicator').classList.remove('show');
+
             } else {
                 let html = '';
                 cart.forEach(item => {
@@ -1259,6 +1327,11 @@
                 });
                 cartContainer.innerHTML = html;
                 checkoutBtn.disabled = false;
+
+                // Show payment methods when cart has items
+                if (paymentMethodsSection) {
+                    paymentMethodsSection.style.display = 'grid';
+                }
             }
 
             updateTotals();
@@ -1291,7 +1364,10 @@
                 totalElement.textContent = `Rs. ${total.toFixed(2)}`;
             }
 
-            // Update balance if cash payment
+            // Update checkout button based on cart and payment method
+            updateCheckoutButton();
+
+            // Update balance if payment method requires it
             if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
                 calculateBalance();
             }
@@ -1300,6 +1376,23 @@
             console.log('Cart items:', cart);
             console.log('Calculated subtotal:', subtotal);
             console.log('Calculated total:', total);
+            console.log('Selected payment method:', selectedPaymentMethod);
+        }
+
+        // Update checkout button state and text
+        function updateCheckoutButton() {
+            const checkoutBtn = document.getElementById('checkout-btn');
+
+            if (cart.length === 0) {
+                checkoutBtn.disabled = true;
+                checkoutBtn.innerHTML = '<i class="bi bi-cart-x"></i> Add Items to Cart';
+            } else if (!selectedPaymentMethod) {
+                checkoutBtn.disabled = true;
+                checkoutBtn.innerHTML = '<i class="bi bi-credit-card"></i> Select Payment Method';
+            } else {
+                checkoutBtn.disabled = false;
+                checkoutBtn.innerHTML = '<i class="bi bi-credit-card"></i> Process Payment';
+            }
         }
 
         // Show category items
@@ -1345,8 +1438,99 @@
                 '<i class="bi bi-grid-3x3-gap me-2"></i>All Items';
         }
 
+        // Helper function to scroll to payment input area
+        function scrollToPaymentInput() {
+            setTimeout(() => {
+                const paymentSection = document.querySelector('.payment-section');
+                const sharedNumberPad = document.getElementById('shared-number-pad');
+                const cashInputSection = document.getElementById('cash-input-section');
+                const cardInputSection = document.getElementById('card-input-section');
+                const balanceDisplay = document.getElementById('balance-display');
+
+                if (!paymentSection) {
+                    console.log('Payment section not found');
+                    return;
+                }
+
+                // Find the target element to scroll to (prioritize number pad)
+                let targetElement = null;
+
+                if (sharedNumberPad && sharedNumberPad.style.display === 'grid') {
+                    targetElement = sharedNumberPad;
+                    console.log('Scrolling to number pad');
+                } else if (cashInputSection && cashInputSection.classList.contains('show')) {
+                    targetElement = cashInputSection;
+                    console.log('Scrolling to cash input');
+                } else if (cardInputSection && cardInputSection.classList.contains('show')) {
+                    targetElement = cardInputSection;
+                    console.log('Scrolling to card input');
+                } else if (balanceDisplay && balanceDisplay.style.display === 'block') {
+                    targetElement = balanceDisplay;
+                    console.log('Scrolling to balance display');
+                }
+
+                if (targetElement) {
+                    // Simple scroll to the top of the target element
+                    const targetOffsetTop = targetElement.offsetTop;
+                    const scrollPosition = Math.max(0, targetOffsetTop - 50); // 50px margin from top
+
+                    paymentSection.scrollTo({
+                        top: scrollPosition,
+                        behavior: 'smooth'
+                    });
+
+                    console.log('Scrolling to position:', scrollPosition, 'Target element:', targetElement.id);
+                } else {
+                    console.log('No target element found for scrolling');
+                }
+            }, 300); // Increased delay to ensure elements are rendered
+        }
+
+        // Force scroll to number pad immediately
+        function forceScrollToNumberPad() {
+            console.log('Force scrolling to number pad');
+
+            // Multiple scroll attempts with different methods
+            setTimeout(() => {
+                const paymentSection = document.querySelector('.payment-section');
+                const numberPad = document.getElementById('shared-number-pad');
+
+                if (paymentSection && numberPad) {
+                    console.log('Elements found, scrolling...');
+
+                    // Method 1: Direct scrollTop
+                    paymentSection.scrollTop = numberPad.offsetTop - 20;
+
+                    // Method 2: scrollIntoView on number pad
+                    numberPad.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+                    console.log('Scroll executed to position:', numberPad.offsetTop - 20);
+                } else {
+                    console.log('Elements not found - PaymentSection:', !!paymentSection, 'NumberPad:', !!numberPad);
+                }
+            }, 50);
+
+            // Backup scroll after a longer delay
+            setTimeout(() => {
+                const paymentSection = document.querySelector('.payment-section');
+                const numberPad = document.getElementById('shared-number-pad');
+
+                if (paymentSection && numberPad && numberPad.style.display === 'grid') {
+                    console.log('Backup scroll executing...');
+                    paymentSection.scrollTo({
+                        top: numberPad.offsetTop - 30,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 200);
+        }
+
         // Select payment method
         function selectPaymentMethod(method, button) {
+            console.log('Selecting payment method:', method);
             selectedPaymentMethod = method;
 
             // Update active payment button
@@ -1359,6 +1543,15 @@
             const activeInputIndicator = document.getElementById('active-input-indicator');
             const sharedNumberPad = document.getElementById('shared-number-pad');
             const balanceDisplay = document.getElementById('balance-display');
+            const quickAmounts = document.querySelector('.quick-amounts');
+
+            console.log('Elements found:', {
+                cashInputSection: !!cashInputSection,
+                cardInputSection: !!cardInputSection,
+                sharedNumberPad: !!sharedNumberPad,
+                balanceDisplay: !!balanceDisplay,
+                quickAmounts: !!quickAmounts
+            });
 
             // Hide all sections first
             cashInputSection.classList.remove('show');
@@ -1370,53 +1563,89 @@
             document.getElementById('card-payment').value = '0';
 
             // Show appropriate sections based on payment method
-            switch(method) {
+            switch (method) {
                 case 'CASH':
                     cashInputSection.classList.add('show');
                     sharedNumberPad.style.display = 'grid';
+                    quickAmounts.style.display = 'grid';
+                    balanceDisplay.style.display = 'block';
                     activeInput = 'customer';
                     setActiveInput('customer');
                     calculateBalance();
+                    // Force immediate scroll
+                    forceScrollToNumberPad();
                     break;
-                    
+
                 case 'CARD':
                     cardInputSection.classList.add('show');
                     sharedNumberPad.style.display = 'grid';
+                    quickAmounts.style.display = 'none'; // No quick amounts for card
+                    balanceDisplay.style.display = 'none'; // No balance for card only
                     activeInput = 'card';
                     setActiveInput('card');
-                    // For card only, hide balance section
-                    balanceDisplay.style.display = 'none';
+                    // Force immediate scroll
+                    forceScrollToNumberPad();
                     break;
-                    
+
                 case 'CARD & CASH':
                     cashInputSection.classList.add('show');
                     cardInputSection.classList.add('show');
                     activeInputIndicator.classList.add('show');
                     sharedNumberPad.style.display = 'grid';
+                    quickAmounts.style.display = 'grid';
                     balanceDisplay.style.display = 'block';
                     activeInput = 'customer';
                     setActiveInput('customer');
                     calculateBalance();
+                    // Force immediate scroll
+                    forceScrollToNumberPad();
                     break;
-                    
+
                 case 'CREDIT':
                     // For credit, no input needed and show balance as negative total
                     sharedNumberPad.style.display = 'none';
+                    quickAmounts.style.display = 'none';
                     balanceDisplay.style.display = 'block';
                     const total = getTotalAmount();
                     balanceDisplay.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Credit Balance: Rs. -${total.toFixed(2)}`;
                     balanceDisplay.style.background = '#f8d7da';
                     balanceDisplay.style.color = '#721c24';
-                    document.getElementById('checkout-btn').disabled = cart.length === 0;
+                    // Scroll to balance for credit
+                    setTimeout(() => {
+                        const paymentSection = document.querySelector('.payment-section');
+                        if (paymentSection && balanceDisplay) {
+                            paymentSection.scrollTop = balanceDisplay.offsetTop - 50;
+                        }
+                    }, 100);
                     break;
-                    
+
                 default:
                     sharedNumberPad.style.display = 'none';
-                    balanceDisplay.innerHTML = 'Balance: Rs. 0.00';
-                    balanceDisplay.style.background = '#d1ecf1';
-                    balanceDisplay.style.color = '#0c5460';
-                    balanceDisplay.style.display = 'block';
+                    quickAmounts.style.display = 'none';
+                    balanceDisplay.style.display = 'none';
             }
+
+            // Update checkout button
+            updateCheckoutButton();
+
+            // Scroll payment section to show number pad and balance section
+            setTimeout(() => {
+                const paymentSection = document.querySelector('.payment-section');
+                const numberPad = document.getElementById('shared-number-pad');
+                const balanceDisplay = document.getElementById('balance-display');
+                let target = null;
+                if (numberPad && numberPad.style.display === 'grid') {
+                    target = numberPad;
+                } else if (balanceDisplay && balanceDisplay.style.display === 'block') {
+                    target = balanceDisplay;
+                }
+                if (paymentSection && target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            }, 150);
         }
 
         // Input mode management
@@ -1466,14 +1695,14 @@
         // Active input management
         function setActiveInput(inputType) {
             activeInput = inputType;
-            
+
             // Update button states
             const customerBtn = document.getElementById('customer-btn');
             const cardBtn = document.getElementById('card-btn');
-            
+
             customerBtn.classList.remove('active');
             cardBtn.classList.remove('active');
-            
+
             if (inputType === 'customer') {
                 customerBtn.classList.add('active');
                 document.getElementById('customer-payment').focus();
@@ -1506,7 +1735,7 @@
 
             // Trigger input event to ensure consistency
             input.dispatchEvent(new Event('input'));
-            
+
             // Update balance based on payment method
             if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
                 calculateBalance();
@@ -1701,6 +1930,14 @@
 
         // Calculate balance for cash payments
         function calculateBalance() {
+            // If no payment method is selected, don't calculate
+            if (!selectedPaymentMethod) {
+                console.log('No payment method selected, skipping balance calculation');
+                return;
+            }
+
+            console.log('Calculating balance for payment method:', selectedPaymentMethod);
+
             let total = 0;
             if (cart && cart.length > 0) {
                 total = cart.reduce((sum, item) => {
@@ -1714,29 +1951,38 @@
             const cardPaymentInput = document.getElementById('card-payment');
             const balanceDisplay = document.getElementById('balance-display');
 
+            if (!balanceDisplay) {
+                console.error('Balance display element not found');
+                return;
+            }
+
             customerPayment = parseFloat(customerPaymentInput.value) || 0;
             const cardPayment = parseFloat(cardPaymentInput.value) || 0;
 
             let balance = 0;
             let displayMessage = '';
-            let canCheckout = cart.length > 0;
+            let canCheckout = cart.length > 0 && selectedPaymentMethod;
 
-            switch(selectedPaymentMethod) {
+            switch (selectedPaymentMethod) {
                 case 'CASH':
                     balance = customerPayment - total;
                     if (balance >= 0) {
                         displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
                         balanceDisplay.style.background = '#d1ecf1';
                         balanceDisplay.style.color = '#0c5460';
+                        balanceDisplay.style.borderColor = '#bee5eb';
                     } else if (customerPayment > 0) {
                         displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: Rs. ${Math.abs(balance).toFixed(2)}`;
                         balanceDisplay.style.background = '#f8d7da';
                         balanceDisplay.style.color = '#721c24';
+                        balanceDisplay.style.borderColor = '#f5c6cb';
                         canCheckout = false;
                     } else {
-                        displayMessage = 'Balance: Rs. 0.00';
+                        displayMessage = '<i class="bi bi-info-circle me-2"></i>Enter payment amount';
                         balanceDisplay.style.background = '#d1ecf1';
                         balanceDisplay.style.color = '#0c5460';
+                        balanceDisplay.style.borderColor = '#bee5eb';
+                        canCheckout = false;
                     }
                     break;
 
@@ -1744,41 +1990,47 @@
                     // Balance = customer payment - (subtotal - card payment)
                     const remainingAfterCard = total - cardPayment;
                     balance = customerPayment - remainingAfterCard;
-                    
+
                     if (cardPayment + customerPayment >= total) {
                         if (balance >= 0) {
                             displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
                             balanceDisplay.style.background = '#d1ecf1';
                             balanceDisplay.style.color = '#0c5460';
+                            balanceDisplay.style.borderColor = '#bee5eb';
                         } else {
                             displayMessage = `<i class="bi bi-check-circle me-2"></i>Exact Payment`;
                             balanceDisplay.style.background = '#d1ecf1';
                             balanceDisplay.style.color = '#0c5460';
+                            balanceDisplay.style.borderColor = '#bee5eb';
                         }
                     } else {
                         const shortfall = total - (cardPayment + customerPayment);
                         displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: Rs. ${shortfall.toFixed(2)}`;
                         balanceDisplay.style.background = '#f8d7da';
                         balanceDisplay.style.color = '#721c24';
+                        balanceDisplay.style.borderColor = '#f5c6cb';
                         canCheckout = false;
                     }
                     break;
 
                 default:
-                    displayMessage = 'Balance: Rs. 0.00';
+                    displayMessage = '<i class="bi bi-info-circle me-2"></i>Balance: Rs. 0.00';
                     balanceDisplay.style.background = '#d1ecf1';
                     balanceDisplay.style.color = '#0c5460';
+                    balanceDisplay.style.borderColor = '#bee5eb';
             }
 
             balanceDisplay.innerHTML = displayMessage;
-            document.getElementById('checkout-btn').disabled = !canCheckout;
+            balanceDisplay.style.display = 'block'; // Ensure it's visible
+            updateCheckoutButton(); // Use the centralized function instead
 
-            console.log('Balance calculation:', { 
-                total, 
-                customerPayment, 
-                cardPayment, 
-                balance, 
-                selectedPaymentMethod 
+            console.log('Balance calculation completed:', {
+                total,
+                customerPayment,
+                cardPayment,
+                balance,
+                selectedPaymentMethod,
+                displayMessage
             });
         }
 
@@ -1861,7 +2113,7 @@
 
             // Get card payment value
             const cardPaymentValue = parseFloat(document.getElementById('card-payment').value) || 0;
-            
+
             // Validate payments based on method
             if (selectedPaymentMethod === 'CASH') {
                 if (customerPayment < getTotalAmount()) {
@@ -1888,50 +2140,50 @@
             checkoutBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
 
             fetch('{{ route("pos.process-sale") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify(orderData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success modal briefly
-                    showSuccess('Payment Successful!');
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(orderData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success modal briefly
+                        showSuccess('Payment Successful!');
 
-                    // Store cart data before clearing for PDF generation
-                    window.lastSaleData = {
-                        cart: [...cart],
-                        paymentMethod: selectedPaymentMethod,
-                        customerPayment: customerPayment,
-                        cardPayment: cardPaymentValue,
-                        receiptData: data,
-                        backendData: data // Store the complete backend response
-                    };
+                        // Store cart data before clearing for PDF generation
+                        window.lastSaleData = {
+                            cart: [...cart],
+                            paymentMethod: selectedPaymentMethod,
+                            customerPayment: customerPayment,
+                            cardPayment: cardPaymentValue,
+                            receiptData: data,
+                            backendData: data // Store the complete backend response
+                        };
 
-                    // Directly print receipt without showing modal
-                    downloadReceiptPDF();
+                        // Directly print receipt without showing modal
+                        downloadReceiptPDF();
 
-                    // Clear the cart and start new order
-                    cart = [];
-                    document.getElementById('customer-payment').value = '0';
-                    document.getElementById('card-payment').value = '0';
-                    updateCartDisplay();
-                    calculateBalance();
-                } else {
-                    showError(data.message || 'Error processing payment');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Error processing payment. Please try again.');
-            })
-            .finally(() => {
-                checkoutBtn.disabled = false;
-                checkoutBtn.innerHTML = '<i class="bi bi-credit-card"></i> Process Payment';
-            });
+                        // Clear the cart and start new order
+                        cart = [];
+                        document.getElementById('customer-payment').value = '0';
+                        document.getElementById('card-payment').value = '0';
+                        updateCartDisplay();
+                        calculateBalance();
+                    } else {
+                        showError(data.message || 'Error processing payment');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Error processing payment. Please try again.');
+                })
+                .finally(() => {
+                    checkoutBtn.disabled = false;
+                    checkoutBtn.innerHTML = '<i class="bi bi-credit-card"></i> Process Payment';
+                });
         }
 
         // Get total amount
@@ -1949,10 +2201,36 @@
         // Clear all orders function
         function clearAllOrders() {
             cart = [];
-            updateCartDisplay();
+            selectedPaymentMethod = null;
+
+            // Reset payment buttons
+            document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
+
+            // Hide payment input sections
+            document.getElementById('cash-input-section').classList.remove('show');
+            document.getElementById('card-input-section').classList.remove('show');
+            document.getElementById('active-input-indicator').classList.remove('show');
+
+            // Hide number pad and related elements
+            const sharedNumberPad = document.getElementById('shared-number-pad');
+            const quickAmounts = document.querySelector('.quick-amounts');
+            const balanceDisplay = document.getElementById('balance-display');
+
+            if (sharedNumberPad) {
+                sharedNumberPad.style.display = 'none';
+            }
+            if (quickAmounts) {
+                quickAmounts.style.display = 'none';
+            }
+            if (balanceDisplay) {
+                balanceDisplay.style.display = 'none';
+            }
+
+            // Reset input values
             document.getElementById('customer-payment').value = '0';
             document.getElementById('card-payment').value = '0';
-            calculateBalance();
+
+            updateCartDisplay();
         }
 
         // Search functionality
@@ -2029,13 +2307,13 @@
                 document.getElementById('balance-display-receipt').textContent = `Rs. ${formatNumber(data.balance || 0)}`;
             } else if (paymentMethod === 'CARD & CASH') {
                 cashDetails.style.display = 'block';
-                
+
                 // For card & cash, we need to show both payment amounts
                 const cardPaymentValue = parseFloat(data.card_payment) || parseFloat(document.getElementById('card-payment').value) || 0;
                 const customerPaymentValue = parseFloat(data.customer_payment) || customerPayment;
                 const totalPaid = customerPaymentValue + cardPaymentValue;
                 const balanceValue = parseFloat(data.balance) || (totalPaid - getTotalAmount());
-                
+
                 // Update display to show detailed breakdown
                 const amountDisplay = document.getElementById('amount-paid-display');
                 if (amountDisplay) {
@@ -2045,7 +2323,7 @@
                         <strong>Total: Rs. ${formatNumber(totalPaid)}</strong>
                     `;
                 }
-                
+
                 document.getElementById('balance-display-receipt').textContent = `Rs. ${formatNumber(balanceValue)}`;
             } else {
                 cashDetails.style.display = 'none';
@@ -2056,360 +2334,461 @@
         function startNewOrder() {
             // Clear cart
             cart = [];
-            updateCartDisplay();
+            selectedPaymentMethod = null;
 
-            // Reset payment
+            // Reset payment buttons
+            document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
+
+            // Hide payment input sections
+            document.getElementById('cash-input-section').classList.remove('show');
+            document.getElementById('card-input-section').classList.remove('show');
+            document.getElementById('active-input-indicator').classList.remove('show');
+
+            // Hide number pad and related elements
+            const sharedNumberPad = document.getElementById('shared-number-pad');
+            const quickAmounts = document.querySelector('.quick-amounts');
+            const balanceDisplay = document.getElementById('balance-display');
+
+            if (sharedNumberPad) {
+                sharedNumberPad.style.display = 'none';
+            }
+            if (quickAmounts) {
+                quickAmounts.style.display = 'none';
+            }
+            if (balanceDisplay) {
+                balanceDisplay.style.display = 'none';
+            }
+
+            // Reset payment inputs
             document.getElementById('customer-payment').value = '0';
-            calculateBalance();
+            document.getElementById('card-payment').value = '0';
+
+            updateCartDisplay();
         }
-    // Download receipt as PDF - DYNAMIC LENGTH VERSION
-    function downloadReceiptPDF() {
-        try {
-            const { jsPDF } = window.jspdf;
+        // Download receipt as PDF - DYNAMIC LENGTH VERSION
+        function downloadReceiptPDF() {
+            try {
+                const {
+                    jsPDF
+                } = window.jspdf;
 
-            // Get stored cart data or use current cart
-            const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
-            const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
-            const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ? 
-                parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) : 
-                (window.lastSaleData ? window.lastSaleData.customerPayment : parseFloat(document.getElementById('customer-payment').value) || 0);
-            const cardPaymentAmount = window.lastSaleData?.backendData?.card_payment ? 
-                parseFloat(window.lastSaleData.backendData.card_payment.replace(/,/g, '')) : 
-                (window.lastSaleData ? window.lastSaleData.cardPayment : parseFloat(document.getElementById('card-payment').value) || 0);
+                // Get stored cart data or use current cart
+                const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
+                const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
+                const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ?
+                    parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) :
+                    (window.lastSaleData ? window.lastSaleData.customerPayment : parseFloat(document.getElementById('customer-payment').value) || 0);
+                const cardPaymentAmount = window.lastSaleData?.backendData?.card_payment ?
+                    parseFloat(window.lastSaleData.backendData.card_payment.replace(/,/g, '')) :
+                    (window.lastSaleData ? window.lastSaleData.cardPayment : parseFloat(document.getElementById('card-payment').value) || 0);
 
-            // Calculate totals from cart
-            const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            // Calculate balance based on payment method
-            let balance = 0;
-            let totalPaid = 0;
-            
-            if (paymentMethod === 'CASH') {
-                totalPaid = customerPaymentAmount;
-                balance = customerPaymentAmount - subtotal;
-            } else if (paymentMethod === 'CARD & CASH') {
-                totalPaid = customerPaymentAmount + cardPaymentAmount;
-                balance = totalPaid - subtotal;
-            } else if (paymentMethod === 'CARD') {
-                totalPaid = subtotal; // For card, amount paid equals total
-                balance = 0;
-            } else if (paymentMethod === 'CREDIT') {
-                totalPaid = 0;
-                balance = -subtotal; // Negative balance for credit
-            }
+                // Calculate totals from cart
+                const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-            // Build receipt data object from cart
-            const receiptData = {
-                receiptNo: window.lastSaleData?.backendData?.receipt_no || document.getElementById('receipt-no').textContent,
-                userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
-                date: new Date().toLocaleDateString('en-GB'),
-                time: new Date().toLocaleTimeString('en-GB', { hour12: false }),
-                subtotal: window.lastSaleData?.backendData?.subtotal || subtotal.toFixed(2),
-                total: window.lastSaleData?.backendData?.total || subtotal.toFixed(2),
-                paymentMethod: paymentMethod,
-                showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
-                showCardCashDetails: paymentMethod === 'CARD & CASH',
-                customerPayment: customerPaymentAmount.toFixed(2),
-                cardPayment: cardPaymentAmount.toFixed(2),
-                amountPaid: totalPaid.toFixed(2),
-                balance: window.lastSaleData?.backendData?.balance || balance.toFixed(2),
-                items: cartData.map(item => ({
-                    name: item.name,
-                    quantity: item.quantity,
-                    unitPrice: item.price.toFixed(2),
-                    totalPrice: (item.price * item.quantity).toFixed(2)
-                }))
-            };
+                // Calculate balance based on payment method
+                let balance = 0;
+                let totalPaid = 0;
 
-            // Create PDF with fixed width (80mm) and let height be dynamic
-            const pdf = new jsPDF({ 
-                orientation: 'portrait', 
-                unit: 'mm', 
-                format: [80, 297] // Start with A4 height, will extend if needed
-            });
-
-            let yPosition = 10;
-            const pageWidth = 80;
-            const pageHeight = 297; // A4 height in mm
-            const leftMargin = 5;
-            const rightMargin = 5;
-            const maxPageHeight = pageHeight - 20; // Leave margin at bottom
-
-            // Helper function to check if we need a new page
-            function checkPageBreak(requiredSpace) {
-                if (yPosition + requiredSpace > maxPageHeight) {
-                    pdf.addPage();
-                    yPosition = 10;
-                    
-                    // Add simplified header for continuation pages
-                    pdf.setFontSize(10);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.circle(pageWidth/2, yPosition + 5, 6);
-                    pdf.text('RB', pageWidth/2, yPosition + 6, { align: 'center' });
-                    yPosition += 14;
-                    
-                    pdf.setFontSize(12);
-                    pdf.setFont('courier', 'bold');
-                    pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
-                    yPosition += 6;
-                    
-                    pdf.setFontSize(8);
-                    pdf.setFont('courier', 'normal');
-                    pdf.text('(Continued)', pageWidth/2, yPosition, { align: 'center' });
-                    yPosition += 8;
-                    
-                    // Separator line
-                    pdf.setLineWidth(0.3);
-                    pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
-                    yPosition += 6;
-                    
-                    return true;
+                if (paymentMethod === 'CASH') {
+                    totalPaid = customerPaymentAmount;
+                    balance = customerPaymentAmount - subtotal;
+                } else if (paymentMethod === 'CARD & CASH') {
+                    totalPaid = customerPaymentAmount + cardPaymentAmount;
+                    balance = totalPaid - subtotal;
+                } else if (paymentMethod === 'CARD') {
+                    totalPaid = subtotal; // For card, amount paid equals total
+                    balance = 0;
+                } else if (paymentMethod === 'CREDIT') {
+                    totalPaid = 0;
+                    balance = -subtotal; // Negative balance for credit
                 }
-                return false;
-            }
 
-            // Header section - only on first page
-            pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'bold');
-            pdf.circle(pageWidth/2, yPosition + 5, 8);
-            pdf.text('RB', pageWidth/2, yPosition + 7, { align: 'center' });
-            yPosition += 18;
+                // Build receipt data object from cart
+                const receiptData = {
+                    receiptNo: window.lastSaleData?.backendData?.receipt_no || document.getElementById('receipt-no').textContent,
+                    userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
+                    date: new Date().toLocaleDateString('en-GB'),
+                    time: new Date().toLocaleTimeString('en-GB', {
+                        hour12: false
+                    }),
+                    subtotal: window.lastSaleData?.backendData?.subtotal || subtotal.toFixed(2),
+                    total: window.lastSaleData?.backendData?.total || subtotal.toFixed(2),
+                    paymentMethod: paymentMethod,
+                    showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
+                    showCardCashDetails: paymentMethod === 'CARD & CASH',
+                    customerPayment: customerPaymentAmount.toFixed(2),
+                    cardPayment: cardPaymentAmount.toFixed(2),
+                    amountPaid: totalPaid.toFixed(2),
+                    balance: window.lastSaleData?.backendData?.balance || balance.toFixed(2),
+                    items: cartData.map(item => ({
+                        name: item.name,
+                        quantity: item.quantity,
+                        unitPrice: item.price.toFixed(2),
+                        totalPrice: (item.price * item.quantity).toFixed(2)
+                    }))
+                };
 
-            pdf.setFontSize(14);
-            pdf.setFont('courier', 'bold');
-            pdf.text('RAVON BAKERS', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 6;
+                // Create PDF with fixed width (80mm) and let height be dynamic
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [80, 297] // Start with A4 height, will extend if needed
+                });
 
-            pdf.setFontSize(10);
-            pdf.setFont('courier', 'normal');
-            pdf.text('Restaurant & Bakery', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 5;
+                let yPosition = 10;
+                const pageWidth = 80;
+                const pageHeight = 297; // A4 height in mm
+                const leftMargin = 5;
+                const rightMargin = 5;
+                const maxPageHeight = pageHeight - 20; // Leave margin at bottom
 
-            pdf.setFontSize(8);
-            pdf.text('Address: 282/A 2, Kaduwela', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.text('Phone: 076 200 6007', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 8;
+                // Helper function to check if we need a new page
+                function checkPageBreak(requiredSpace) {
+                    if (yPosition + requiredSpace > maxPageHeight) {
+                        pdf.addPage();
+                        yPosition = 10;
 
-            // Separator line
-            pdf.setLineWidth(0.5);
-            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
-            yPosition += 6;
+                        // Add simplified header for continuation pages
+                        pdf.setFontSize(10);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.circle(pageWidth / 2, yPosition + 5, 6);
+                        pdf.text('RB', pageWidth / 2, yPosition + 6, {
+                            align: 'center'
+                        });
+                        yPosition += 14;
 
-            // Receipt information
-            pdf.setFontSize(9);
-            pdf.setFont('courier', 'normal');
+                        pdf.setFontSize(12);
+                        pdf.setFont('courier', 'bold');
+                        pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
+                            align: 'center'
+                        });
+                        yPosition += 6;
 
-            checkPageBreak(25); // Check space for receipt info block
-            
-            pdf.text('RECEIPT NO:', leftMargin, yPosition);
-            pdf.text(receiptData.receiptNo, pageWidth-rightMargin, yPosition, { align: 'right' });
-            yPosition += 5;
+                        pdf.setFontSize(8);
+                        pdf.setFont('courier', 'normal');
+                        pdf.text('(Continued)', pageWidth / 2, yPosition, {
+                            align: 'center'
+                        });
+                        yPosition += 8;
 
-            pdf.text('USER:', leftMargin, yPosition);
-            pdf.text(receiptData.userName, pageWidth-rightMargin, yPosition, { align: 'right' });
-            yPosition += 5;
+                        // Separator line
+                        pdf.setLineWidth(0.3);
+                        pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                        yPosition += 6;
 
-            pdf.text('DATE:', leftMargin, yPosition);
-            pdf.text(receiptData.date, pageWidth-rightMargin, yPosition, { align: 'right' });
-            yPosition += 5;
+                        return true;
+                    }
+                    return false;
+                }
 
-            pdf.text('TIME:', leftMargin, yPosition);
-            pdf.text(receiptData.time, pageWidth-rightMargin, yPosition, { align: 'right' });
-            yPosition += 8;
+                // Header section - only on first page
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'bold');
+                pdf.circle(pageWidth / 2, yPosition + 5, 8);
+                pdf.text('RB', pageWidth / 2, yPosition + 7, {
+                    align: 'center'
+                });
+                yPosition += 18;
 
-            // Items section
-            checkPageBreak(15); // Check space for items header
-            
-            pdf.setLineWidth(0.3);
-            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
-            yPosition += 6;
-
-            // Process each item with automatic page breaks
-            receiptData.items.forEach((item, index) => {
-                checkPageBreak(12); // Each item needs about 12mm space
-                
-                // Item name and total price
+                pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
-                pdf.setFontSize(9);
-                
-                // Truncate long item names if necessary
-                let itemName = item.name;
-                if (itemName.length > 22) {
-                    itemName = itemName.substring(0, 19) + '...';
-                }
-                
-                pdf.text(itemName, leftMargin, yPosition);
-                pdf.text(`Rs. ${item.totalPrice}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-                yPosition += 4;
+                pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 6;
 
-                // Quantity and unit price
+                pdf.setFontSize(10);
                 pdf.setFont('courier', 'normal');
-                pdf.setFontSize(8);
-                pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, leftMargin + 2, yPosition);
-                yPosition += 6;
-            });
-
-            // Totals section
-            checkPageBreak(40); // Check space for totals and footer
-            
-            yPosition += 2;
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 6;
-
-            pdf.setFont('courier', 'normal');
-            pdf.setFontSize(9);
-            pdf.text('Sub Total:', leftMargin, yPosition);
-            pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-            yPosition += 6;
-
-            pdf.setFont('courier', 'bold');
-            pdf.setFontSize(11);
-            pdf.text('TOTAL:', leftMargin, yPosition);
-            pdf.text(`Rs. ${receiptData.total}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-            yPosition += 8;
-
-            // Payment information
-            pdf.setFontSize(9);
-            pdf.setFont('courier', 'normal');
-            pdf.text('Payment Method:', leftMargin, yPosition);
-            pdf.text(receiptData.paymentMethod, pageWidth-rightMargin, yPosition, { align: 'right' });
-            yPosition += 6;
-
-            if (receiptData.showCashDetails) {
-                if (receiptData.showCardCashDetails) {
-                    // For CARD & CASH payment method
-                    pdf.text('Customer Payment:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${receiptData.customerPayment}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-                    yPosition += 5;
-                    
-                    pdf.text('Card Payment:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${receiptData.cardPayment}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-                    yPosition += 5;
-                    
-                    pdf.text('Total Paid:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-                    yPosition += 5;
-                    
-                    // Calculate balance correctly: (Customer Payment + Card Payment) - Total
-                    const calculatedBalance = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment) - parseFloat(receiptData.total)).toFixed(2);
-                    pdf.text('Balance:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${calculatedBalance}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-                    yPosition += 6;
-                } else {
-                    // For CASH only payment method
-                    pdf.text('Amount Paid:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-                    yPosition += 5;
-                    
-                    // Balance (common for CASH)
-                    pdf.text('Balance:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${receiptData.balance}`, pageWidth-rightMargin, yPosition, { align: 'right' });
-                    yPosition += 6;
-                }
-            } else if (receiptData.paymentMethod === 'CREDIT') {
-                // For CREDIT payment method
-                pdf.text('Amount Due:', leftMargin, yPosition);
-                pdf.text(`Rs. ${receiptData.total}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+                pdf.text('Restaurant & Bakery', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
                 yPosition += 5;
-                
-                pdf.text('Credit Balance:', leftMargin, yPosition);
-                pdf.text(`Rs. ${receiptData.balance}`, pageWidth-rightMargin, yPosition, { align: 'right' });
+
+                pdf.setFontSize(8);
+                pdf.text('Address: 282/A 2, Kaduwela', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 4;
+                pdf.text('Phone: 076 200 6007', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 8;
+
+                // Separator line
+                pdf.setLineWidth(0.5);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
                 yPosition += 6;
-            }
 
-            // Footer
-            yPosition += 4;
-            pdf.setLineDashPattern([1, 1], 0);
-            pdf.line(leftMargin, yPosition, pageWidth-rightMargin, yPosition);
-            pdf.setLineDashPattern([], 0);
-            yPosition += 8;
+                // Receipt information
+                pdf.setFontSize(9);
+                pdf.setFont('courier', 'normal');
 
-            pdf.setFontSize(8);
-            pdf.setFont('courier', 'normal');
-            pdf.text('Thank you for visiting', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.setFont('courier', 'bold');
-            pdf.text('RAVON RESTAURANT', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 4;
-            pdf.setFont('courier', 'normal');
-            pdf.text('Come again!', pageWidth/2, yPosition, { align: 'center' });
-            yPosition += 8;
-            pdf.setFontSize(6);
-            pdf.text('System by SKM Labs', pageWidth/2, yPosition, { align: 'center' });
+                checkPageBreak(25); // Check space for receipt info block
 
-            // Create hidden iframe for printing instead of new window
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.style.position = 'absolute';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = 'none';
-            document.body.appendChild(iframe);
+                pdf.text('RECEIPT NO:', leftMargin, yPosition);
+                pdf.text(receiptData.receiptNo, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
 
-            const pdfBlob = pdf.output('blob');
-            const blobUrl = URL.createObjectURL(pdfBlob);
-            iframe.src = blobUrl;
+                pdf.text('USER:', leftMargin, yPosition);
+                pdf.text(receiptData.userName, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
 
-            iframe.onload = function() {
-                try {
-                    const win = iframe.contentWindow;
+                pdf.text('DATE:', leftMargin, yPosition);
+                pdf.text(receiptData.date, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
 
-                    // Cleanup function to remove iframe and revoke blob URL
-                    const cleanup = () => {
-                        try {
-                            if (iframe && iframe.parentNode) {
-                                document.body.removeChild(iframe);
-                            }
-                        } catch (e) {
-                            console.warn('Error removing print iframe:', e);
-                        }
-                        try { URL.revokeObjectURL(blobUrl); } catch (e) { /* ignore */ }
-                    };
+                pdf.text('TIME:', leftMargin, yPosition);
+                pdf.text(receiptData.time, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 8;
 
-                    // Prefer afterprint event to know when printing completed
-                    const onAfterPrint = () => {
-                        cleanup();
-                        try { win.removeEventListener('afterprint', onAfterPrint); } catch (e) {}
-                    };
+                // Items section
+                checkPageBreak(15); // Check space for items header
 
-                    // Attach listener if supported
-                    try {
-                        win.addEventListener('afterprint', onAfterPrint);
-                    } catch (e) {
-                        // ignore if can't attach
+                pdf.setLineWidth(0.3);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                yPosition += 6;
+
+                // Process each item with automatic page breaks
+                receiptData.items.forEach((item, index) => {
+                    checkPageBreak(12); // Each item needs about 12mm space
+
+                    // Item name and total price
+                    pdf.setFont('courier', 'bold');
+                    pdf.setFontSize(9);
+
+                    // Truncate long item names if necessary
+                    let itemName = item.name;
+                    if (itemName.length > 22) {
+                        itemName = itemName.substring(0, 19) + '...';
                     }
 
-                    // Trigger print and focus the iframe window
-                    setTimeout(() => {
-                        try { win.focus(); } catch (e) {}
-                        try { win.print(); } catch (e) { console.error('Print failed:', e); }
-                    }, 300);
+                    pdf.text(itemName, leftMargin, yPosition);
+                    pdf.text(`Rs. ${item.totalPrice}`, pageWidth - rightMargin, yPosition, {
+                        align: 'right'
+                    });
+                    yPosition += 4;
 
-                    // Fallback: if afterprint doesn't fire, remove iframe after a safe delay
-                    setTimeout(() => {
-                        if (document.body.contains(iframe)) {
-                            cleanup();
-                        }
-                    }, 8000);
+                    // Quantity and unit price
+                    pdf.setFont('courier', 'normal');
+                    pdf.setFontSize(8);
+                    pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, leftMargin + 2, yPosition);
+                    yPosition += 6;
+                });
 
-                } catch (err) {
-                    console.error('Print iframe error', err);
-                    // Best-effort cleanup
-                    setTimeout(() => {
-                        try { if (iframe && iframe.parentNode) document.body.removeChild(iframe); } catch (e) {}
-                        try { URL.revokeObjectURL(blobUrl); } catch (e) {}
-                    }, 3000);
+                // Totals section
+                checkPageBreak(40); // Check space for totals and footer
+
+                yPosition += 2;
+                pdf.setLineDashPattern([1, 1], 0);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                pdf.setLineDashPattern([], 0);
+                yPosition += 6;
+
+                pdf.setFont('courier', 'normal');
+                pdf.setFontSize(9);
+                pdf.text('Sub Total:', leftMargin, yPosition);
+                pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 6;
+
+                pdf.setFont('courier', 'bold');
+                pdf.setFontSize(11);
+                pdf.text('TOTAL:', leftMargin, yPosition);
+                pdf.text(`Rs. ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 8;
+
+                // Payment information
+                pdf.setFontSize(9);
+                pdf.setFont('courier', 'normal');
+                pdf.text('Payment Method:', leftMargin, yPosition);
+                pdf.text(receiptData.paymentMethod, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 6;
+
+                if (receiptData.showCashDetails) {
+                    if (receiptData.showCardCashDetails) {
+                        // For CARD & CASH payment method
+                        pdf.text('Customer Payment:', leftMargin, yPosition);
+                        pdf.text(`Rs. ${receiptData.customerPayment}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 5;
+
+                        pdf.text('Card Payment:', leftMargin, yPosition);
+                        pdf.text(`Rs. ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 5;
+
+                        pdf.text('Total Paid:', leftMargin, yPosition);
+                        pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 5;
+
+                        // Calculate balance correctly: (Customer Payment + Card Payment) - Total
+                        const calculatedBalance = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment) - parseFloat(receiptData.total)).toFixed(2);
+                        pdf.text('Balance:', leftMargin, yPosition);
+                        pdf.text(`Rs. ${calculatedBalance}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 6;
+                    } else {
+                        // For CASH only payment method
+                        pdf.text('Amount Paid:', leftMargin, yPosition);
+                        pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 5;
+
+                        // Balance (common for CASH)
+                        pdf.text('Balance:', leftMargin, yPosition);
+                        pdf.text(`Rs. ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 6;
+                    }
+                } else if (receiptData.paymentMethod === 'CREDIT') {
+                    // For CREDIT payment method
+                    pdf.text('Amount Due:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
+                        align: 'right'
+                    });
+                    yPosition += 5;
+
+                    pdf.text('Credit Balance:', leftMargin, yPosition);
+                    pdf.text(`Rs. ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+                        align: 'right'
+                    });
+                    yPosition += 6;
                 }
-            };
 
-        } catch (error) {
-            console.error('PDF Error:', error);
-            alert('Failed to generate PDF: ' + error.message);
+                // Footer
+                yPosition += 4;
+                pdf.setLineDashPattern([1, 1], 0);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                pdf.setLineDashPattern([], 0);
+                yPosition += 8;
+
+                pdf.setFontSize(8);
+                pdf.setFont('courier', 'normal');
+                pdf.text('Thank you for visiting', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 4;
+                pdf.setFont('courier', 'bold');
+                pdf.text('RAVON RESTAURANT', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 4;
+                pdf.setFont('courier', 'normal');
+                pdf.text('Come again!', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 8;
+                pdf.setFontSize(6);
+                pdf.text('System by SKM Labs', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+
+                // Create hidden iframe for printing instead of new window
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.style.position = 'absolute';
+                iframe.style.width = '0';
+                iframe.style.height = '0';
+                iframe.style.border = 'none';
+                document.body.appendChild(iframe);
+
+                const pdfBlob = pdf.output('blob');
+                const blobUrl = URL.createObjectURL(pdfBlob);
+                iframe.src = blobUrl;
+
+                iframe.onload = function() {
+                    try {
+                        const win = iframe.contentWindow;
+
+                        // Cleanup function to remove iframe and revoke blob URL
+                        const cleanup = () => {
+                            try {
+                                if (iframe && iframe.parentNode) {
+                                    document.body.removeChild(iframe);
+                                }
+                            } catch (e) {
+                                console.warn('Error removing print iframe:', e);
+                            }
+                            try {
+                                URL.revokeObjectURL(blobUrl);
+                            } catch (e) {
+                                /* ignore */
+                            }
+                        };
+
+                        // Prefer afterprint event to know when printing completed
+                        const onAfterPrint = () => {
+                            cleanup();
+                            try {
+                                win.removeEventListener('afterprint', onAfterPrint);
+                            } catch (e) {}
+                        };
+
+                        // Attach listener if supported
+                        try {
+                            win.addEventListener('afterprint', onAfterPrint);
+                        } catch (e) {
+                            // ignore if can't attach
+                        }
+
+                        // Trigger print and focus the iframe window
+                        setTimeout(() => {
+                            try {
+                                win.focus();
+                            } catch (e) {}
+                            try {
+                                win.print();
+                            } catch (e) {
+                                console.error('Print failed:', e);
+                            }
+                        }, 300);
+
+                        // Fallback: if afterprint doesn't fire, remove iframe after a safe delay
+                        setTimeout(() => {
+                            if (document.body.contains(iframe)) {
+                                cleanup();
+                            }
+                        }, 8000);
+
+                    } catch (err) {
+                        console.error('Print iframe error', err);
+                        // Best-effort cleanup
+                        setTimeout(() => {
+                            try {
+                                if (iframe && iframe.parentNode) document.body.removeChild(iframe);
+                            } catch (e) {}
+                            try {
+                                URL.revokeObjectURL(blobUrl);
+                            } catch (e) {}
+                        }, 3000);
+                    }
+                };
+
+            } catch (error) {
+                console.error('PDF Error:', error);
+                alert('Failed to generate PDF: ' + error.message);
+            }
         }
-    }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -2427,7 +2806,7 @@
             if (isClearSession) {
                 // Clear all cart and payment data for fresh start
                 cart = [];
-                selectedPaymentMethod = 'CASH';
+                selectedPaymentMethod = null; // Reset to no selection
                 customerPayment = 0;
 
                 // Clear browser storage
@@ -2442,17 +2821,39 @@
                 // Update the receipt number display with fresh number
                 const today = new Date();
                 const dateStr = today.getFullYear().toString().substr(-2) +
-                               String(today.getMonth() + 1).padStart(2, '0') +
-                               String(today.getDate()).padStart(2, '0');
+                    String(today.getMonth() + 1).padStart(2, '0') +
+                    String(today.getDate()).padStart(2, '0');
                 document.getElementById('receipt-no').textContent = 'RCP' + dateStr + '0001';
 
                 // Clean URL by removing the clear parameter
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
 
-            const cashInputSection = document.getElementById('cash-input-section');
-            if (selectedPaymentMethod === 'CASH') {
-                cashInputSection.classList.add('show');
+            // Initialize payment methods visibility based on cart
+            const paymentMethodsSection = document.querySelector('.payment-methods');
+            const sharedNumberPad = document.getElementById('shared-number-pad');
+            const quickAmounts = document.querySelector('.quick-amounts');
+            const balanceDisplay = document.getElementById('balance-display');
+
+            if (cart.length === 0) {
+                if (paymentMethodsSection) {
+                    paymentMethodsSection.style.display = 'none';
+                }
+                if (sharedNumberPad) {
+                    sharedNumberPad.style.display = 'none';
+                }
+                if (quickAmounts) {
+                    quickAmounts.style.display = 'none';
+                }
+                if (balanceDisplay) {
+                    balanceDisplay.style.display = 'none';
+                }
+            }
+
+            // Ensure no payment method is pre-selected if cart is empty
+            if (cart.length === 0) {
+                selectedPaymentMethod = null;
+                document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
             }
 
             // Update time every second
@@ -2548,4 +2949,5 @@
         });
     </script>
 </body>
+
 </html>

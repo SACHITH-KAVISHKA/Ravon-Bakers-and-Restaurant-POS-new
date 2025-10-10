@@ -10,6 +10,7 @@ use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
 use App\Models\Wastage;
 use App\Models\WastageItem;
+use App\Models\StockTransfer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -42,13 +43,27 @@ class SupervisorController extends Controller
             ->take(5)
             ->get();
 
+        // Get stock transfer statistics
+        $totalTransfers = StockTransfer::where('created_by', Auth::id())->count();
+        $pendingTransfers = StockTransfer::where('created_by', Auth::id())
+            ->where('status', 'pending')
+            ->count();
+        $recentTransfers = StockTransfer::with(['toBranch', 'transferItems.item'])
+            ->where('created_by', Auth::id())
+            ->orderBy('date_time', 'desc')
+            ->take(5)
+            ->get();
+
         return view('supervisor.dashboard', compact(
             'recentRequests',
             'totalRequests',
             'inventoryCount',
             'lowStockItems',
             'totalWastages',
-            'recentWastages'
+            'recentWastages',
+            'totalTransfers',
+            'pendingTransfers',
+            'recentTransfers'
         ));
     }
 

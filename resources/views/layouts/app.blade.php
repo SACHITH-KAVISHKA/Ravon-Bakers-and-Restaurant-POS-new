@@ -388,6 +388,21 @@
                             <span>View Wastage</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('supervisor.stock-transfer.create') ? 'active' : '' }}" 
+                           href="{{ route('supervisor.stock-transfer.create') }}">
+                            <i class="bi bi-plus-circle"></i>
+                            <span>Create Transfer</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') && !request()->routeIs('supervisor.stock-transfer.create') ? 'active' : '' }}" 
+                           href="{{ route('stock-transfer.transfers') }}">
+                            <i class="bi bi-list-check"></i>
+                            <span>View Transfers</span>
+                        </a>
+                    </li>
                 @else
                     <!-- Regular Navigation for Admin and Staff -->
                     <li class="nav-item">
@@ -438,6 +453,17 @@
                         </a>
                     </li>
                     @endcan
+
+                    <!-- Stock Transfer (For Staff) -->
+                    @if(auth()->user()->isStaff() && auth()->user()->branch_id)
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" 
+                           href="{{ route('stock-transfer.transfers') }}">
+                            <i class="bi bi-inbox"></i>
+                            <span>Stock Transfers</span>
+                        </a>
+                    </li>
+                    @endif
                 @endif
             </ul>
         </div>

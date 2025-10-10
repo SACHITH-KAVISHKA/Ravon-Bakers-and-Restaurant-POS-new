@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             SupervisorUserSeeder::class,
             DepartmentSeeder::class,
             InventoryRequestSeeder::class,
+            CentralInventorySeeder::class,
+            BranchInventorySeeder::class,
         ]);
     }
 }

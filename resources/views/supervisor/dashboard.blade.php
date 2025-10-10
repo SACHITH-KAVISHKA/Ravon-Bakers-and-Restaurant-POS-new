@@ -88,6 +88,42 @@
             </div>
         </div>
     </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total Stock Transfers
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalTransfers }}</div>
+                    </div>
+                    <div class="text-info">
+                        <i class="bi bi-arrow-left-right fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Pending Transfers
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $pendingTransfers }}</div>
+                    </div>
+                    <div class="text-warning">
+                        <i class="bi bi-clock-history fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Recent Inventory Requests -->
@@ -210,6 +246,80 @@
                         <p class="text-muted mt-2">No wastage records yet.</p>
                         <a href="{{ route('supervisor.add-wastage') }}" class="btn btn-danger">
                             <i class="bi bi-plus-circle"></i> Add Your First Wastage Record
+                        </a>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Stock Transfers -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-arrow-left-right"></i>
+                        Recent Stock Transfers
+                    </h5>
+                    <a href="{{ route('stock-transfer.transfers') }}" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-list"></i> View All
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                @if($recentTransfers->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>To Branch</th>
+                                    <th>Items Count</th>
+                                    <th>Status</th>
+                                    <th>Total Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recentTransfers as $transfer)
+                                    <tr>
+                                        <td>{{ $transfer->date_time->format('M d, Y H:i') }}</td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">
+                                                {{ $transfer->toBranch->name }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $transfer->transferItems->count() }} items</td>
+                                        <td>
+                                            @if($transfer->status === 'pending')
+                                                <span class="badge bg-warning text-dark">
+                                                    {{ ucfirst($transfer->status) }}
+                                                </span>
+                                            @elseif($transfer->status === 'accepted')
+                                                <span class="badge bg-success">
+                                                    {{ ucfirst($transfer->status) }}
+                                                </span>
+                                            @else
+                                                <span class="badge bg-danger">
+                                                    {{ ucfirst($transfer->status) }}
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td>{{ $transfer->transferItems->sum('quantity') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center py-4">
+                        <i class="bi bi-arrow-left-right text-muted" style="font-size: 3rem;"></i>
+                        <h6 class="text-muted mt-3">No stock transfers yet.</h6>
+                        <p class="text-muted mt-2">No stock transfers have been created yet.</p>
+                        <a href="{{ route('supervisor.stock-transfer.create') }}" class="btn btn-info">
+                            <i class="bi bi-plus-circle"></i> Create Your First Transfer
                         </a>
                     </div>
                 @endif

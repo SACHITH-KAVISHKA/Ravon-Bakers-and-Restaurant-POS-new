@@ -38,7 +38,6 @@
                                             <th class="border-0 px-4 py-3">Item Code</th>
                                             <th class="border-0 px-4 py-3 text-center">Stock</th>
                                             <th class="border-0 px-4 py-3 text-center">Price</th>
-                                            <th class="border-0 px-4 py-3 text-center">Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -60,21 +59,7 @@
                                                         ${{ number_format($item['price'], 2) }}
                                                     </span>
                                                 </td>
-                                                <td class="px-4 py-3 text-center">
-                                                    @if($item['is_low_stock'])
-                                                        <span class="badge bg-warning text-dark px-3 py-2">
-                                                            <i class="bi bi-exclamation-triangle"></i> Low Stock
-                                                        </span>
-                                                    @elseif($item['current_stock'] > 50)
-                                                        <span class="badge px-3 py-2" style="background-color: #c8e6c9; color: #2e7d32;">
-                                                            <i class="bi bi-check-circle"></i> Well Stocked
-                                                        </span>
-                                                    @else
-                                                        <span class="badge px-3 py-2" style="background-color: #bbdefb; color: #1976d2;">
-                                                            <i class="bi bi-info-circle"></i> Good Stock
-                                                        </span>
-                                                    @endif
-                                                </td>
+                                              
                                             </tr>
                                         @endforeach
                                     </tbody>

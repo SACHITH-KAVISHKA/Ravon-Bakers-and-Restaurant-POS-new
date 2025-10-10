@@ -1,286 +1,146 @@
 @extends('layouts.app')
 
-@section('title', 'Inventory History')
+@section('title', 'Available Stock by Category')
 
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 fw-bold text-dark">Inventory History</h1>
-            <a href="{{ route('supervisor.add-inventory') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Add New Inventory
-            </a>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-clock-history"></i>
-                    Your Inventory Additions
-                </h5>
-            </div>
-            <div class="card-body">
-                @if($inventoryRequests->count() > 0)
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>Date & Time</th>
-                                    <th>Department</th>
-                                    <th>Items Count</th>
-                                    <th>Status</th>
-                                    <th>Total Quantity</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($inventoryRequests as $request)
-                                    <tr>
-                                        <td>{{ $request->date_time->format('M d, Y H:i') }}</td>
-                                        <td>
-                                            <span class="badge bg-light text-dark">
-                                                {{ $request->department->name }}
-                                            </span>
-                                        </td>
-                                        <td>{{ $request->inventoryRequestItems->count() }} items</td>
-                                        <td>
-                                            <span class="badge bg-success">
-                                                {{ ucfirst($request->status) }}
-                                            </span>
-                                        </td>
-                                        <td>{{ $request->inventoryRequestItems->sum('quantity') }}</td>
-                                        <td>
-                                            <button type="button" 
-                                                    class="btn btn-primary btn-sm" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#detailsModal{{ $request->id }}">
-                                                <i class="bi bi-eye"></i> Show
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-center mt-3">
-                        {{ $inventoryRequests->links() }}
-                    </div>
-                @else
-                    <div class="text-center py-5">
-                        <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
-                        <h4 class="text-muted mt-3">No Inventory History</h4>
-                        <p class="text-muted">You haven't added any inventory yet.</p>
-                        <a href="{{ route('supervisor.add-inventory') }}" class="btn btn-primary">
-                            <i class="bi bi-plus-circle"></i> Add Your First Inventory
-                        </a>
-                    </div>
-                @endif
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                    <i class="bi bi-boxes" style="color: #667eea;"></i> Available Stock by Category
+                </h1>
+                <a href="{{ route('supervisor.add-inventory') }}" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                    <i class="bi bi-plus-circle"></i> Add Inventory
+                </a>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Details Modals -->
-@foreach($inventoryRequests as $request)
-<div class="modal fade" id="detailsModal{{ $request->id }}" tabindex="-1" aria-labelledby="detailsModalLabel{{ $request->id }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="detailsModalLabel{{ $request->id }}">
-                    <i class="bi bi-list-check"></i>
-                    Inventory Details - {{ $request->date_time->format('M d, Y H:i') }}
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Request Info -->
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <strong>Department:</strong>
-                        <span class="badge bg-info ms-1">{{ $request->department->name }}</span>
-                    </div>
-                    <div class="col-md-6">
-                        <strong>Status:</strong>
-                        <span class="badge bg-success ms-1">{{ ucfirst($request->status) }}</span>
+    @if($itemsByCategory->count() > 0)
+        @foreach($itemsByCategory as $category => $categoryData)
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-tag-fill"></i>
+                                {{ ucfirst($categoryData['category_name']) }}
+                                <span class="badge bg-light text-dark ms-2">{{ $categoryData['total_items'] }} items</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead style="background-color: #f8f9fa;">
+                                        <tr>
+                                            <th class="border-0 px-4 py-3">Item Name</th>
+                                            <th class="border-0 px-4 py-3">Item Code</th>
+                                            <th class="border-0 px-4 py-3 text-center">Stock</th>
+                                            <th class="border-0 px-4 py-3 text-center">Price</th>
+                                            <th class="border-0 px-4 py-3 text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($categoryData['items'] as $item)
+                                            <tr class="border-bottom">
+                                                <td class="px-4 py-3">
+                                                    <span class="fw-bold" style="color: #667eea;">{{ $item['name'] }}</span>
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <code class="text-muted">{{ $item['item_code'] }}</code>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <span class="badge fs-6 px-3 py-2" style="background-color: #e3f2fd; color: #1976d2;">
+                                                        {{ $item['current_stock'] }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <span class="badge fs-6 px-3 py-2" style="background-color: #e8f5e8; color: #2e7d32;">
+                                                        ${{ number_format($item['price'], 2) }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    @if($item['is_low_stock'])
+                                                        <span class="badge bg-warning text-dark px-3 py-2">
+                                                            <i class="bi bi-exclamation-triangle"></i> Low Stock
+                                                        </span>
+                                                    @elseif($item['current_stock'] > 50)
+                                                        <span class="badge px-3 py-2" style="background-color: #c8e6c9; color: #2e7d32;">
+                                                            <i class="bi bi-check-circle"></i> Well Stocked
+                                                        </span>
+                                                    @else
+                                                        <span class="badge px-3 py-2" style="background-color: #bbdefb; color: #1976d2;">
+                                                            <i class="bi bi-info-circle"></i> Good Stock
+                                                        </span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                @if($request->notes)
-                    <div class="alert alert-info mb-3">
-                        <i class="bi bi-info-circle"></i>
-                        <strong>Notes:</strong> {{ $request->notes }}
-                    </div>
-                @endif
-                
-                <!-- Items Table -->
-                <div class="table-responsive">
-                    <table class="table table-bordered table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Item Name</th>
-                                <th>Item Code</th>
-                                <th>Quantity Added</th>
-                                <th>Unit Price</th>
-                                <th>Total Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @php $totalValue = 0; @endphp
-                            @foreach($request->inventoryRequestItems as $item)
-                                @php $itemTotal = $item->quantity * $item->item->price; @endphp
-                                @php $totalValue += $itemTotal; @endphp
-                                <tr>
-                                    <td>
-                                        <strong>{{ $item->item->item_name }}</strong>
-                                    </td>
-                                    <td>
-                                        <code>{{ $item->item->item_code }}</code>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ $item->quantity }}</span>
-                                    </td>
-                                    <td>
-                                        Rs. {{ number_format($item->item->price, 2) }}
-                                    </td>
-                                    <td>
-                                        <strong>Rs. {{ number_format($itemTotal, 2) }}</strong>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot class="table-light">
-                            <tr>
-                                <th colspan="2">Total Items: {{ $request->inventoryRequestItems->count() }}</th>
-                                <th>Total Quantity: {{ $request->inventoryRequestItems->sum('quantity') }}</th>
-                                <th colspan="2">Total Value: <strong>Rs. {{ number_format($totalValue, 2) }}</strong></th>
-                            </tr>
-                        </tfoot>
-                    </table>
+            </div>
+        @endforeach
+    @else
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted mt-3">No Stock Available</h4>
+                    <p class="text-muted">There are currently no items with available stock.</p>
+                    <a href="{{ route('supervisor.add-inventory') }}" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                        <i class="bi bi-plus-circle"></i> Add Inventory
+                    </a>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Close
-                </button>
-            </div>
         </div>
-    </div>
+    @endif
 </div>
-@endforeach
 
 <style>
-.table-primary th {
-    background-color: #6f42c1 !important;
-    color: white !important;
-    font-weight: 600;
-    border: none;
-}
-
 .table-hover tbody tr:hover {
-    background-color: rgba(111, 66, 193, 0.1);
+    background-color: rgba(102, 126, 234, 0.05) !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease-in-out;
 }
 
-.badge.bg-light {
-    background-color: #f8f9fa !important;
-    color: #495057 !important;
-    border: 1px solid #dee2e6;
-}
-
-.badge.bg-success {
-    background-color: #198754 !important;
-}
-
-.badge.bg-info {
-    background-color: #0dcaf0 !important;
-}
-
-.badge.bg-primary {
-    background-color: #0d6efd !important;
-}
-
-.btn-primary {
-    background-color: #6f42c1;
-    border-color: #6f42c1;
-}
-
-.btn-primary:hover {
-    background-color: #5a2d91;
-    border-color: #5a2d91;
-}
-
-.modal-header.bg-primary {
-    background-color: #6f42c1 !important;
-}
-
-.table code {
-    background-color: #f8f9fa;
-    color: #e83e8c;
-    font-size: 0.875rem;
-    padding: 0.25rem 0.375rem;
-    border-radius: 0.25rem;
-}
-
-.alert-info {
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-    color: #0c5460;
-}
-
-.table-light th {
-    background-color: #f8f9fa !important;
-    font-weight: 600;
-    color: #495057;
-}
-
-.table tfoot th {
-    background-color: #e9ecef !important;
-    font-weight: 700;
-    border-top: 2px solid #dee2e6;
-}
-
-.modal-lg {
-    max-width: 900px;
-}
-
-.table-bordered td, .table-bordered th {
-    border: 1px solid #dee2e6;
-}
-
-.table-sm td, .table-sm th {
-    padding: 0.5rem;
-}
-
-/* Custom styling for consistent purple theme */
 .card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-.card-header {
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15) !important;
+}
+
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+code {
     background-color: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
 }
 
-/* Responsive table adjustments */
-@media (max-width: 768px) {
-    .table-responsive {
-        font-size: 0.875rem;
-    }
-    
-    .badge {
-        font-size: 0.75rem;
-    }
-    
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
+th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+.btn:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 </style>
 @endsection

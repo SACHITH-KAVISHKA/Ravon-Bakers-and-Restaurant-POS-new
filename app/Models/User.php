@@ -95,4 +95,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(InventoryRequest::class);
     }
+
+    /**
+     * Get wastages created by this user
+     */
+    public function wastages()
+    {
+        return $this->hasMany(Wastage::class);
+    }
 }

@@ -368,8 +368,24 @@
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('supervisor.inventory-history') ? 'active' : '' }}" 
                            href="{{ route('supervisor.inventory-history') }}">
-                            <i class="bi bi-clock-history"></i>
-                            <span>Inventory History</span>
+                            <i class="bi bi-boxes"></i>
+                            <span>Stock by Category</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('supervisor.add-wastage') ? 'active' : '' }}" 
+                           href="{{ route('supervisor.add-wastage') }}">
+                            <i class="bi bi-trash"></i>
+                            <span>Add Wastage</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('supervisor.wastage-view') ? 'active' : '' }}" 
+                           href="{{ route('supervisor.wastage-view') }}">
+                            <i class="bi bi-eye"></i>
+                            <span>View Wastage</span>
                         </a>
                     </li>
                 @else

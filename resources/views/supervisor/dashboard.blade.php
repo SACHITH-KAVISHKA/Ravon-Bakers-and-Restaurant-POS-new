@@ -70,6 +70,24 @@
             </div>
         </div>
     </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Total Wastage Records
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalWastages }}</div>
+                    </div>
+                    <div class="text-danger">
+                        <i class="bi bi-trash fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Recent Inventory Requests -->
@@ -127,6 +145,71 @@
                         <p class="text-muted mt-2">No inventory requests yet.</p>
                         <a href="{{ route('supervisor.add-inventory') }}" class="btn btn-primary">
                             <i class="bi bi-plus-circle"></i> Add Your First Inventory
+                        </a>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Wastage Records -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-trash"></i>
+                        Recent Wastage Records
+                    </h5>
+                    <a href="{{ route('supervisor.wastage-view') }}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-list"></i> View All
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                @if($recentWastages->count() > 0)
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>Items Count</th>
+                                    <th>Total Wasted</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recentWastages as $wastage)
+                                    <tr>
+                                        <td>{{ $wastage->date_time->format('M d, Y H:i') }}</td>
+                                        <td>
+                                            <span class="badge bg-primary">
+                                                {{ $wastage->wastageItems->count() }} items
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger">
+                                                {{ $wastage->wastageItems->sum('wasted_quantity') }} units
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">
+                                                {{ $wastage->remarks ? Str::limit($wastage->remarks, 30) : 'No remarks' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="text-center py-4">
+                        <i class="bi bi-trash text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">No wastage records yet.</p>
+                        <a href="{{ route('supervisor.add-wastage') }}" class="btn btn-danger">
+                            <i class="bi bi-plus-circle"></i> Add Your First Wastage Record
                         </a>
                     </div>
                 @endif

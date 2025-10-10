@@ -8,6 +8,8 @@ use App\Models\Item;
 use App\Models\InventoryRequest;
 use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
+use App\Models\Wastage;
+use App\Models\WastageItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -32,11 +34,21 @@ class SupervisorController extends Controller
         $inventoryCount = Inventory::count();
         $lowStockItems = Inventory::whereRaw('current_stock <= low_stock_alert')->count();
 
+        // Get wastage statistics
+        $totalWastages = Wastage::where('user_id', Auth::id())->count();
+        $recentWastages = Wastage::with(['wastageItems.item'])
+            ->where('user_id', Auth::id())
+            ->orderBy('date_time', 'desc')
+            ->take(5)
+            ->get();
+
         return view('supervisor.dashboard', compact(
             'recentRequests',
             'totalRequests',
             'inventoryCount',
-            'lowStockItems'
+            'lowStockItems',
+            'totalWastages',
+            'recentWastages'
         ));
     }
 
@@ -156,15 +168,150 @@ class SupervisorController extends Controller
     }
 
     /**
-     * Show inventory history for supervisor
+     * Show available stock items organized by category
      */
     public function inventoryHistory()
     {
-        $inventoryRequests = InventoryRequest::with(['department', 'inventoryRequestItems.item'])
-            ->where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        // Get all active items with their current inventory and group by category
+        $itemsByCategory = Item::with('inventory')
+            ->where('is_active', true)
+            ->get()
+            ->filter(function ($item) {
+                return $item->inventory && $item->inventory->current_stock > 0;
+            })
+            ->groupBy('category')
+            ->map(function ($categoryItems, $categoryName) {
+                return [
+                    'category_name' => $categoryName,
+                    'total_items' => $categoryItems->count(),
+                    'total_stock' => $categoryItems->sum(function ($item) {
+                        return $item->inventory ? $item->inventory->current_stock : 0;
+                    }),
+                    'items' => $categoryItems->map(function ($item) {
+                        $inventory = $item->inventory;
+                        return [
+                            'id' => $item->id,
+                            'name' => $item->item_name,
+                            'item_code' => $item->item_code,
+                            'price' => $item->price,
+                            'current_stock' => $inventory ? $inventory->current_stock : 0,
+                            'is_low_stock' => $inventory && $inventory->current_stock <= 10
+                        ];
+                    })->values()->all()
+                ];
+            });
 
-        return view('supervisor.inventory-history', compact('inventoryRequests'));
+        return view('supervisor.inventory-history', compact('itemsByCategory'));
+    }
+
+    /**
+     * Show the form for adding wastage
+     */
+    public function addWastage()
+    {
+        $items = Item::with('inventory')
+            ->where('is_active', true)
+            ->get()
+            ->filter(function ($item) {
+                return $item->inventory && $item->inventory->current_stock > 0;
+            })
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'item_name' => $item->item_name,
+                    'item_code' => $item->item_code,
+                    'available_stock' => $item->inventory->current_stock
+                ];
+            });
+
+        return view('supervisor.add-wastage', compact('items'));
+    }
+
+    /**
+     * Store wastage record
+     */
+    public function storeWastage(Request $request)
+    {
+        $request->validate([
+            'date_time' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.wasted_quantity' => 'required|integer|min:1',
+            'remarks' => 'nullable|string|max:1000',
+        ]);
+
+        // Custom validation to check available stock from inventory
+        foreach ($request->items as $index => $itemData) {
+            $inventory = Inventory::where('item_id', $itemData['item_id'])->first();
+            $availableStock = $inventory ? $inventory->current_stock : 0;
+            
+            if ($itemData['wasted_quantity'] > $availableStock) {
+                $item = Item::find($itemData['item_id']);
+                return back()->withErrors([
+                    "items.{$index}.wasted_quantity" => "Wasted quantity for '{$item->item_name}' cannot exceed available inventory stock ({$availableStock})."
+                ])->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($request) {
+            // Create wastage record
+            $wastage = Wastage::create([
+                'user_id' => Auth::id(),
+                'date_time' => $request->date_time,
+                'remarks' => $request->remarks,
+            ]);
+
+            // Create wastage items and update inventory
+            foreach ($request->items as $itemData) {
+                $inventory = Inventory::where('item_id', $itemData['item_id'])->first();
+                $previousStock = $inventory ? $inventory->current_stock : 0;
+
+                // Create wastage item record
+                WastageItem::create([
+                    'wastage_id' => $wastage->id,
+                    'item_id' => $itemData['item_id'],
+                    'wasted_quantity' => $itemData['wasted_quantity'],
+                    'previous_stock' => $previousStock,
+                ]);
+
+                // Reduce inventory stock
+                if ($inventory) {
+                    $inventory->decrement('current_stock', $itemData['wasted_quantity']);
+                }
+            }
+        });
+
+        return redirect()->route('supervisor.dashboard')
+            ->with('success', 'Wastage has been recorded successfully and inventory has been updated!');
+    }
+
+    /**
+     * Show wastage records for supervisor
+     */
+    public function wastageView(Request $request)
+    {
+        $query = Wastage::with(['wastageItems.item'])
+            ->where('user_id', Auth::id())
+            ->orderBy('date_time', 'desc');
+
+        // Filter by date if provided
+        if ($request->filled('date_from')) {
+            $query->whereDate('date_time', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('date_time', '<=', $request->date_to);
+        }
+
+        // Filter by item name if provided
+        if ($request->filled('item_name')) {
+            $query->whereHas('wastageItems.item', function ($q) use ($request) {
+                $q->where('item_name', 'LIKE', '%' . $request->item_name . '%');
+            });
+        }
+
+        $wastages = $query->paginate(10);
+
+        return view('supervisor.wastage-view', compact('wastages'));
     }
 }

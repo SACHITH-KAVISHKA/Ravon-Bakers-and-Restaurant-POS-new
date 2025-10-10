@@ -71,6 +71,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/create-department', [SupervisorController::class, 'createDepartment'])->name('create-department');
         Route::post('/store-department', [SupervisorController::class, 'storeDepartment'])->name('store-department');
         Route::get('/api/items', [SupervisorController::class, 'getItems'])->name('api.items');
+        
+        // Wastage routes
+        Route::get('/add-wastage', [SupervisorController::class, 'addWastage'])->name('add-wastage');
+        Route::post('/store-wastage', [SupervisorController::class, 'storeWastage'])->name('store-wastage');
+        Route::get('/wastage-view', [SupervisorController::class, 'wastageView'])->name('wastage-view');
     });
 });
 

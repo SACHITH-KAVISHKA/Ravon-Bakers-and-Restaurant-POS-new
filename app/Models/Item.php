@@ -44,4 +44,30 @@ class Item extends Model
     {
         return $this->hasOne(Inventory::class);
     }
+
+    /**
+     * Get wastage items for this item
+     */
+    public function wastageItems(): HasMany
+    {
+        return $this->hasMany(WastageItem::class);
+    }
+
+    /**
+     * Get inventory request items for this item
+     */
+    public function inventoryRequestItems(): HasMany
+    {
+        return $this->hasMany(InventoryRequestItem::class);
+    }
+
+    /**
+     * Get available stock from inventory requests minus wastages
+     */
+    public function getAvailableStockFromRequestsAttribute(): int
+    {
+        $totalRequested = $this->inventoryRequestItems()->sum('quantity');
+        $totalWasted = $this->wastageItems()->sum('wasted_quantity');
+        return max(0, $totalRequested - $totalWasted);
+    }
 }

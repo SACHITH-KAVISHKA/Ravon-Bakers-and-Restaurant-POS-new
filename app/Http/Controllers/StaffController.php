@@ -9,6 +9,7 @@ use App\Models\InventoryRequest;
 use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
 use App\Models\Item;
+use App\Models\User;
 
 class StaffController extends Controller
 {
@@ -48,10 +49,11 @@ class StaffController extends Controller
             'items.*' => 'exists:inventory_request_items,id',
         ]);
 
+        /** @var User|null $user */
         $user = Auth::user();
-        
-        // Ensure user has a branch_id (staff should have branch assignment)
-        if (!$user->branch_id) {
+
+        // Ensure user exists and has a branch_id (staff should have branch assignment)
+        if (!$user || !$user->branch_id) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to accept inventory items.');
         }
 
@@ -116,10 +118,11 @@ class StaffController extends Controller
      */
     public function branchInventory()
     {
+        /** @var User|null $user */
         $user = Auth::user();
-        
-        // Ensure user is staff and has a branch
-        if (!$user->branch_id) {
+
+        // Ensure user exists and has a branch
+        if (!$user || !$user->branch_id) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to view inventory.');
         }
 
@@ -136,9 +139,14 @@ class StaffController extends Controller
      */
     public function getAvailableItems()
     {
+        /** @var User|null $user */
         $user = Auth::user();
-        
-        // If user is not staff, return all items (for admin/supervisor)
+
+        // If there's no authenticated user, or user is not staff, return all items
+        if (!$user) {
+            return Item::where('is_active', true)->get();
+        }
+
         if (!$user->isStaff()) {
             return Item::where('is_active', true)->get();
         }

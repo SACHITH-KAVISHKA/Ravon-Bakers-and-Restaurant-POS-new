@@ -88,23 +88,20 @@
                     <!-- Items Section -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="fw-semibold mb-0">
                                     <i class="bi bi-box-seam"></i> Transfer Items
                                 </h5>
-                                <button type="button" class="btn btn-success btn-sm" id="addItemBtn">
-                                    <i class="bi bi-plus-circle"></i> Add Item
-                                </button>
+                                <!-- Add Item button removed: rows will auto-append when quantity is entered -->
                             </div>
 
                             <div class="table-responsive">
                                 <table class="table table-bordered" id="itemsTable">
                                     <thead class="table-light">
                                         <tr>
-                                            <th width="30%">Item</th>
-                                            <th width="20%">Available Qty</th>
-                                            <th width="20%">Transfer Qty</th>
-                                            <th width="20%">Unit</th>
+                                            <th width="35%">Item</th>
+                                            <th width="25%">Available Qty</th>
+                                            <th width="25%">Transfer Qty</th>
                                             <th width="10%">Action</th>
                                         </tr>
                                     </thead>
@@ -160,9 +157,7 @@
                    placeholder="0.00" 
                    required>
         </td>
-        <td>
-            <span class="item-unit text-muted">-</span>
-        </td>
+      
         <td>
             <button type="button" class="btn btn-danger btn-sm remove-item">
                 <i class="bi bi-trash"></i>
@@ -175,14 +170,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     let itemIndex = 0;
     const itemsTableBody = document.getElementById('itemsTableBody');
-    const addItemBtn = document.getElementById('addItemBtn');
     const itemRowTemplate = document.getElementById('itemRowTemplate');
-    
+
     // Add first row on page load
     addItemRow();
-    
-    // Add item row
-    addItemBtn.addEventListener('click', addItemRow);
     
     function addItemRow() {
         const template = itemRowTemplate.content.cloneNode(true);
@@ -203,6 +194,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         transferQty.addEventListener('input', function() {
             validateTransferQuantity(this);
+        });
+
+        // When quantity is entered on the last row (on blur), auto-append a new empty row
+        transferQty.addEventListener('blur', function() {
+            // If this row is the last one and has a valid quantity, add a new row
+            const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
+            const isLastRow = rows[rows.length - 1] === row;
+            const val = parseFloat(this.value) || 0;
+            const availableQty = parseFloat(row.querySelector('.available-qty').value) || 0;
+
+            if (isLastRow && val > 0 && val <= availableQty && row.querySelector('.item-select').value) {
+                // Small timeout to allow any validation classes to settle
+                setTimeout(() => {
+                    addItemRow();
+                }, 50);
+            }
         });
         
         removeBtn.addEventListener('click', function() {
@@ -259,13 +266,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (transferQty > availableQty) {
             input.setCustomValidity(`Transfer quantity cannot exceed available quantity (${availableQty})`);
-            input.classList.add('is-invalid');
+            if (!input.classList.contains('is-invalid')) input.classList.add('is-invalid');
         } else if (transferQty <= 0) {
             input.setCustomValidity('Transfer quantity must be greater than 0');
-            input.classList.add('is-invalid');
+            if (!input.classList.contains('is-invalid')) input.classList.add('is-invalid');
         } else {
             input.setCustomValidity('');
-            input.classList.remove('is-invalid');
+            if (input.classList.contains('is-invalid')) input.classList.remove('is-invalid');
         }
     }
     
@@ -289,17 +296,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!itemSelect.value) {
                 isValid = false;
-                itemSelect.classList.add('is-invalid');
+                if (!itemSelect.classList.contains('is-invalid')) itemSelect.classList.add('is-invalid');
             }
-            
+
             if (!transferQty.value || parseFloat(transferQty.value) <= 0) {
                 isValid = false;
-                transferQty.classList.add('is-invalid');
+                if (!transferQty.classList.contains('is-invalid')) transferQty.classList.add('is-invalid');
             }
-            
+
             if (parseFloat(transferQty.value) > availableQty) {
                 isValid = false;
-                transferQty.classList.add('is-invalid');
+                if (!transferQty.classList.contains('is-invalid')) transferQty.classList.add('is-invalid');
             }
         });
         
@@ -320,6 +327,10 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: #f8f9fa;
     font-weight: 600;
     border-top: none;
+}
+
+.table, .table th, .table td {
+    color: #000; /* Ensure table text is black for readability */
 }
 
 .item-row td {

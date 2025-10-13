@@ -59,12 +59,27 @@ class POSController extends Controller
             'card_payment' => 'nullable|numeric|min:0',
         ]);
 
-        // Generate receipt number: RCP + year(last digit) + month + date + auto number (0001-9999)
-        // The counter resets to 0001 every day
+        // Generate a unique receipt number safely.
+        // Format: RCP + yymmdd + 4-digit counter (0001-9999). If collision occurs, retry with incremented counter.
         $today = now();
-        $datePrefix = $today->format('ymd'); // Last 2 digits of year + month + date
-        $dailyCount = Sale::whereDate('created_at', $today->toDateString())->count() + 1;
-        $receiptNo = 'RCP' . $datePrefix . str_pad($dailyCount, 4, '0', STR_PAD_LEFT);
+        $datePrefix = $today->format('ymd');
+        $counter = Sale::whereDate('created_at', $today->toDateString())->count() + 1;
+        $maxAttempts = 5;
+        $attempt = 0;
+        do {
+            $receiptNo = 'RCP' . $datePrefix . str_pad($counter, 4, '0', STR_PAD_LEFT);
+            // If exists, increment counter and retry
+            $exists = Sale::where('receipt_no', $receiptNo)->exists();
+            if ($exists) {
+                $counter++;
+            }
+            $attempt++;
+        } while ($exists && $attempt < $maxAttempts);
+
+        // If still exists after attempts, append a short random suffix to ensure uniqueness
+        if (Sale::where('receipt_no', $receiptNo)->exists()) {
+            $receiptNo = 'RCP' . $datePrefix . str_pad($counter, 4, '0', STR_PAD_LEFT) . '-' . substr(md5(uniqid('', true)), 0, 4);
+        }
         $subtotal = 0;
         $saleItems = [];
 
@@ -165,12 +180,14 @@ class POSController extends Controller
 
         DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $cardPayment, $balance, $creditBalance, &$saleId) {
             $user = Auth::user();
-            
-            // Create sale record
+
+            // Create sale record, now storing user_id and branch_id for robustness
             $sale = Sale::create([
                 'receipt_no' => $receiptNo,
                 'terminal' => '01',
-                'user_name' => $user->name,
+                'user_id' => $user->id ?? null,
+                'branch_id' => $user->branch_id ?? null,
+                'user_name' => $user->name ?? null,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
                 'tax' => $tax,

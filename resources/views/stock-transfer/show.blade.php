@@ -23,21 +23,19 @@
 <div class="row">
     <div class="col-12">
         <div class="card border-0 shadow-sm">
-            <div class="card-header 
-                @if($stockTransfer->status === 'pending') bg-warning text-dark
-                @elseif($stockTransfer->status === 'accepted') bg-success text-white
-                @else bg-danger text-white
-                @endif">
+            <div class="card-header {{
+                $stockTransfer->status === 'pending' ? 'bg-warning text-dark' : (
+                ($stockTransfer->status === 'accepted') ? 'bg-success text-white' : 'bg-danger text-white')
+            }}">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
                         <i class="bi bi-arrow-right-circle"></i>
                         Transfer #{{ $stockTransfer->id }}
                     </h5>
-                    <span class="badge 
-                        @if($stockTransfer->status === 'pending') bg-light text-dark
-                        @elseif($stockTransfer->status === 'accepted') bg-light text-success
-                        @else bg-light text-danger
-                        @endif">
+                    <span class="badge {{
+                        $stockTransfer->status === 'pending' ? 'bg-light text-dark' : (
+                        ($stockTransfer->status === 'accepted') ? 'bg-light text-success' : 'bg-light text-danger')
+                    }}">
                         @if($stockTransfer->status === 'pending')
                         <i class="bi bi-clock"></i> Pending
                         @elseif($stockTransfer->status === 'accepted')

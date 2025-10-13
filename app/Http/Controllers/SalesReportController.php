@@ -198,8 +198,40 @@ class SalesReportController extends Controller
 
         $status = (int) $validated['status'];
 
+        // If marking as deleted (status = 0), and the sale is currently active,
+        // then attempt to restore inventory for the branch associated with the sale.
+        $wasActive = $sale->status === 1;
+
         $sale->status = $status;
         $sale->save();
+
+        if ($status === 0 && $wasActive) {
+            // Restore inventory back to branch inventories for each sale item
+            // We assume Sale has saleItems relation with item_id and quantity
+            $sale->load('saleItems');
+
+            foreach ($sale->saleItems as $saleItem) {
+                // Prefer using sale.branch_id (populated by migration/pos changes). If missing,
+                // fall back to trying to map by sale.user_name (best-effort).
+                $branchId = $sale->branch_id;
+
+                if (!$branchId && !empty($sale->user_name)) {
+                    $user = \App\Models\User::where('name', $sale->user_name)->first();
+                    if ($user && $user->branch_id) {
+                        $branchId = $user->branch_id;
+                    }
+                }
+
+                if ($branchId) {
+                    $inventory = \App\Models\Inventory::firstOrCreate(
+                        ['item_id' => $saleItem->item_id, 'branch_id' => $branchId],
+                        ['current_stock' => 0, 'low_stock_alert' => 10]
+                    );
+
+                    $inventory->increment('current_stock', $saleItem->quantity);
+                }
+            }
+        }
 
         return response()->json(['success' => true, 'status' => $sale->status]);
     }

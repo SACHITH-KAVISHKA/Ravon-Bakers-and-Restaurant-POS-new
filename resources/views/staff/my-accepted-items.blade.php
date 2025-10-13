@@ -7,7 +7,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
                     <i class="bi bi-check-square" style="color: #667eea;"></i> My Accepted Items
                 </h1>
                 <a href="{{ route('staff.pending-inventory-requests') }}" class="btn btn-outline-primary">

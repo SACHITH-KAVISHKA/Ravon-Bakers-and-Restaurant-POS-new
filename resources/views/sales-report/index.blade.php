@@ -41,35 +41,7 @@
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Total Transactions</div>
-                            <div class="h4">{{ $totals->total_transactions ?? 0 }}</div>
-                        </div>
-                        <i class="bi bi-receipt fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="small">Total of Subtotal</div>
-                            <div class="h4">Rs. {{ number_format($totals->total_subtotal ?? 0, 2) }}</div>
-                        </div>
-                        <i class="bi bi-cash-coin fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Summary Cards removed per admin view requirement -->
 
     <!-- Export Section -->
     <div class="d-flex justify-content-between align-items-center mb-3">

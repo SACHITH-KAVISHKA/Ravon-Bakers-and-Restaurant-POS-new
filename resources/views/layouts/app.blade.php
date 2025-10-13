@@ -1,4 +1,8 @@
 <!DOCTYPE html>
+<?php
+/** @var \App\Models\User|null $authUser */
+// Help static analyzers understand the type of auth()->user()
+?>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -338,9 +342,16 @@
                         <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
                     </a>
                 @else
-                    <a href="{{ route('dashboard') }}" style="text-decoration: none;">
-                        <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
-                    </a>
+                    @if(auth()->user()->role !== 'admin')
+                        <a href="{{ route('dashboard') }}" style="text-decoration: none;">
+                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                        </a>
+                    @else
+                        <!-- Admins don't use the standard dashboard; link logo to sales-report -->
+                        <a href="{{ route('sales-report.index') }}" style="text-decoration: none;">
+                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                        </a>
+                    @endif
                 @endif
                 <h4 class="sidebar-title">RAVON</h4>
                 <p class="sidebar-subtitle">Bakers & Restaurant</p>
@@ -403,8 +414,9 @@
                             <span>View Transfers</span>
                         </a>
                     </li>
-                @else
+                    @else
                     <!-- Regular Navigation for Admin and Staff -->
+                    @if(auth()->user()->role !== 'admin')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" 
                            href="{{ route('dashboard') }}">
@@ -412,6 +424,7 @@
                             <span>Dashboard</span>
                         </a>
                     </li>
+                    @endif
                     
                     @can('manage-users')
                     <li class="nav-item">
@@ -504,10 +517,17 @@
                                 <span>Ravon Restaurant</span>
                             </a>
                         @else
-                            <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
-                                <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
-                                <span>Ravon Restaurant</span>
-                            </a>
+                            @if(auth()->user()->role === 'admin')
+                                <a class="navbar-brand d-flex align-items-center" href="{{ route('sales-report.index') }}">
+                                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                                    <span>Ravon Restaurant</span>
+                                </a>
+                            @else
+                                <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
+                                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                                    <span>Ravon Restaurant</span>
+                                </a>
+                            @endif
                         @endif
                         
                         <div class="d-flex align-items-center">

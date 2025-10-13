@@ -10,6 +10,8 @@ class Sale extends Model
     protected $fillable = [
         'receipt_no',
         'terminal',
+        'user_id',
+        'branch_id',
         'user_name',
         'subtotal',
         'discount',

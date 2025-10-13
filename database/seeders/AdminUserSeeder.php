@@ -24,16 +24,6 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        // Create staff user
-        User::updateOrCreate(
-            ['email' => 'staff@revon.com'],
-            [
-                'name' => 'Staff User',
-                'password' => Hash::make('password'),
-                'role' => 'staff',
-            ]
-        );
-
         // Create supervisor user
         User::updateOrCreate(
             ['email' => 'supervisor@revon.com'],

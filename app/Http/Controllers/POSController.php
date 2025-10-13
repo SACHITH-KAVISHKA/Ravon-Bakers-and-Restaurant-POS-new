@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\InventoryRequestItem;
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -19,10 +21,29 @@ class POSController extends Controller
             session()->put('pos_initialized', true);
         }
         
-        $items = Item::where('is_active', true)
+        $user = Auth::user();
+        
+        // If user is staff, only show items available in their branch inventory
+        if ($user && $user->role === 'staff' && $user->branch_id) {
+            // Get items that have stock in the staff member's branch
+            $items = Item::whereHas('inventory', function($query) use ($user) {
+                $query->where('branch_id', $user->branch_id)
+                      ->where('current_stock', '>', 0);
+            })
+            ->where('is_active', true)
+            ->with(['inventory' => function($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            }])
             ->orderBy('category')
             ->get()
             ->groupBy('category');
+        } else {
+            // For admin/supervisor, show all items (with central inventory or all inventory)
+            $items = Item::where('is_active', true)
+                ->orderBy('category')
+                ->get()
+                ->groupBy('category');
+        }
             
         return view('pos.index', compact('items'));
     }
@@ -50,10 +71,24 @@ class POSController extends Controller
         // Calculate subtotal and prepare sale items
         foreach ($request->items as $requestItem) {
             $item = Item::find($requestItem['id']);
-            
-            // Note: Stock validation removed - allow all items to be processed
-            
             $quantity = $requestItem['quantity'];
+            
+            // For staff users, validate stock availability in their branch
+            $user = Auth::user();
+            if ($user && $user->role === 'staff' && $user->branch_id) {
+                $inventory = Inventory::where('item_id', $item->id)
+                    ->where('branch_id', $user->branch_id)
+                    ->first();
+                
+                if (!$inventory || $inventory->current_stock < $quantity) {
+                    $availableStock = $inventory ? $inventory->current_stock : 0;
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Insufficient stock for {$item->item_name}. Available: {$availableStock}, Requested: {$quantity}"
+                    ]);
+                }
+            }
+            
             $unitPrice = $item->price;
             $totalPrice = $unitPrice * $quantity;
             
@@ -129,11 +164,13 @@ class POSController extends Controller
         $saleId = null;
 
         DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $cardPayment, $balance, $creditBalance, &$saleId) {
+            $user = Auth::user();
+            
             // Create sale record
             $sale = Sale::create([
                 'receipt_no' => $receiptNo,
                 'terminal' => '01',
-                'user_name' => Auth::user()->name,
+                'user_name' => $user->name,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
                 'tax' => $tax,
@@ -155,10 +192,21 @@ class POSController extends Controller
 
             $saleId = $sale->id;
 
-            // Create sale items
+            // Create sale items and reduce inventory
             foreach ($saleItems as $saleItem) {
                 $saleItem['sale_id'] = $sale->id;
                 SaleItem::create($saleItem);
+                
+                // Reduce inventory stock for staff users
+                if ($user->role === 'staff' && $user->branch_id) {
+                    $inventory = Inventory::where('item_id', $saleItem['item_id'])
+                        ->where('branch_id', $user->branch_id)
+                        ->first();
+                    
+                    if ($inventory) {
+                        $inventory->decrement('current_stock', $saleItem['quantity']);
+                    }
+                }
             }
 
             session(['sale_id' => $sale->id]);

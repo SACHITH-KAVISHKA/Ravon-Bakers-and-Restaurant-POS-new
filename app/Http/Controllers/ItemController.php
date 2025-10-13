@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Category;
 use App\Models\Inventory;
+use App\Models\InventoryRequestItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ItemController extends Controller
@@ -18,10 +20,19 @@ class ItemController extends Controller
      */
     public function index()
     {
+        $user = Auth::user();
+        
+        // Only admin can access item management
+        if ($user->role !== 'admin') {
+            abort(403, 'Only administrators can access item management.');
+        }
+        
+        // Admin sees all items
         $items = Item::with(['inventory'])
                     ->where('is_active', true)
                     ->latest()
                     ->paginate(15);
+        
         return view('items.index', compact('items'));
     }
 
@@ -30,6 +41,11 @@ class ItemController extends Controller
      */
     public function create()
     {
+        // Only admin can create items
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only administrators can create items.');
+        }
+        
         $this->authorize('create', Item::class);
         $categories = Category::active()->orderBy('name')->get();
         $nextItemCode = $this->generateNextItemCode();
@@ -41,6 +57,11 @@ class ItemController extends Controller
      */
     public function store(Request $request)
     {
+        // Only admin can store items
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only administrators can create items.');
+        }
+        
         $this->authorize('create', Item::class);
         
         $request->validate([
@@ -100,6 +121,11 @@ class ItemController extends Controller
      */
     public function show(Item $item)
     {
+        // Only admin can view item details
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only administrators can view item details.');
+        }
+        
         $item->load('purchases', 'saleItems');
         return view('items.show', compact('item'));
     }
@@ -109,6 +135,11 @@ class ItemController extends Controller
      */
     public function edit(Item $item)
     {
+        // Only admin can edit items
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only administrators can edit items.');
+        }
+        
         $this->authorize('update', $item);
         $categories = Category::active()->orderBy('name')->get();
         return view('items.edit', compact('item', 'categories'));
@@ -119,6 +150,11 @@ class ItemController extends Controller
      */
     public function update(Request $request, Item $item)
     {
+        // Only admin can update items
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only administrators can update items.');
+        }
+        
         $this->authorize('update', $item);
         
         $request->validate([
@@ -160,6 +196,11 @@ class ItemController extends Controller
      */
     public function destroy(Item $item)
     {
+        // Only admin can delete items
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only administrators can delete items.');
+        }
+        
         $this->authorize('delete', $item);
         
         // Soft delete by setting is_active to false

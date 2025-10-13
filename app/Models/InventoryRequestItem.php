@@ -11,6 +11,12 @@ class InventoryRequestItem extends Model
         'inventory_request_id',
         'item_id',
         'quantity',
+        'received_by',
+        'received_at',
+    ];
+
+    protected $casts = [
+        'received_at' => 'datetime',
     ];
 
     /**
@@ -27,5 +33,13 @@ class InventoryRequestItem extends Model
     public function item(): BelongsTo
     {
         return $this->belongsTo(Item::class);
+    }
+
+    /**
+     * Get the user who received this item
+     */
+    public function receivedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by');
     }
 }

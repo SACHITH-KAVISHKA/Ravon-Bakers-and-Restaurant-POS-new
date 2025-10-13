@@ -119,4 +119,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(StockTransfer::class, 'processed_by');
     }
+
+    /**
+     * Get inventory request items received by this user
+     */
+    public function receivedInventoryRequestItems()
+    {
+        return $this->hasMany(InventoryRequestItem::class, 'received_by');
+    }
 }

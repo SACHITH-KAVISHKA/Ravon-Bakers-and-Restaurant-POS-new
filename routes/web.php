@@ -89,6 +89,11 @@ Route::middleware('auth')->group(function () {
         });
     });
 
+    // Staff routes for inventory management
+    Route::middleware(['auth'])->prefix('staff')->name('staff.')->group(function () {
+        Route::get('/branch-inventory', [App\Http\Controllers\StaffController::class, 'branchInventory'])->name('branch-inventory');
+    });
+
     // Stock Transfer routes for all branch staff (to receive transfers)
     Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
         Route::get('/transfers', [StockTransferController::class, 'showTransfers'])->name('transfers');

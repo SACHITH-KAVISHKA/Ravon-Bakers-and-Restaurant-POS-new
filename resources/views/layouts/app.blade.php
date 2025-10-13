@@ -413,22 +413,7 @@
                         </a>
                     </li>
                     
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}" 
-                           href="{{ route('categories.index') }}">
-                            <i class="bi bi-tags"></i>
-                            <span>Categories</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('items.*') ? 'active' : '' }}" 
-                           href="{{ route('items.index') }}">
-                            <i class="bi bi-box-seam"></i>
-                            <span>Item Management</span>
-                        </a>
-                    </li>
-                     @can('manage-users')
+                    @can('manage-users')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" 
                            href="{{ route('sales-report.index') }}">
@@ -454,13 +439,43 @@
                     </li>
                     @endcan
 
-                    <!-- Stock Transfer (For Staff) -->
-                    @if(auth()->user()->isStaff() && auth()->user()->branch_id)
+                    <!-- Categories and Items - Only for Admin -->
+                    @if(auth()->user()->role === 'admin')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}" 
+                           href="{{ route('categories.index') }}">
+                            <i class="bi bi-tags"></i>
+                            <span>Categories</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('items.*') ? 'active' : '' }}" 
+                           href="{{ route('items.index') }}">
+                            <i class="bi bi-box-seam"></i>
+                            <span>Item Management</span>
+                        </a>
+                    </li>
+                    @endif
+
+                                        <!-- Stock Transfer (For Staff) -->
+                    @if(auth()->user()->role === 'staff' && auth()->user()->branch_id)
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" 
                            href="{{ route('stock-transfer.transfers') }}">
                             <i class="bi bi-inbox"></i>
                             <span>Stock Transfers</span>
+                        </a>
+                    </li>
+                    @endif
+
+                    <!-- Branch Inventory (For Staff) -->
+                    @if(auth()->user()->role === 'staff')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('staff.branch-inventory') ? 'active' : '' }}" 
+                           href="{{ route('staff.branch-inventory') }}">
+                            <i class="bi bi-building"></i>
+                            <span>Branch Stock</span>
                         </a>
                     </li>
                     @endif

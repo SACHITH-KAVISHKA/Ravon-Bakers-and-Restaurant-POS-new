@@ -993,7 +993,7 @@
                         data-item-price="{{ $item->price }}"
                         onclick="addToCartFromCard(this)">
                         <div class="item-name">{{ $item->item_name }}</div>
-                        <div class="item-price">Rs. {{ number_format($item->price, 2) }}</div>
+                        <div class="item-price">LKR {{ number_format($item->price, 2) }}</div>
                     </div>
                     @endforeach
                     @endforeach
@@ -1025,11 +1025,11 @@
                 <div class="totals-section">
                     <!-- <div class="total-row">
                         <span>Sub Total</span>
-                        <span id="subtotal">Rs. 0.00</span>
+                        <span id="subtotal">LKR 0.00</span>
                     </div> -->
                     <div class="total-row grand-total">
                         <span>TOTAL</span>
-                        <span id="total">Rs. 0.00</span>
+                        <span id="total">LKR 0.00</span>
                     </div>
                 </div>
 
@@ -1116,7 +1116,7 @@
 
                         <!-- Balance Display -->
                         <div class="balance-display" id="balance-display">
-                            Balance: Rs. 0.00
+                            Balance: LKR 0.00
                         </div>
                     </div>
 
@@ -1307,7 +1307,7 @@
                         <div class="cart-item">
                             <div class="cart-item-details">
                                 <div class="cart-item-name">${item.name}</div>
-                                <div class="cart-item-price">Rs. ${itemPrice.toFixed(2)} each</div>
+                                <div class="cart-item-price">LKR ${itemPrice.toFixed(2)} each</div>
                             </div>
                             <div class="quantity-controls">
                                 <button type="button" class="qty-btn" onclick="updateQuantity(${item.id}, ${itemQuantity - 1})">
@@ -1319,7 +1319,7 @@
                                     <i class="bi bi-plus"></i>
                                 </button>
                             </div>
-                            <div class="cart-total-price">Rs. ${totalPrice.toFixed(2)}</div>
+                            <div class="cart-total-price">LKR ${totalPrice.toFixed(2)}</div>
                             <button type="button" class="remove-btn" onclick="removeFromCart(${item.id})">
                                 <i class="bi bi-x"></i>
                             </button>
@@ -1355,13 +1355,13 @@
             // Update subtotal element if it exists
             const subtotalElement = document.getElementById('subtotal');
             if (subtotalElement) {
-                subtotalElement.textContent = `Rs. ${subtotal.toFixed(2)}`;
+                subtotalElement.textContent = `LKR ${subtotal.toFixed(2)}`;
             }
 
             // Update total element
             const totalElement = document.getElementById('total');
             if (totalElement) {
-                totalElement.textContent = `Rs. ${total.toFixed(2)}`;
+                totalElement.textContent = `LKR ${total.toFixed(2)}`;
             }
 
             // Update checkout button based on cart and payment method
@@ -1607,7 +1607,7 @@
                     quickAmounts.style.display = 'none';
                     balanceDisplay.style.display = 'block';
                     const total = getTotalAmount();
-                    balanceDisplay.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Credit Balance: Rs. -${total.toFixed(2)}`;
+                    balanceDisplay.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Credit Balance: LKR -${total.toFixed(2)}`;
                     balanceDisplay.style.background = '#f8d7da';
                     balanceDisplay.style.color = '#721c24';
                     // Scroll to balance for credit
@@ -1967,12 +1967,12 @@
                 case 'CASH':
                     balance = customerPayment - total;
                     if (balance >= 0) {
-                        displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
+                        displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: LKR ${balance.toFixed(2)}`;
                         balanceDisplay.style.background = '#d1ecf1';
                         balanceDisplay.style.color = '#0c5460';
                         balanceDisplay.style.borderColor = '#bee5eb';
                     } else if (customerPayment > 0) {
-                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: Rs. ${Math.abs(balance).toFixed(2)}`;
+                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: LKR ${Math.abs(balance).toFixed(2)}`;
                         balanceDisplay.style.background = '#f8d7da';
                         balanceDisplay.style.color = '#721c24';
                         balanceDisplay.style.borderColor = '#f5c6cb';
@@ -1993,7 +1993,7 @@
 
                     if (cardPayment + customerPayment >= total) {
                         if (balance >= 0) {
-                            displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: Rs. ${balance.toFixed(2)}`;
+                            displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: LKR ${balance.toFixed(2)}`;
                             balanceDisplay.style.background = '#d1ecf1';
                             balanceDisplay.style.color = '#0c5460';
                             balanceDisplay.style.borderColor = '#bee5eb';
@@ -2005,7 +2005,7 @@
                         }
                     } else {
                         const shortfall = total - (cardPayment + customerPayment);
-                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: Rs. ${shortfall.toFixed(2)}`;
+                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: LKR ${shortfall.toFixed(2)}`;
                         balanceDisplay.style.background = '#f8d7da';
                         balanceDisplay.style.color = '#721c24';
                         balanceDisplay.style.borderColor = '#f5c6cb';
@@ -2014,7 +2014,7 @@
                     break;
 
                 default:
-                    displayMessage = '<i class="bi bi-info-circle me-2"></i>Balance: Rs. 0.00';
+                    displayMessage = '<i class="bi bi-info-circle me-2"></i>Balance: LKR 0.00';
                     balanceDisplay.style.background = '#d1ecf1';
                     balanceDisplay.style.color = '#0c5460';
                     balanceDisplay.style.borderColor = '#bee5eb';
@@ -2271,9 +2271,9 @@
                     <div class="item">
                         <div class="item-details">
                             <div class="item-name">${item.name}</div>
-                            <div class="item-qty-price">${item.quantity} x Rs. ${item.price.toFixed(2)}</div>
+                            <div class="item-qty-price">${item.quantity} x LKR ${item.price.toFixed(2)}</div>
                         </div>
-                        <div>Rs. ${(item.price * item.quantity).toFixed(2)}</div>
+                        <div>LKR ${(item.price * item.quantity).toFixed(2)}</div>
                     </div>`;
             });
             itemsContainer.innerHTML = itemsHtml;
@@ -2291,8 +2291,8 @@
             };
 
             // Populate totals
-            document.getElementById('receipt-subtotal').textContent = `Rs. ${data.subtotal ? formatNumber(data.subtotal) : '0.00'}`;
-            document.getElementById('receipt-total').textContent = `Rs. ${data.total ? formatNumber(data.total) : '0.00'}`;
+            document.getElementById('receipt-subtotal').textContent = `LKR ${data.subtotal ? formatNumber(data.subtotal) : '0.00'}`;
+            document.getElementById('receipt-total').textContent = `LKR ${data.total ? formatNumber(data.total) : '0.00'}`;
 
             // Populate payment details
             document.getElementById('payment-method-display').textContent = data.payment_method || selectedPaymentMethod;
@@ -2303,8 +2303,8 @@
 
             if (paymentMethod === 'CASH') {
                 cashDetails.style.display = 'block';
-                document.getElementById('amount-paid-display').textContent = `Rs. ${formatNumber(data.customer_payment || customerPayment)}`;
-                document.getElementById('balance-display-receipt').textContent = `Rs. ${formatNumber(data.balance || 0)}`;
+                document.getElementById('amount-paid-display').textContent = `LKR ${formatNumber(data.customer_payment || customerPayment)}`;
+                document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(data.balance || 0)}`;
             } else if (paymentMethod === 'CARD & CASH') {
                 cashDetails.style.display = 'block';
 
@@ -2318,13 +2318,13 @@
                 const amountDisplay = document.getElementById('amount-paid-display');
                 if (amountDisplay) {
                     amountDisplay.innerHTML = `
-                        Customer: Rs. ${formatNumber(customerPaymentValue)}<br>
-                        Card: Rs. ${formatNumber(cardPaymentValue)}<br>
-                        <strong>Total: Rs. ${formatNumber(totalPaid)}</strong>
+                        Customer: LKR ${formatNumber(customerPaymentValue)}<br>
+                        Card: LKR ${formatNumber(cardPaymentValue)}<br>
+                        <strong>Total: LKR ${formatNumber(totalPaid)}</strong>
                     `;
                 }
 
-                document.getElementById('balance-display-receipt').textContent = `Rs. ${formatNumber(balanceValue)}`;
+                document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balanceValue)}`;
             } else {
                 cashDetails.style.display = 'none';
             }
@@ -2571,7 +2571,7 @@
                     }
 
                     pdf.text(itemName, leftMargin, yPosition);
-                    pdf.text(`Rs. ${item.totalPrice}`, pageWidth - rightMargin, yPosition, {
+                    pdf.text(`LKR ${item.totalPrice}`, pageWidth - rightMargin, yPosition, {
                         align: 'right'
                     });
                     yPosition += 4;
@@ -2579,7 +2579,7 @@
                     // Quantity and unit price
                     pdf.setFont('courier', 'normal');
                     pdf.setFontSize(8);
-                    pdf.text(`${item.quantity} x Rs. ${item.unitPrice}`, leftMargin + 2, yPosition);
+                    pdf.text(`${item.quantity} x LKR ${item.unitPrice}`, leftMargin + 2, yPosition);
                     yPosition += 6;
                 });
 
@@ -2595,7 +2595,7 @@
                 pdf.setFont('courier', 'normal');
                 pdf.setFontSize(9);
                 pdf.text('Sub Total:', leftMargin, yPosition);
-                pdf.text(`Rs. ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
+                pdf.text(`LKR ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
                 yPosition += 6;
@@ -2603,7 +2603,7 @@
                 pdf.setFont('courier', 'bold');
                 pdf.setFontSize(11);
                 pdf.text('TOTAL:', leftMargin, yPosition);
-                pdf.text(`Rs. ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
+                pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
                 yPosition += 8;
@@ -2621,19 +2621,19 @@
                     if (receiptData.showCardCashDetails) {
                         // For CARD & CASH payment method
                         pdf.text('Customer Payment:', leftMargin, yPosition);
-                        pdf.text(`Rs. ${receiptData.customerPayment}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${receiptData.customerPayment}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 5;
 
                         pdf.text('Card Payment:', leftMargin, yPosition);
-                        pdf.text(`Rs. ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 5;
 
                         pdf.text('Total Paid:', leftMargin, yPosition);
-                        pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 5;
@@ -2641,21 +2641,21 @@
                         // Calculate balance correctly: (Customer Payment + Card Payment) - Total
                         const calculatedBalance = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment) - parseFloat(receiptData.total)).toFixed(2);
                         pdf.text('Balance:', leftMargin, yPosition);
-                        pdf.text(`Rs. ${calculatedBalance}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${calculatedBalance}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 6;
                     } else {
                         // For CASH only payment method
                         pdf.text('Amount Paid:', leftMargin, yPosition);
-                        pdf.text(`Rs. ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 5;
 
                         // Balance (common for CASH)
                         pdf.text('Balance:', leftMargin, yPosition);
-                        pdf.text(`Rs. ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 6;
@@ -2663,13 +2663,13 @@
                 } else if (receiptData.paymentMethod === 'CREDIT') {
                     // For CREDIT payment method
                     pdf.text('Amount Due:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
+                    pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
                         align: 'right'
                     });
                     yPosition += 5;
 
                     pdf.text('Credit Balance:', leftMargin, yPosition);
-                    pdf.text(`Rs. ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+                    pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
                         align: 'right'
                     });
                     yPosition += 6;

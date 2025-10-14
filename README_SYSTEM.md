@@ -104,11 +104,11 @@ A comprehensive Laravel 11 Restaurant Management System with POS functionality, 
 
 ### Sample Menu Items
 **32 pre-loaded items** including:
-- Bacon Egg Pastry (Rs. 170.00)
-- Butter Croissants (Rs. 200.00)
-- Cheese Toast (Rs. 130.00)
-- Chicken Roll (Rs. 170.00)
-- Crispy Chicken Burger (Rs. 460.00)
+-- Bacon Egg Pastry (LKR 170.00)
+-- Butter Croissants (LKR 200.00)
+-- Cheese Toast (LKR 130.00)
+-- Chicken Roll (LKR 170.00)
+-- Crispy Chicken Burger (LKR 460.00)
 - And many more across all categories
 
 ## Installation & Setup

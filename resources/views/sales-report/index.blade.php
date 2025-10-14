@@ -76,13 +76,13 @@
                                         <span class="badge bg-primary">{{ $sale->receipt_no }}</span>
                                     </td>
                                     <td>{{ $sale->user_name }}</td>
-                                    <td>Rs. {{ number_format($sale->subtotal, 2) }}</td>
+                                    <td>LKR {{ number_format($sale->subtotal, 2) }}</td>
                                     <td>
                                         <span class="badge bg-info">{{ $sale->payment_method }}</span>
                                     </td>
-                                    <td>Rs. {{ number_format($sale->customer_payment, 2) }}</td>
+                                    <td>LKR {{ number_format($sale->customer_payment, 2) }}</td>
                                     <td class="{{ $sale->balance > 0 ? 'text-success' : ($sale->balance < 0 ? 'text-danger' : '') }}">
-                                        Rs. {{ number_format($sale->balance, 2) }}
+                                        LKR {{ number_format($sale->balance, 2) }}
                                     </td>
                                     <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
                                     <td class="action-cell" data-sale-id="{{ $sale->id }}">
@@ -150,10 +150,10 @@
                                         <strong>Date:</strong> <span id="modal-date"></span>
                                     </div>
                                     <div class="col-md-6">
-                                        <strong>Subtotal:</strong> Rs. <span id="modal-subtotal"></span><br>
-                                        <strong>Discount:</strong> Rs. <span id="modal-discount"></span><br>
-                                        <strong>Tax:</strong> Rs. <span id="modal-tax"></span><br>
-                                        <strong>Total:</strong> Rs. <span id="modal-total"></span>
+                                        <strong>Subtotal:</strong> LKR <span id="modal-subtotal"></span><br>
+                                        <strong>Discount:</strong> LKR <span id="modal-discount"></span><br>
+                                        <strong>Tax:</strong> LKR <span id="modal-tax"></span><br>
+                                        <strong>Total:</strong> LKR <span id="modal-total"></span>
                                     </div>
                                 </div>
                             </div>
@@ -241,8 +241,8 @@
                                 <tr>
                                     <td>${item.item_name}</td>
                                     <td>${item.quantity}</td>
-                                    <td>Rs. ${parseFloat(item.unit_price).toFixed(2)}</td>
-                                    <td>Rs. ${parseFloat(item.total_price).toFixed(2)}</td>
+                                    <td>LKR ${parseFloat(item.unit_price).toFixed(2)}</td>
+                                    <td>LKR ${parseFloat(item.total_price).toFixed(2)}</td>
                                 </tr>
                             `;
                         });

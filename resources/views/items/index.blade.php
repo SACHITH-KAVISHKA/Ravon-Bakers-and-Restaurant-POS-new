@@ -34,7 +34,7 @@
                             <td>
                                 <span class="badge bg-secondary">{{ $item->category }}</span>
                             </td>
-                            <td>Rs. {{ number_format($item->price, 2) }}</td>
+                            <td>LKR {{ number_format($item->price, 2) }}</td>
                             <td>
                                 @if($item->inventory)
                                     @if($item->inventory->isLowStock())

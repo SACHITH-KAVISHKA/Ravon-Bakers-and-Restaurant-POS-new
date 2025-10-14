@@ -152,7 +152,7 @@
                                 </span>
                                 @endif
                             </td>
-                            <td>Rs. {{ number_format($inventory->item->price, 2) }}</td>
+                            <td>LKR {{ number_format($inventory->item->price, 2) }}</td>
                         </tr>
                         @endforeach
                     </tbody>

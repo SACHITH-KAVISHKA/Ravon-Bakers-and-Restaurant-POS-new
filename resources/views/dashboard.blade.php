@@ -47,7 +47,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">Total Value</div>
-                            <div class="h3 mb-0 font-weight-bold">Rs. {{ number_format($totalValue ?? 0, 2) }}</div>
+                            <div class="h3 mb-0 font-weight-bold">LKR {{ number_format($totalValue ?? 0, 2) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="bi bi-boxes fa-2x"></i>
@@ -63,7 +63,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-uppercase mb-1">Today's Sales</div>
-                            <div class="h3 mb-0 font-weight-bold">Rs. {{ number_format($todaySales ?? 0, 2) }}</div>
+                            <div class="h3 mb-0 font-weight-bold">LKR {{ number_format($todaySales ?? 0, 2) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="bi bi-currency-dollar fa-2x"></i>

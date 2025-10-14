@@ -206,31 +206,51 @@ class SalesReportController extends Controller
         $sale->save();
 
         if ($status === 0 && $wasActive) {
-            // Restore inventory back to branch inventories for each sale item
-            // We assume Sale has saleItems relation with item_id and quantity
+            // Restore inventory back to branch inventories for each sale item.
+            // Use a transaction to ensure all increments succeed together.
             $sale->load('saleItems');
 
-            foreach ($sale->saleItems as $saleItem) {
-                // Prefer using sale.branch_id (populated by migration/pos changes). If missing,
-                // fall back to trying to map by sale.user_name (best-effort).
-                $branchId = $sale->branch_id;
+            DB::transaction(function () use ($sale) {
+                foreach ($sale->saleItems as $saleItem) {
+                    // Resolve branch id robustly: prefer sale.branch_id, then sale.user_id -> user.branch_id,
+                    // and finally try to match by sale.user_name.
+                    $branchId = $sale->branch_id;
 
-                if (!$branchId && !empty($sale->user_name)) {
-                    $user = \App\Models\User::where('name', $sale->user_name)->first();
-                    if ($user && $user->branch_id) {
-                        $branchId = $user->branch_id;
+                    if (!$branchId && !empty($sale->user_id)) {
+                        $user = \App\Models\User::find($sale->user_id);
+                        if ($user && $user->branch_id) {
+                            $branchId = $user->branch_id;
+                        }
                     }
-                }
 
-                if ($branchId) {
+                    if (!$branchId && !empty($sale->user_name)) {
+                        $user = \App\Models\User::where('name', $sale->user_name)->first();
+                        if ($user && $user->branch_id) {
+                            $branchId = $user->branch_id;
+                        }
+                    }
+
+                    // If still no branchId resolved, log and skip this item to avoid wrong increments
+                    if (!$branchId) {
+                        logger()->warning("SalesReport: could not resolve branch for sale id {$sale->id} when restoring item id {$saleItem->item_id}");
+                        continue;
+                    }
+
+                    $quantityToRestore = intval($saleItem->quantity);
+                    if ($quantityToRestore <= 0) {
+                        // nothing to restore
+                        continue;
+                    }
+
                     $inventory = \App\Models\Inventory::firstOrCreate(
                         ['item_id' => $saleItem->item_id, 'branch_id' => $branchId],
                         ['current_stock' => 0, 'low_stock_alert' => 10]
                     );
 
-                    $inventory->increment('current_stock', $saleItem->quantity);
+                    // Use a safe increment to avoid negative side-effects
+                    $inventory->increment('current_stock', $quantityToRestore);
                 }
-            }
+            });
         }
 
         return response()->json(['success' => true, 'status' => $sale->status]);

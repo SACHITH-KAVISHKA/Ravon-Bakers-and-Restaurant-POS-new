@@ -172,8 +172,8 @@
                                         </td>
 
                                         <td>
-                                            <span class="text-success fw-semibold">
-                                                ${{ number_format($item->item->price, 2) }}
+                                                <span class="text-success fw-semibold">
+                                                LKR {{ number_format($item->item->price, 2) }}
                                             </span>
                                         </td>
                                         <td>

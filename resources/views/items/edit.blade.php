@@ -61,7 +61,7 @@
                                 </div>
                                 
                                 <div class="col-md-6 mb-3">
-                                    <label for="price" class="form-label">Price (Rs.) *</label>
+                                    <label for="price" class="form-label">Price (LKR) *</label>
                                     <input type="number" 
                                            class="form-control @error('price') is-invalid @enderror" 
                                            id="price" 

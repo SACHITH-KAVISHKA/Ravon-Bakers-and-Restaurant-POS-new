@@ -44,7 +44,7 @@
                                     
                                     <span class="fw-bold text-success ms-1">LKR</span>
                                     <h6 class="text-muted mb-1">Price</h6>
-                                    <h4 class="text-success mb-0">Rs. {{ number_format($item->price, 2) }}</h4>
+                                    <h4 class="text-success mb-0">LKR {{ number_format($item->price, 2) }}</h4>
                                 </div>
                             </div>
                         </div>

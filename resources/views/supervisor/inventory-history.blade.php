@@ -56,7 +56,7 @@
                                                 </td>
                                                 <td class="px-4 py-3 text-center">
                                                     <span class="badge fs-6 px-3 py-2" style="background-color: #e8f5e8; color: #2e7d32;">
-                                                        ${{ number_format($item['price'], 2) }}
+                                                        LKR {{ number_format($item['price'], 2) }}
                                                     </span>
                                                 </td>
                                               

@@ -918,6 +918,138 @@
             transform: translateY(-2px);
             filter: brightness(110%);
         }
+
+        /* Payment Modal Styles */
+        .payment-type-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .payment-type-btn {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            padding: 12px 16px;
+            border-radius: 6px;
+            color: #495057;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .payment-type-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .payment-type-btn.active {
+            background: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+
+        .modal-number-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            border-radius: 4px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .modal-number-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+
+        .modal-number-btn:active {
+            background: #dee2e6;
+            transform: scale(0.95);
+        }
+
+        .modal-number-btn.clear-btn {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .modal-number-btn.clear-btn:hover {
+            background: #c82333;
+            border-color: #c82333;
+        }
+
+        .modal-number-btn.enter-btn {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .modal-number-btn.enter-btn:hover {
+            background: #218838;
+            border-color: #218838;
+        }
+
+        .payment-summary {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+        }
+
+        .summary-table {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 14px;
+        }
+
+        .summary-row.total-row {
+            font-weight: bold;
+            font-size: 16px;
+            color: #007bff;
+            border-top: 1px solid #dee2e6;
+            border-bottom: 1px solid #dee2e6;
+            padding: 8px 0;
+            margin: 8px 0;
+        }
+
+        .summary-row.balance-row {
+            font-weight: bold;
+            font-size: 16px;
+            color: #28a745;
+            border-top: 1px solid #dee2e6;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .payment-amount-input {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            background: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        .payment-amount-input:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            background: white;
+        }
+
+        .card-type-inputs .form-control {
+            font-size: 12px;
+        }
     </style>
 </head>
 
@@ -1033,98 +1165,10 @@
                     </div>
                 </div>
 
-                <!-- Payment Section -->
-                <div class="payment-section">
-                    <div class="payment-methods">
-                        <button type="button" class="payment-btn" data-method="CASH" onclick="selectPaymentMethod('CASH', this)">
-                            <i class="bi bi-cash"></i> CASH
-                        </button>
-                        <button type="button" class="payment-btn" data-method="CARD" onclick="selectPaymentMethod('CARD', this)">
-                            <i class="bi bi-credit-card"></i> CARD
-                        </button>
-                        <button type="button" class="payment-btn" data-method="CARD & CASH" onclick="selectPaymentMethod('CARD & CASH', this)">
-                            <i class="bi bi-credit-card-2-front"></i> CARD & CASH
-                        </button>
-                        <button type="button" class="payment-btn" data-method="CREDIT" onclick="selectPaymentMethod('CREDIT', this)">
-                            <i class="bi bi-journal-text"></i> CREDIT
-                        </button>
-                    </div>
-
-                    <!-- Payment Input Section -->
-                    <div class="payment-input-section" id="payment-input-section">
-                        <!-- Cash Payment Input -->
-                        <div class="cash-input-section" id="cash-input-section">
-                            <div class="cash-input-group">
-                                <div class="cash-input-label">
-                                    Customer Payment
-                                    <button type="button" class="input-mode-toggle" id="input-mode-toggle"
-                                        onclick="toggleInputMode()" title="Toggle between touch-only and keyboard input">
-                                        <i class="bi bi-keyboard"></i>
-                                    </button>
-                                </div>
-                                <input type="number" class="cash-input" id="customer-payment" placeholder="0.00"
-                                    step="0.01" min="0"
-                                    oninput="handlePaymentInput()"
-                                    onkeydown="handleKeyboardKeys(event)"
-                                    onfocus="setActiveInput('customer'); this.select()"
-                                    title="Enter payment amount using keyboard or touch pad below">
-                            </div>
-                        </div>
-
-                        <!-- Card Payment Input (for CARD & CASH) -->
-                        <div class="card-input-section" id="card-input-section">
-                            <div class="card-input-group">
-                                <div class="card-input-label">
-                                    Card Payment
-                                </div>
-                                <input type="number" class="card-input" id="card-payment" placeholder="0.00"
-                                    step="0.01" min="0"
-                                    oninput="handleCardPaymentInput()"
-                                    onkeydown="handleCardKeyboardKeys(event)"
-                                    onfocus="setActiveInput('card'); this.select()"
-                                    title="Enter card payment amount">
-                            </div>
-                        </div>
-
-                        <!-- Active Input Indicator (for CARD & CASH mode) -->
-                        <div class="active-input-indicator" id="active-input-indicator">
-                            <div class="input-selector">
-                                <button type="button" class="input-select-btn active" id="customer-btn" onclick="setActiveInput('customer')">
-                                    <i class="bi bi-cash"></i> Customer Payment
-                                </button>
-                                <button type="button" class="input-select-btn" id="card-btn" onclick="setActiveInput('card')">
-                                    <i class="bi bi-credit-card"></i> Card Payment
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Shared Number Pad -->
-                        <div class="number-pad" id="shared-number-pad">
-                            <button type="button" class="number-btn" onclick="addToActiveInput('1')">1</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('2')">2</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('3')">3</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('4')">4</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('5')">5</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('6')">6</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('7')">7</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('8')">8</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('9')">9</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('0')">0</button>
-                            <button type="button" class="number-btn" onclick="addToActiveInput('.')">.</button>
-                            <button type="button" class="number-btn clear" onclick="clearActiveInput()">CLR</button>
-                        </div>
-
-                        <!-- Balance Display -->
-                        <div class="balance-display" id="balance-display">
-                            Balance: LKR 0.00
-                        </div>
-                    </div>
-
-                    <!-- Checkout Button -->
-                    <button type="button" class="checkout-btn" id="checkout-btn" onclick="processCheckout()" disabled>
-                        <i class="bi bi-credit-card"></i> Process Payment
-                    </button>
-                </div>
+                <!-- Checkout Button -->
+                <button type="button" class="checkout-btn" id="checkout-btn" onclick="openPaymentModal()" disabled>
+                    <i class="bi bi-credit-card"></i> Process Payment
+                </button>
             </div>
         </div>
     </div>
@@ -1161,6 +1205,120 @@
                 <div class="modal-body text-center">
                     <i class="bi bi-check-circle text-success" style="font-size: 48px;"></i>
                     <p class="mt-3" id="successModalMessage">Payment Successful!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="paymentModalLabel">
+                        <i class="bi bi-credit-card"></i> Payment Processing
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Left Column - Payment Type Selection -->
+                        <div class="col-md-5">
+                            <div class="payment-types-section">
+                                <h6 class="fw-bold mb-3">SELECT PAYMENT TYPE</h6>
+                                <div class="payment-type-buttons">
+                                    <button type="button" class="payment-type-btn" data-method="CASH" onclick="selectModalPaymentMethod('CASH', this)">
+                                        CASH
+                                    </button>
+                                    <button type="button" class="payment-type-btn" data-method="CARD" onclick="selectModalPaymentMethod('CARD', this)">
+                                        CARD
+                                    </button>
+                                    <button type="button" class="payment-type-btn" data-method="CARD & CASH" onclick="selectModalPaymentMethod('CARD & CASH', this)">
+                                        CARD & CASH
+                                    </button>
+                                    <button type="button" class="payment-type-btn" data-method="CREDIT" onclick="selectModalPaymentMethod('CREDIT', this)">
+                                        CREDIT
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Number Pad -->
+                            <div class="modal-number-pad mt-4">
+                                <div class="row g-2">
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('2000')">2000</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('5000')">5000</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('7')">7</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('500')">500</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('1000')">1000</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('8')">8</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('100')">100</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('200')">200</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('9')">9</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('4')">4</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('5')">5</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('6')">6</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('1')">1</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('2')">2</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('3')">3</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('20')">20</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('50')">50</button></div>
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('0')">0</button></div>
+                                </div>
+                                <div class="row g-2 mt-2">
+                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('.')">.</button></div>
+                                    <div class="col-4"><button class="modal-number-btn clear-btn" onclick="clearModalActiveInput()">C1</button></div>
+                                    <div class="col-4"><button class="modal-number-btn enter-btn" onclick="processModalPayment()">Enter</button></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column - Payment Details -->
+                        <div class="col-md-7">
+                            <!-- Removed detailed card/type inputs per request -->
+
+                            <!-- Simplified Payment Summary -->
+                            <div class="payment-summary">
+                                <div class="summary-table">
+                                    <div class="summary-row">
+                                        <span>Sub Total</span>
+                                        <span id="modal-subtotal">0.00</span>
+                                    </div>
+                                    <div class="summary-row total-row">
+                                        <span>Total ——></span>
+                                        <span id="modal-total">0.00</span>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>Card</span>
+                                        <span id="modal-card-amount">0.00</span>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>Cash</span>
+                                        <span id="modal-cash-amount">0.00</span>
+                                    </div>
+                                    <div class="summary-row balance-row">
+                                        <span>Balance ——></span>
+                                        <span id="modal-balance">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Payment Input -->
+                            <div class="payment-input-modal mt-3">
+                                <div class="input-group">
+                                    <span class="input-group-text">Payment Amount</span>
+                                    <input type="number" class="form-control payment-amount-input" id="modal-payment-amount" placeholder="0.00" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="processModalPayment()">
+                        <i class="bi bi-check-circle"></i> Print Receipt
+                    </button>
                 </div>
             </div>
         </div>
@@ -1257,10 +1415,6 @@
         function updateCartDisplay() {
             const cartContainer = document.getElementById('cart-items');
             const checkoutBtn = document.getElementById('checkout-btn');
-            const paymentMethodsSection = document.querySelector('.payment-methods');
-            const sharedNumberPad = document.getElementById('shared-number-pad');
-            const quickAmounts = document.querySelector('.quick-amounts');
-            const balanceDisplay = document.getElementById('balance-display');
 
             if (cart.length === 0) {
                 cartContainer.innerHTML = `
@@ -1270,31 +1424,6 @@
                         <small>Select items to add to cart</small>
                     </div>`;
                 checkoutBtn.disabled = true;
-
-                // Hide payment methods when cart is empty
-                if (paymentMethodsSection) {
-                    paymentMethodsSection.style.display = 'none';
-                }
-
-                // Hide number pad and related elements
-                if (sharedNumberPad) {
-                    sharedNumberPad.style.display = 'none';
-                }
-                if (quickAmounts) {
-                    quickAmounts.style.display = 'none';
-                }
-                if (balanceDisplay) {
-                    balanceDisplay.style.display = 'none';
-                }
-
-                // Reset payment method selection
-                selectedPaymentMethod = null;
-                document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
-
-                // Hide all payment input sections
-                document.getElementById('cash-input-section').classList.remove('show');
-                document.getElementById('card-input-section').classList.remove('show');
-                document.getElementById('active-input-indicator').classList.remove('show');
 
             } else {
                 let html = '';
@@ -1327,11 +1456,6 @@
                 });
                 cartContainer.innerHTML = html;
                 checkoutBtn.disabled = false;
-
-                // Show payment methods when cart has items
-                if (paymentMethodsSection) {
-                    paymentMethodsSection.style.display = 'grid';
-                }
             }
 
             updateTotals();
@@ -1364,19 +1488,13 @@
                 totalElement.textContent = `LKR ${total.toFixed(2)}`;
             }
 
-            // Update checkout button based on cart and payment method
+            // Update checkout button based on cart
             updateCheckoutButton();
-
-            // Update balance if payment method requires it
-            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
-                calculateBalance();
-            }
 
             // Debug logging
             console.log('Cart items:', cart);
             console.log('Calculated subtotal:', subtotal);
             console.log('Calculated total:', total);
-            console.log('Selected payment method:', selectedPaymentMethod);
         }
 
         // Update checkout button state and text
@@ -1386,9 +1504,6 @@
             if (cart.length === 0) {
                 checkoutBtn.disabled = true;
                 checkoutBtn.innerHTML = '<i class="bi bi-cart-x"></i> Add Items to Cart';
-            } else if (!selectedPaymentMethod) {
-                checkoutBtn.disabled = true;
-                checkoutBtn.innerHTML = '<i class="bi bi-credit-card"></i> Select Payment Method';
             } else {
                 checkoutBtn.disabled = false;
                 checkoutBtn.innerHTML = '<i class="bi bi-credit-card"></i> Process Payment';
@@ -1438,601 +1553,19 @@
                 '<i class="bi bi-grid-3x3-gap me-2"></i>All Items';
         }
 
-        // Helper function to scroll to payment input area
+        // Helper function kept as stub - modal UI handles its own scrolling
         function scrollToPaymentInput() {
-            setTimeout(() => {
-                const paymentSection = document.querySelector('.payment-section');
-                const sharedNumberPad = document.getElementById('shared-number-pad');
-                const cashInputSection = document.getElementById('cash-input-section');
-                const cardInputSection = document.getElementById('card-input-section');
-                const balanceDisplay = document.getElementById('balance-display');
-
-                if (!paymentSection) {
-                    console.log('Payment section not found');
-                    return;
-                }
-
-                // Find the target element to scroll to (prioritize number pad)
-                let targetElement = null;
-
-                if (sharedNumberPad && sharedNumberPad.style.display === 'grid') {
-                    targetElement = sharedNumberPad;
-                    console.log('Scrolling to number pad');
-                } else if (cashInputSection && cashInputSection.classList.contains('show')) {
-                    targetElement = cashInputSection;
-                    console.log('Scrolling to cash input');
-                } else if (cardInputSection && cardInputSection.classList.contains('show')) {
-                    targetElement = cardInputSection;
-                    console.log('Scrolling to card input');
-                } else if (balanceDisplay && balanceDisplay.style.display === 'block') {
-                    targetElement = balanceDisplay;
-                    console.log('Scrolling to balance display');
-                }
-
-                if (targetElement) {
-                    // Simple scroll to the top of the target element
-                    const targetOffsetTop = targetElement.offsetTop;
-                    const scrollPosition = Math.max(0, targetOffsetTop - 50); // 50px margin from top
-
-                    paymentSection.scrollTo({
-                        top: scrollPosition,
-                        behavior: 'smooth'
-                    });
-
-                    console.log('Scrolling to position:', scrollPosition, 'Target element:', targetElement.id);
-                } else {
-                    console.log('No target element found for scrolling');
-                }
-            }, 300); // Increased delay to ensure elements are rendered
+            console.log('scrollToPaymentInput: no-op (modal handles its own scrolling)');
         }
 
-        // Force scroll to number pad immediately
+        // Force scroll to number pad - no-op for modal implementation
         function forceScrollToNumberPad() {
-            console.log('Force scrolling to number pad');
-
-            // Multiple scroll attempts with different methods
-            setTimeout(() => {
-                const paymentSection = document.querySelector('.payment-section');
-                const numberPad = document.getElementById('shared-number-pad');
-
-                if (paymentSection && numberPad) {
-                    console.log('Elements found, scrolling...');
-
-                    // Method 1: Direct scrollTop
-                    paymentSection.scrollTop = numberPad.offsetTop - 20;
-
-                    // Method 2: scrollIntoView on number pad
-                    numberPad.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-
-                    console.log('Scroll executed to position:', numberPad.offsetTop - 20);
-                } else {
-                    console.log('Elements not found - PaymentSection:', !!paymentSection, 'NumberPad:', !!numberPad);
-                }
-            }, 50);
-
-            // Backup scroll after a longer delay
-            setTimeout(() => {
-                const paymentSection = document.querySelector('.payment-section');
-                const numberPad = document.getElementById('shared-number-pad');
-
-                if (paymentSection && numberPad && numberPad.style.display === 'grid') {
-                    console.log('Backup scroll executing...');
-                    paymentSection.scrollTo({
-                        top: numberPad.offsetTop - 30,
-                        behavior: 'smooth'
-                    });
-                }
-            }, 200);
+            console.log('forceScrollToNumberPad: no-op (modal handles its own scrolling)');
         }
 
-        // Select payment method
-        function selectPaymentMethod(method, button) {
-            console.log('Selecting payment method:', method);
-            selectedPaymentMethod = method;
 
-            // Update active payment button
-            document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
 
-            // Get payment input sections
-            const cashInputSection = document.getElementById('cash-input-section');
-            const cardInputSection = document.getElementById('card-input-section');
-            const activeInputIndicator = document.getElementById('active-input-indicator');
-            const sharedNumberPad = document.getElementById('shared-number-pad');
-            const balanceDisplay = document.getElementById('balance-display');
-            const quickAmounts = document.querySelector('.quick-amounts');
 
-            console.log('Elements found:', {
-                cashInputSection: !!cashInputSection,
-                cardInputSection: !!cardInputSection,
-                sharedNumberPad: !!sharedNumberPad,
-                balanceDisplay: !!balanceDisplay,
-                quickAmounts: !!quickAmounts
-            });
-
-            // Hide all sections first
-            cashInputSection.classList.remove('show');
-            cardInputSection.classList.remove('show');
-            activeInputIndicator.classList.remove('show');
-
-            // Clear inputs
-            document.getElementById('customer-payment').value = '0';
-            document.getElementById('card-payment').value = '0';
-
-            // Show appropriate sections based on payment method
-            switch (method) {
-                case 'CASH':
-                    cashInputSection.classList.add('show');
-                    sharedNumberPad.style.display = 'grid';
-                    quickAmounts.style.display = 'grid';
-                    balanceDisplay.style.display = 'block';
-                    activeInput = 'customer';
-                    setActiveInput('customer');
-                    calculateBalance();
-                    // Force immediate scroll
-                    forceScrollToNumberPad();
-                    break;
-
-                case 'CARD':
-                    cardInputSection.classList.add('show');
-                    sharedNumberPad.style.display = 'grid';
-                    quickAmounts.style.display = 'none'; // No quick amounts for card
-                    balanceDisplay.style.display = 'none'; // No balance for card only
-                    activeInput = 'card';
-                    setActiveInput('card');
-                    // Force immediate scroll
-                    forceScrollToNumberPad();
-                    break;
-
-                case 'CARD & CASH':
-                    cashInputSection.classList.add('show');
-                    cardInputSection.classList.add('show');
-                    activeInputIndicator.classList.add('show');
-                    sharedNumberPad.style.display = 'grid';
-                    quickAmounts.style.display = 'grid';
-                    balanceDisplay.style.display = 'block';
-                    activeInput = 'customer';
-                    setActiveInput('customer');
-                    calculateBalance();
-                    // Force immediate scroll
-                    forceScrollToNumberPad();
-                    break;
-
-                case 'CREDIT':
-                    // For credit, no input needed and show balance as negative total
-                    sharedNumberPad.style.display = 'none';
-                    quickAmounts.style.display = 'none';
-                    balanceDisplay.style.display = 'block';
-                    const total = getTotalAmount();
-                    balanceDisplay.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>Credit Balance: LKR -${total.toFixed(2)}`;
-                    balanceDisplay.style.background = '#f8d7da';
-                    balanceDisplay.style.color = '#721c24';
-                    // Scroll to balance for credit
-                    setTimeout(() => {
-                        const paymentSection = document.querySelector('.payment-section');
-                        if (paymentSection && balanceDisplay) {
-                            paymentSection.scrollTop = balanceDisplay.offsetTop - 50;
-                        }
-                    }, 100);
-                    break;
-
-                default:
-                    sharedNumberPad.style.display = 'none';
-                    quickAmounts.style.display = 'none';
-                    balanceDisplay.style.display = 'none';
-            }
-
-            // Update checkout button
-            updateCheckoutButton();
-
-            // Scroll payment section to show number pad and balance section
-            setTimeout(() => {
-                const paymentSection = document.querySelector('.payment-section');
-                const numberPad = document.getElementById('shared-number-pad');
-                const balanceDisplay = document.getElementById('balance-display');
-                let target = null;
-                if (numberPad && numberPad.style.display === 'grid') {
-                    target = numberPad;
-                } else if (balanceDisplay && balanceDisplay.style.display === 'block') {
-                    target = balanceDisplay;
-                }
-                if (paymentSection && target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                }
-            }, 150);
-        }
-
-        // Input mode management
-        let keyboardInputEnabled = true;
-        let cardKeyboardInputEnabled = true;
-
-        function toggleInputMode() {
-            keyboardInputEnabled = !keyboardInputEnabled;
-            const toggle = document.getElementById('input-mode-toggle');
-            const input = document.getElementById('customer-payment');
-
-            if (keyboardInputEnabled) {
-                toggle.innerHTML = '<i class="bi bi-keyboard"></i>';
-                toggle.classList.remove('touch-only');
-                toggle.title = 'Switch to touch-only mode';
-                // Keep input editable so keyboard always works
-                input.title = 'Enter payment amount using keyboard or touch pad below';
-            } else {
-                toggle.innerHTML = '<i class="bi bi-hand-index"></i>';
-                toggle.classList.add('touch-only');
-                toggle.title = 'Switch to keyboard input mode';
-                // In touch-only visual mode we still allow typing; this toggle is now visual only
-                input.title = 'Use touch pad below to enter payment amount';
-            }
-        }
-
-        function toggleCardInputMode() {
-            cardKeyboardInputEnabled = !cardKeyboardInputEnabled;
-            const toggle = document.getElementById('card-input-mode-toggle');
-            const input = document.getElementById('card-payment');
-
-            if (cardKeyboardInputEnabled) {
-                toggle.innerHTML = '<i class="bi bi-keyboard"></i>';
-                toggle.classList.remove('touch-only');
-                toggle.title = 'Switch to touch-only mode';
-                // Keep input editable so keyboard always works
-                input.title = 'Enter card payment amount using keyboard or touch pad below';
-            } else {
-                toggle.innerHTML = '<i class="bi bi-hand-index"></i>';
-                toggle.classList.add('touch-only');
-                toggle.title = 'Switch to keyboard input mode';
-                // Visual-only toggle; still allow keyboard input
-                input.title = 'Use touch pad below to enter card payment amount';
-            }
-        }
-
-        // Active input management
-        function setActiveInput(inputType) {
-            activeInput = inputType;
-
-            // Update button states
-            const customerBtn = document.getElementById('customer-btn');
-            const cardBtn = document.getElementById('card-btn');
-
-            customerBtn.classList.remove('active');
-            cardBtn.classList.remove('active');
-
-            if (inputType === 'customer') {
-                customerBtn.classList.add('active');
-                document.getElementById('customer-payment').focus();
-            } else {
-                cardBtn.classList.add('active');
-                document.getElementById('card-payment').focus();
-            }
-        }
-
-        // Shared number pad functions
-        function addToActiveInput(digit) {
-            const inputId = activeInput === 'card' ? 'card-payment' : 'customer-payment';
-            const input = document.getElementById(inputId);
-            let currentValue = input.value || '0';
-
-            // Highlight the pressed button
-            highlightNumberButton(digit);
-
-            if (digit === '.') {
-                if (!currentValue.includes('.')) {
-                    input.value = currentValue + '.';
-                }
-            } else {
-                if (currentValue === '0' || currentValue === '0.00') {
-                    input.value = digit;
-                } else {
-                    input.value = currentValue + digit;
-                }
-            }
-
-            // Trigger input event to ensure consistency
-            input.dispatchEvent(new Event('input'));
-
-            // Update balance based on payment method
-            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
-                calculateBalance();
-            }
-        }
-
-        function clearActiveInput() {
-            const inputId = activeInput === 'card' ? 'card-payment' : 'customer-payment';
-            const input = document.getElementById(inputId);
-            input.value = '0';
-            input.focus();
-
-            // Highlight clear button
-            const clearBtn = document.querySelector('.number-btn.clear');
-            if (clearBtn) {
-                clearBtn.classList.add('pressed');
-                setTimeout(() => {
-                    clearBtn.classList.remove('pressed');
-                }, 150);
-            }
-
-            // Update balance based on payment method
-            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
-                calculateBalance();
-            }
-        }
-
-        // Handle keyboard input
-        function handleKeyboardInput() {
-            if (!keyboardInputEnabled) return;
-
-            const input = document.getElementById('customer-payment');
-            let value = input.value;
-
-            // Validate input
-            if (value === '' || value === null) {
-                input.value = '0';
-                value = '0';
-            }
-
-            // Ensure only valid numbers
-            if (isNaN(parseFloat(value))) {
-                input.value = '0';
-            }
-
-            calculateBalance();
-        }
-
-        // Handle card payment input
-        function handlePaymentInput() {
-            if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') {
-                calculateBalance();
-            }
-        }
-
-        function handleCardPaymentInput() {
-            if (!cardKeyboardInputEnabled) return;
-
-            const input = document.getElementById('card-payment');
-            let value = input.value;
-
-            // Validate input
-            if (value === '' || value === null) {
-                input.value = '0';
-                value = '0';
-            }
-
-            // Ensure only valid numbers
-            if (isNaN(parseFloat(value))) {
-                input.value = '0';
-            }
-
-            if (selectedPaymentMethod === 'CARD & CASH') {
-                calculateBalance();
-            }
-        }
-
-        // Handle card keyboard keys
-        function handleCardKeyboardKeys(event) {
-            if (!cardKeyboardInputEnabled) {
-                event.preventDefault();
-                return;
-            }
-
-            // Allow backspace, delete, tab, escape, enter
-            if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
-                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-                (event.keyCode === 65 && event.ctrlKey === true) ||
-                (event.keyCode === 67 && event.ctrlKey === true) ||
-                (event.keyCode === 86 && event.ctrlKey === true) ||
-                (event.keyCode === 88 && event.ctrlKey === true) ||
-                // Allow home, end, left, right
-                (event.keyCode >= 35 && event.keyCode <= 39)) {
-                return;
-            }
-
-            // Ensure that it is a number or decimal point and stop the keypress
-            if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) &&
-                (event.keyCode < 96 || event.keyCode > 105) &&
-                event.keyCode !== 110 && event.keyCode !== 190) {
-                event.preventDefault();
-            }
-
-            // Prevent multiple decimal points
-            if ((event.keyCode === 110 || event.keyCode === 190) &&
-                event.target.value.indexOf('.') !== -1) {
-                event.preventDefault();
-            }
-        }
-
-        // Handle special keyboard keys
-        function handleKeyboardKeys(event) {
-            if (!keyboardInputEnabled) {
-                event.preventDefault();
-                return;
-            }
-
-            // Allow backspace, delete, tab, escape, enter
-            if ([8, 9, 27, 13, 46].indexOf(event.keyCode) !== -1 ||
-                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-                (event.keyCode === 65 && event.ctrlKey === true) ||
-                (event.keyCode === 67 && event.ctrlKey === true) ||
-                (event.keyCode === 86 && event.ctrlKey === true) ||
-                (event.keyCode === 88 && event.ctrlKey === true) ||
-                // Allow home, end, left, right
-                (event.keyCode >= 35 && event.keyCode <= 39)) {
-                return;
-            }
-
-            // Ensure that it is a number or decimal point and stop the keypress
-            if ((event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) &&
-                (event.keyCode < 96 || event.keyCode > 105) &&
-                event.keyCode !== 110 && event.keyCode !== 190) {
-                event.preventDefault();
-            }
-
-            // Prevent multiple decimal points
-            if ((event.keyCode === 110 || event.keyCode === 190) &&
-                event.target.value.indexOf('.') !== -1) {
-                event.preventDefault();
-            }
-        }
-
-        // Highlight number button when pressed
-        function highlightNumberButton(digit) {
-            const buttons = document.querySelectorAll('.number-btn');
-            buttons.forEach(button => {
-                if (button.textContent === digit) {
-                    button.classList.add('pressed');
-                    setTimeout(() => {
-                        button.classList.remove('pressed');
-                    }, 150);
-                }
-            });
-        }
-
-        // Quick amount functions
-        function setQuickAmount(amount) {
-            const input = document.getElementById('customer-payment');
-            input.value = amount.toString();
-
-            // Highlight the pressed button
-            const buttons = document.querySelectorAll('.quick-btn');
-            buttons.forEach(button => {
-                if (button.textContent === amount.toString()) {
-                    button.classList.add('pressed');
-                    setTimeout(() => {
-                        button.classList.remove('pressed');
-                    }, 150);
-                }
-            });
-
-            calculateBalance();
-        }
-
-        function setExactAmount() {
-            const total = getTotalAmount();
-            const input = document.getElementById('customer-payment');
-            input.value = total.toFixed(2);
-
-            // Highlight exact button
-            const exactBtn = document.querySelector('.quick-btn.exact-btn');
-            if (exactBtn) {
-                exactBtn.classList.add('pressed');
-                setTimeout(() => {
-                    exactBtn.classList.remove('pressed');
-                }, 150);
-            }
-
-            calculateBalance();
-        }
-
-        // Calculate balance for cash payments
-        function calculateBalance() {
-            // If no payment method is selected, don't calculate
-            if (!selectedPaymentMethod) {
-                console.log('No payment method selected, skipping balance calculation');
-                return;
-            }
-
-            console.log('Calculating balance for payment method:', selectedPaymentMethod);
-
-            let total = 0;
-            if (cart && cart.length > 0) {
-                total = cart.reduce((sum, item) => {
-                    const itemPrice = parseFloat(item.price) || 0;
-                    const itemQuantity = parseInt(item.quantity) || 0;
-                    return sum + (itemPrice * itemQuantity);
-                }, 0);
-            }
-
-            const customerPaymentInput = document.getElementById('customer-payment');
-            const cardPaymentInput = document.getElementById('card-payment');
-            const balanceDisplay = document.getElementById('balance-display');
-
-            if (!balanceDisplay) {
-                console.error('Balance display element not found');
-                return;
-            }
-
-            customerPayment = parseFloat(customerPaymentInput.value) || 0;
-            const cardPayment = parseFloat(cardPaymentInput.value) || 0;
-
-            let balance = 0;
-            let displayMessage = '';
-            let canCheckout = cart.length > 0 && selectedPaymentMethod;
-
-            switch (selectedPaymentMethod) {
-                case 'CASH':
-                    balance = customerPayment - total;
-                    if (balance >= 0) {
-                        displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: LKR ${balance.toFixed(2)}`;
-                        balanceDisplay.style.background = '#d1ecf1';
-                        balanceDisplay.style.color = '#0c5460';
-                        balanceDisplay.style.borderColor = '#bee5eb';
-                    } else if (customerPayment > 0) {
-                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: LKR ${Math.abs(balance).toFixed(2)}`;
-                        balanceDisplay.style.background = '#f8d7da';
-                        balanceDisplay.style.color = '#721c24';
-                        balanceDisplay.style.borderColor = '#f5c6cb';
-                        canCheckout = false;
-                    } else {
-                        displayMessage = '<i class="bi bi-info-circle me-2"></i>Enter payment amount';
-                        balanceDisplay.style.background = '#d1ecf1';
-                        balanceDisplay.style.color = '#0c5460';
-                        balanceDisplay.style.borderColor = '#bee5eb';
-                        canCheckout = false;
-                    }
-                    break;
-
-                case 'CARD & CASH':
-                    // Balance = customer payment - (subtotal - card payment)
-                    const remainingAfterCard = total - cardPayment;
-                    balance = customerPayment - remainingAfterCard;
-
-                    if (cardPayment + customerPayment >= total) {
-                        if (balance >= 0) {
-                            displayMessage = `<i class="bi bi-check-circle me-2"></i>Balance: LKR ${balance.toFixed(2)}`;
-                            balanceDisplay.style.background = '#d1ecf1';
-                            balanceDisplay.style.color = '#0c5460';
-                            balanceDisplay.style.borderColor = '#bee5eb';
-                        } else {
-                            displayMessage = `<i class="bi bi-check-circle me-2"></i>Exact Payment`;
-                            balanceDisplay.style.background = '#d1ecf1';
-                            balanceDisplay.style.color = '#0c5460';
-                            balanceDisplay.style.borderColor = '#bee5eb';
-                        }
-                    } else {
-                        const shortfall = total - (cardPayment + customerPayment);
-                        displayMessage = `<i class="bi bi-exclamation-triangle me-2"></i>Insufficient: LKR ${shortfall.toFixed(2)}`;
-                        balanceDisplay.style.background = '#f8d7da';
-                        balanceDisplay.style.color = '#721c24';
-                        balanceDisplay.style.borderColor = '#f5c6cb';
-                        canCheckout = false;
-                    }
-                    break;
-
-                default:
-                    displayMessage = '<i class="bi bi-info-circle me-2"></i>Balance: LKR 0.00';
-                    balanceDisplay.style.background = '#d1ecf1';
-                    balanceDisplay.style.color = '#0c5460';
-                    balanceDisplay.style.borderColor = '#bee5eb';
-            }
-
-            balanceDisplay.innerHTML = displayMessage;
-            balanceDisplay.style.display = 'block'; // Ensure it's visible
-            updateCheckoutButton(); // Use the centralized function instead
-
-            console.log('Balance calculation completed:', {
-                total,
-                customerPayment,
-                cardPayment,
-                balance,
-                selectedPaymentMethod,
-                displayMessage
-            });
-        }
 
         // Fullscreen functionality
         function toggleFullscreen() {
@@ -2081,9 +1614,11 @@
         function clearAll() {
             if (confirm('Are you sure you want to clear all items from the cart?')) {
                 cart = [];
+                // Reset modal payment state too
+                modalSelectedPaymentMethod = null;
+                modalCustomerPayment = 0;
+                modalCardPayment = 0;
                 updateCartDisplay();
-                document.getElementById('customer-payment').value = '0';
-                calculateBalance();
             }
         }
 
@@ -2104,40 +1639,159 @@
             }, 2000);
         }
 
-        // Process checkout
-        function processCheckout() {
+
+
+        // Get total amount
+        function getTotalAmount() {
+            if (!cart || cart.length === 0) {
+                return 0;
+            }
+            return cart.reduce((sum, item) => {
+                const itemPrice = parseFloat(item.price) || 0;
+                const itemQuantity = parseInt(item.quantity) || 0;
+                return sum + (itemPrice * itemQuantity);
+            }, 0);
+        }
+
+        // Modal variables
+        let modalSelectedPaymentMethod = null;
+        let modalCustomerPayment = 0;
+        let modalCardPayment = 0;
+
+        // Open payment modal
+        function openPaymentModal() {
             if (cart.length === 0) {
                 showError('Please add items to cart before checkout');
                 return;
             }
 
-            // Get card payment value
-            const cardPaymentValue = parseFloat(document.getElementById('card-payment').value) || 0;
+            // Reset modal state
+            modalSelectedPaymentMethod = null;
+            modalCustomerPayment = 0;
+            modalCardPayment = 0;
+            
+            // Clear all payment type buttons
+            document.querySelectorAll('.payment-type-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Clear payment amount input
+            document.getElementById('modal-payment-amount').value = '';
+            
+            // Update modal totals
+            updateModalTotals();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+        }
 
-            // Validate payments based on method
-            if (selectedPaymentMethod === 'CASH') {
-                if (customerPayment < getTotalAmount()) {
-                    showError('Insufficient payment amount');
-                    return;
+        // Select payment method in modal
+        function selectModalPaymentMethod(method, button) {
+            modalSelectedPaymentMethod = method;
+            
+            // Update button states
+            document.querySelectorAll('.payment-type-btn').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Clear payment amount for new selection
+            document.getElementById('modal-payment-amount').value = '';
+            modalCustomerPayment = 0;
+            modalCardPayment = 0;
+            
+            updateModalTotals();
+        }
+
+        // Add number to modal active input
+        function addToModalActiveInput(value) {
+            const paymentInput = document.getElementById('modal-payment-amount');
+            const currentValue = paymentInput.value || '0';
+            
+            if (value === '.') {
+                if (!currentValue.includes('.')) {
+                    paymentInput.value = currentValue + value;
                 }
-            } else if (selectedPaymentMethod === 'CARD & CASH') {
-                if ((customerPayment + cardPaymentValue) < getTotalAmount()) {
-                    showError('Insufficient payment amount');
-                    return;
+            } else {
+                if (currentValue === '0') {
+                    paymentInput.value = value;
+                } else {
+                    paymentInput.value = currentValue + value;
                 }
             }
+            
+            // Update the payment amount
+            modalCustomerPayment = parseFloat(paymentInput.value) || 0;
+            updateModalTotals();
+        }
 
+        // Clear modal active input
+        function clearModalActiveInput() {
+            document.getElementById('modal-payment-amount').value = '';
+            modalCustomerPayment = 0;
+            modalCardPayment = 0;
+            updateModalTotals();
+        }
+
+        // Update modal totals
+        function updateModalTotals() {
+            const total = getTotalAmount();
+            
+            // Update subtotal and total
+            document.getElementById('modal-subtotal').textContent = total.toFixed(2);
+            document.getElementById('modal-total').textContent = total.toFixed(2);
+            
+            // Update cash and card amounts
+            document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
+            document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
+            
+            // Calculate balance
+            const totalPaid = modalCustomerPayment + modalCardPayment;
+            const balance = totalPaid - total;
+            document.getElementById('modal-balance').textContent = balance.toFixed(2);
+        }
+
+        // Process modal payment
+        function processModalPayment() {
+            if (!modalSelectedPaymentMethod) {
+                showError('Please select a payment method');
+                return;
+            }
+
+            if (cart.length === 0) {
+                showError('Cart is empty');
+                return;
+            }
+
+            const total = getTotalAmount();
+            const totalPaid = modalCustomerPayment + modalCardPayment;
+
+            // Validate payment amount for cash methods
+            if (modalSelectedPaymentMethod === 'CASH' && modalCustomerPayment < total) {
+                showError('Insufficient payment amount');
+                return;
+            }
+
+            if (modalSelectedPaymentMethod === 'CARD & CASH' && totalPaid < total) {
+                showError('Insufficient payment amount');
+                return;
+            }
+
+            // Prepare order data
             const orderData = {
                 items: cart,
-                payment_method: selectedPaymentMethod,
-                customer_payment: customerPayment,
-                card_payment: cardPaymentValue
+                payment_method: modalSelectedPaymentMethod,
+                customer_payment: modalCustomerPayment,
+                card_payment: modalCardPayment,
+                card_type: document.getElementById('modal-card-type')?.value || '',
+                card_no: document.getElementById('modal-card-no')?.value || '',
+                credit_customer: document.getElementById('modal-credit-customer')?.value || '',
+                bank: document.getElementById('modal-bank')?.value || '',
+                cheque_no: document.getElementById('modal-cheque-no')?.value || '',
+                voucher_no: document.getElementById('modal-voucher-no')?.value || ''
             };
 
-            // Disable checkout button
-            const checkoutBtn = document.getElementById('checkout-btn');
-            checkoutBtn.disabled = true;
-            checkoutBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+            // Process the payment
+            const printBtn = document.querySelector('.btn-success');
+            printBtn.disabled = true;
+            printBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
 
             fetch('{{ route("pos.process-sale") }}', {
                     method: 'POST',
@@ -2156,22 +1810,23 @@
                         // Store cart data before clearing for PDF generation
                         window.lastSaleData = {
                             cart: [...cart],
-                            paymentMethod: selectedPaymentMethod,
-                            customerPayment: customerPayment,
-                            cardPayment: cardPaymentValue,
+                            paymentMethod: modalSelectedPaymentMethod,
+                            customerPayment: modalCustomerPayment,
+                            cardPayment: modalCardPayment,
                             receiptData: data,
-                            backendData: data // Store the complete backend response
+                            backendData: data
                         };
 
-                        // Directly print receipt without showing modal
+                        // Hide payment modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+                        modal.hide();
+
+                        // Generate PDF receipt
                         downloadReceiptPDF();
 
                         // Clear the cart and start new order
                         cart = [];
-                        document.getElementById('customer-payment').value = '0';
-                        document.getElementById('card-payment').value = '0';
                         updateCartDisplay();
-                        calculateBalance();
                     } else {
                         showError(data.message || 'Error processing payment');
                     }
@@ -2181,54 +1836,20 @@
                     showError('Error processing payment. Please try again.');
                 })
                 .finally(() => {
-                    checkoutBtn.disabled = false;
-                    checkoutBtn.innerHTML = '<i class="bi bi-credit-card"></i> Process Payment';
+                    printBtn.disabled = false;
+                    printBtn.innerHTML = '<i class="bi bi-check-circle"></i> Print Receipt';
                 });
-        }
-
-        // Get total amount
-        function getTotalAmount() {
-            if (!cart || cart.length === 0) {
-                return 0;
-            }
-            return cart.reduce((sum, item) => {
-                const itemPrice = parseFloat(item.price) || 0;
-                const itemQuantity = parseInt(item.quantity) || 0;
-                return sum + (itemPrice * itemQuantity);
-            }, 0);
         }
 
         // Clear all orders function
         function clearAllOrders() {
             cart = [];
             selectedPaymentMethod = null;
-
-            // Reset payment buttons
-            document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
-
-            // Hide payment input sections
-            document.getElementById('cash-input-section').classList.remove('show');
-            document.getElementById('card-input-section').classList.remove('show');
-            document.getElementById('active-input-indicator').classList.remove('show');
-
-            // Hide number pad and related elements
-            const sharedNumberPad = document.getElementById('shared-number-pad');
-            const quickAmounts = document.querySelector('.quick-amounts');
-            const balanceDisplay = document.getElementById('balance-display');
-
-            if (sharedNumberPad) {
-                sharedNumberPad.style.display = 'none';
-            }
-            if (quickAmounts) {
-                quickAmounts.style.display = 'none';
-            }
-            if (balanceDisplay) {
-                balanceDisplay.style.display = 'none';
-            }
-
-            // Reset input values
-            document.getElementById('customer-payment').value = '0';
-            document.getElementById('card-payment').value = '0';
+            
+            // Reset modal state
+            modalSelectedPaymentMethod = null;
+            modalCustomerPayment = 0;
+            modalCardPayment = 0;
 
             updateCartDisplay();
         }
@@ -2309,8 +1930,8 @@
                 cashDetails.style.display = 'block';
 
                 // For card & cash, we need to show both payment amounts
-                const cardPaymentValue = parseFloat(data.card_payment) || parseFloat(document.getElementById('card-payment').value) || 0;
-                const customerPaymentValue = parseFloat(data.customer_payment) || customerPayment;
+                const cardPaymentValue = parseFloat(data.card_payment) || (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
+                const customerPaymentValue = parseFloat(data.customer_payment) || (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
                 const totalPaid = customerPaymentValue + cardPaymentValue;
                 const balanceValue = parseFloat(data.balance) || (totalPaid - getTotalAmount());
 
@@ -2332,36 +1953,15 @@
 
         // Start new order function
         function startNewOrder() {
-            // Clear cart
+            // Clear cart and reset modal payment state
             cart = [];
             selectedPaymentMethod = null;
+            modalSelectedPaymentMethod = null;
+            modalCustomerPayment = 0;
+            modalCardPayment = 0;
 
-            // Reset payment buttons
-            document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
-
-            // Hide payment input sections
-            document.getElementById('cash-input-section').classList.remove('show');
-            document.getElementById('card-input-section').classList.remove('show');
-            document.getElementById('active-input-indicator').classList.remove('show');
-
-            // Hide number pad and related elements
-            const sharedNumberPad = document.getElementById('shared-number-pad');
-            const quickAmounts = document.querySelector('.quick-amounts');
-            const balanceDisplay = document.getElementById('balance-display');
-
-            if (sharedNumberPad) {
-                sharedNumberPad.style.display = 'none';
-            }
-            if (quickAmounts) {
-                quickAmounts.style.display = 'none';
-            }
-            if (balanceDisplay) {
-                balanceDisplay.style.display = 'none';
-            }
-
-            // Reset payment inputs
-            document.getElementById('customer-payment').value = '0';
-            document.getElementById('card-payment').value = '0';
+            // Reset any payment-type buttons (modal)
+            document.querySelectorAll('.payment-type-btn').forEach(btn => btn.classList.remove('active'));
 
             updateCartDisplay();
         }
@@ -2377,10 +1977,10 @@
                 const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
                 const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ?
                     parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) :
-                    (window.lastSaleData ? window.lastSaleData.customerPayment : parseFloat(document.getElementById('customer-payment').value) || 0);
+                    (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
                 const cardPaymentAmount = window.lastSaleData?.backendData?.card_payment ?
                     parseFloat(window.lastSaleData.backendData.card_payment.replace(/,/g, '')) :
-                    (window.lastSaleData ? window.lastSaleData.cardPayment : parseFloat(document.getElementById('card-payment').value) || 0);
+                    (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
 
                 // Calculate totals from cart
                 const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -2829,120 +2429,22 @@
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
 
-            // Initialize payment methods visibility based on cart
-            const paymentMethodsSection = document.querySelector('.payment-methods');
-            const sharedNumberPad = document.getElementById('shared-number-pad');
-            const quickAmounts = document.querySelector('.quick-amounts');
-            const balanceDisplay = document.getElementById('balance-display');
-
-            if (cart.length === 0) {
-                if (paymentMethodsSection) {
-                    paymentMethodsSection.style.display = 'none';
-                }
-                if (sharedNumberPad) {
-                    sharedNumberPad.style.display = 'none';
-                }
-                if (quickAmounts) {
-                    quickAmounts.style.display = 'none';
-                }
-                if (balanceDisplay) {
-                    balanceDisplay.style.display = 'none';
-                }
-            }
-
-            // Ensure no payment method is pre-selected if cart is empty
-            if (cart.length === 0) {
-                selectedPaymentMethod = null;
-                document.querySelectorAll('.payment-btn').forEach(btn => btn.classList.remove('active'));
-            }
-
             // Update time every second
             setInterval(updateTime, 1000);
             updateTime();
 
-            // Initialize payment display
-            document.getElementById('customer-payment').value = '0';
-
-            // Global keyboard shortcuts that feed the active input (customer or card)
-            document.addEventListener('keydown', function(event) {
-                // Determine the active input element
-                const activeInputId = activeInput === 'card' ? 'card-payment' : 'customer-payment';
-                const activeEl = document.getElementById(activeInputId);
-
-                // Do nothing if user is currently typing in an input field
-                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-
-                // Number keys (0-9)
-                if (event.keyCode >= 48 && event.keyCode <= 57) {
-                    event.preventDefault();
-                    const digit = event.key;
-                    addToActiveInput(digit);
-                    return;
-                }
-
-                // Numpad keys (0-9)
-                if (event.keyCode >= 96 && event.keyCode <= 105) {
-                    event.preventDefault();
-                    const digit = (event.keyCode - 96).toString();
-                    addToActiveInput(digit);
-                    return;
-                }
-
-                // Decimal point
-                if (event.keyCode === 190 || event.keyCode === 110) {
-                    event.preventDefault();
-                    addToActiveInput('.');
-                    return;
-                }
-
-                // Clear/Delete/Escape
-                if (event.keyCode === 46 || event.keyCode === 8 || event.keyCode === 27) {
-                    event.preventDefault();
-                    clearActiveInput();
-                    return;
-                }
-
-                // Enter to focus on active input for direct typing
-                if (event.keyCode === 13) {
-                    event.preventDefault();
-                    activeEl.focus();
-                    if (activeEl.select) activeEl.select();
-                    return;
-                }
-            });
-
-            // Keep both inputs in sync with variables and recalc balance on input
-            const customerInputEl = document.getElementById('customer-payment');
-            const cardInputEl = document.getElementById('card-payment');
-
-            customerInputEl.addEventListener('input', function() {
-                // sanitize value
-                if (this.value === '' || isNaN(parseFloat(this.value))) this.value = '0';
-                customerPayment = parseFloat(this.value) || 0;
-                if (selectedPaymentMethod === 'CASH' || selectedPaymentMethod === 'CARD & CASH') calculateBalance();
-            });
-
-            cardInputEl.addEventListener('input', function() {
-                if (this.value === '' || isNaN(parseFloat(this.value))) this.value = '0';
-                // don't shadow the local cardPayment var used elsewhere
-                cardPayment = parseFloat(this.value) || 0;
-                if (selectedPaymentMethod === 'CARD & CASH') calculateBalance();
-            });
-
-            // Add input focus management
-            const cashInput = document.getElementById('customer-payment');
-            cashInput.addEventListener('blur', function() {
-                // Ensure value is valid when leaving input
-                if (this.value === '' || isNaN(parseFloat(this.value))) {
-                    this.value = '0';
-                    calculateBalance();
-                }
-            });
+            // Add event listener for modal payment amount input
+            const modalPaymentInput = document.getElementById('modal-payment-amount');
+            if (modalPaymentInput) {
+                modalPaymentInput.addEventListener('input', function() {
+                    modalCustomerPayment = parseFloat(this.value) || 0;
+                    updateModalTotals();
+                });
+            }
 
             // Force initial update of cart display and totals
             updateCartDisplay();
             updateTotals();
-            calculateBalance();
 
             console.log('Initial cart state:', cart);
             console.log('Initial total element text:', document.getElementById('total')?.textContent);

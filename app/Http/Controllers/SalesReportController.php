@@ -21,7 +21,7 @@ class SalesReportController extends Controller
         $query = Sale::query();
         // Only show active sales (status = 1)
         $query->where('status', 1);
-        
+
         // Default to today's date
         $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
@@ -31,17 +31,17 @@ class SalesReportController extends Controller
         if ($startDate) {
             $query->whereDate('created_at', '>=', $startDate);
         }
-        
+
         if ($endDate) {
             $query->whereDate('created_at', '<=', $endDate);
         }
 
         // Apply search filter
         if ($searchTerm) {
-            $query->where(function($q) use ($searchTerm) {
+            $query->where(function ($q) use ($searchTerm) {
                 $q->where('receipt_no', 'like', "%{$searchTerm}%")
-                  ->orWhere('user_name', 'like', "%{$searchTerm}%")
-                  ->orWhere('payment_method', 'like', "%{$searchTerm}%");
+                    ->orWhere('user_name', 'like', "%{$searchTerm}%")
+                    ->orWhere('payment_method', 'like', "%{$searchTerm}%");
             });
         }
 
@@ -53,11 +53,11 @@ class SalesReportController extends Controller
             ->where('status', 1)
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            ->when($searchTerm, function($q) use ($searchTerm) {
-                $q->where(function($query) use ($searchTerm) {
+            ->when($searchTerm, function ($q) use ($searchTerm) {
+                $q->where(function ($query) use ($searchTerm) {
                     $query->where('receipt_no', 'like', "%{$searchTerm}%")
-                          ->orWhere('user_name', 'like', "%{$searchTerm}%")
-                          ->orWhere('payment_method', 'like', "%{$searchTerm}%");
+                        ->orWhere('user_name', 'like', "%{$searchTerm}%")
+                        ->orWhere('payment_method', 'like', "%{$searchTerm}%");
                 });
             })
             ->selectRaw('
@@ -77,7 +77,7 @@ class SalesReportController extends Controller
     public function getSaleItems(Sale $sale)
     {
         $saleItems = $sale->saleItems()->with('item')->get();
-        
+
         return response()->json([
             'sale' => [
                 'receipt_no' => $sale->receipt_no,
@@ -91,7 +91,7 @@ class SalesReportController extends Controller
                 'balance' => $sale->balance,
                 'created_at' => $sale->created_at->format('Y-m-d H:i:s'),
             ],
-            'items' => $saleItems->map(function($saleItem) {
+            'items' => $saleItems->map(function ($saleItem) {
                 return [
                     'item_name' => $saleItem->item_name,
                     'quantity' => $saleItem->quantity,
@@ -111,24 +111,24 @@ class SalesReportController extends Controller
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
         $searchTerm = $request->get('search');
 
-    $query = Sale::query();
-    // Only export active sales
-    $query->where('status', 1);
+        $query = Sale::query();
+        // Only export active sales
+        $query->where('status', 1);
 
         // Apply filters
         if ($startDate) {
             $query->whereDate('created_at', '>=', $startDate);
         }
-        
+
         if ($endDate) {
             $query->whereDate('created_at', '<=', $endDate);
         }
 
         if ($searchTerm) {
-            $query->where(function($q) use ($searchTerm) {
+            $query->where(function ($q) use ($searchTerm) {
                 $q->where('receipt_no', 'like', "%{$searchTerm}%")
-                  ->orWhere('user_name', 'like', "%{$searchTerm}%")
-                  ->orWhere('payment_method', 'like', "%{$searchTerm}%");
+                    ->orWhere('user_name', 'like', "%{$searchTerm}%")
+                    ->orWhere('payment_method', 'like', "%{$searchTerm}%");
             });
         }
 
@@ -176,7 +176,7 @@ class SalesReportController extends Controller
         $filename = 'sales_report_' . $startDate . '_to_' . $endDate . '.xlsx';
 
         // Create response
-        return new StreamedResponse(function() use ($spreadsheet) {
+        return new StreamedResponse(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);
             $writer->save('php://output');
         }, 200, [
@@ -191,29 +191,40 @@ class SalesReportController extends Controller
      */
     public function updateStatus(Request $request, Sale $sale)
     {
-        // Validate status (accepts '0' or '1' as strings or ints)
+
         $validated = $request->validate([
             'status' => 'required|in:0,1',
         ]);
 
         $status = (int) $validated['status'];
 
-        // If marking as deleted (status = 0), and the sale is currently active,
-        // then attempt to restore inventory for the branch associated with the sale.
-        $wasActive = $sale->status === 1;
+        // Cast sale status to int for comparison (it might be stored as string)
+        $currentStatus = (int) $sale->status;
+        $wasActive = $currentStatus === 1;
 
+        // Update sale status
         $sale->status = $status;
         $sale->save();
 
+        // Check if we should restore inventory
         if ($status === 0 && $wasActive) {
-            // Restore inventory back to branch inventories for each sale item.
-            // Use a transaction to ensure all increments succeed together.
-            $sale->load('saleItems');
 
-            DB::transaction(function () use ($sale) {
-                foreach ($sale->saleItems as $saleItem) {
-                    // Resolve branch id robustly: prefer sale.branch_id, then sale.user_id -> user.branch_id,
-                    // and finally try to match by sale.user_name.
+            // Load sale items
+            $sale->load('saleItems');
+            $itemCount = $sale->saleItems->count();
+
+            if ($itemCount === 0) {
+                return response()->json(['success' => true, 'status' => $sale->status]);
+            }
+
+            try {
+                DB::beginTransaction();
+                $restoredCount = 0;
+                $skippedCount = 0;
+                $errors = [];
+
+                foreach ($sale->saleItems as $index => $saleItem) {
+                    // Resolve branch ID
                     $branchId = $sale->branch_id;
 
                     if (!$branchId && !empty($sale->user_id)) {
@@ -230,29 +241,81 @@ class SalesReportController extends Controller
                         }
                     }
 
-                    // If still no branchId resolved, log and skip this item to avoid wrong increments
                     if (!$branchId) {
-                        logger()->warning("SalesReport: could not resolve branch for sale id {$sale->id} when restoring item id {$saleItem->item_id}");
+                        $error = "Could not resolve branch for sale #{$sale->id}, item #{$saleItem->item_id}";
+                        $errors[] = $error;
+                        $skippedCount++;
                         continue;
                     }
 
                     $quantityToRestore = intval($saleItem->quantity);
+
                     if ($quantityToRestore <= 0) {
-                        // nothing to restore
+                        logger()->warning("Invalid quantity, skipping");
+                        $skippedCount++;
                         continue;
                     }
 
-                    $inventory = \App\Models\Inventory::firstOrCreate(
-                        ['item_id' => $saleItem->item_id, 'branch_id' => $branchId],
-                        ['current_stock' => 0, 'low_stock_alert' => 10]
-                    );
+                    // Check if inventory exists
+                    $inventory = \App\Models\Inventory::where('item_id', $saleItem->item_id)
+                        ->where('branch_id', $branchId)
+                        ->first();
+                    if ($inventory) {
+                        $oldStock = $inventory->current_stock;
 
-                    // Use a safe increment to avoid negative side-effects
-                    $inventory->increment('current_stock', $quantityToRestore);
+                        // Try direct update instead of increment
+                        $newStock = $oldStock + $quantityToRestore;
+                        $updated = \App\Models\Inventory::where('id', $inventory->id)
+                            ->update(['current_stock' => $newStock]);
+
+                        // Verify the update
+                        $inventory->refresh();
+
+                        if ($inventory->current_stock == $newStock) {
+                            $restoredCount++;
+                        } else {
+                            $error = "Stock mismatch for inventory #{$inventory->id}";
+                            
+                            $errors[] = $error;
+                        }
+                    } else {
+                        $inventory = \App\Models\Inventory::create([
+                            'item_id' => $saleItem->item_id,
+                            'branch_id' => $branchId,
+                            'current_stock' => $quantityToRestore,
+                            'low_stock_alert' => 10
+                        ]);
+                        $restoredCount++;
+                    }
                 }
-            });
+
+                DB::commit();
+
+                if (count($errors) > 0) {
+                    logger()->error("Errors encountered: " . json_encode($errors));
+                }
+            } catch (\Exception $e) {
+                DB::rollBack();
+                logger()->error("Transaction rolled back");
+                logger()->error("Exception: " . $e->getMessage());
+                logger()->error("File: " . $e->getFile() . " Line: " . $e->getLine());
+                logger()->error("Stack trace: " . $e->getTraceAsString());
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to restore inventory: ' . $e->getMessage()
+                ], 500);
+            }
+        } else {
+            logger()->info("Skipping inventory restoration - conditions not met");
         }
 
-        return response()->json(['success' => true, 'status' => $sale->status]);
+        logger()->info("=== Sale Status Update Completed ===");
+
+        return response()->json([
+            'success' => true,
+            'status' => $sale->status,
+            'message' => 'Check logs for detailed information'
+        ]);
     }
 }

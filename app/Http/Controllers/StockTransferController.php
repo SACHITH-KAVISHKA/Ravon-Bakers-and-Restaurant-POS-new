@@ -53,7 +53,7 @@ class StockTransferController extends Controller
         }
 
         $user = Auth::user();
-        
+
         $request->validate([
             'to_branch_id' => 'required|exists:branches,id',
             'date_time' => 'required|date',
@@ -131,7 +131,7 @@ class StockTransferController extends Controller
     public function pending()
     {
         $user = Auth::user();
-        
+
         if (!$user->branch_id) {
             abort(403, 'You must be assigned to a branch to view transfers.');
         }
@@ -152,7 +152,7 @@ class StockTransferController extends Controller
     {
         $user = Auth::user();
         $status = $request->get('status', 'pending');
-        
+
         // Get status counts for tabs
         if ($user->role === 'supervisor') {
             // Supervisor sees all transfers
@@ -161,12 +161,12 @@ class StockTransferController extends Controller
                 'accepted' => StockTransfer::where('status', 'accepted')->count(),
                 'rejected' => StockTransfer::where('status', 'rejected')->count(),
             ];
-            
+
             $transfers = StockTransfer::with(['toBranch', 'creator', 'processor', 'transferItems.item'])
                 ->where('status', $status)
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
-                
+
             $pageTitle = 'All Stock Transfers';
         } else {
             // Staff sees only transfers for their branch
@@ -175,13 +175,13 @@ class StockTransferController extends Controller
                 'accepted' => StockTransfer::where('to_branch_id', $user->branch_id)->where('status', 'accepted')->count(),
                 'rejected' => StockTransfer::where('to_branch_id', $user->branch_id)->where('status', 'rejected')->count(),
             ];
-            
+
             $transfers = StockTransfer::with(['toBranch', 'creator', 'processor', 'transferItems.item'])
                 ->where('to_branch_id', $user->branch_id)
                 ->where('status', $status)
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
-                
+
             $pageTitle = 'Branch Stock Transfers';
         }
 
@@ -194,9 +194,10 @@ class StockTransferController extends Controller
     public function show(StockTransfer $stockTransfer)
     {
         $user = Auth::user();
-        
-        // Check authorization - either creator or receiving branch staff
-        if ($stockTransfer->created_by !== $user->id && $stockTransfer->to_branch_id !== $user->branch_id) {
+
+        // Cast to int to ensure type consistency across environments
+        if ((int)$stockTransfer->created_by !== (int)$user->id &&
+            (int)$stockTransfer->to_branch_id !== (int)$user->branch_id) {
             abort(403, 'Unauthorized access to this transfer.');
         }
 
@@ -211,7 +212,7 @@ class StockTransferController extends Controller
     public function accept(StockTransfer $stockTransfer)
     {
         $user = Auth::user();
-        
+
         // Verify user can process this transfer
         if ($stockTransfer->to_branch_id !== $user->branch_id) {
             abort(403, 'You can only accept transfers sent to your branch.');
@@ -268,7 +269,7 @@ class StockTransferController extends Controller
     public function reject(Request $request, StockTransfer $stockTransfer)
     {
         $user = Auth::user();
-        
+
         // Verify user can process this transfer
         if ($stockTransfer->to_branch_id !== $user->branch_id) {
             abort(403, 'You can only reject transfers sent to your branch.');

@@ -74,6 +74,7 @@ class SupervisorController extends Controller
     {
         $departments = Department::where('is_active', true)->get();
         $items = Item::with('inventory')
+                    ->orderBy('item_name', 'asc')
                     ->where('is_active', true)
                     ->get();
 
@@ -140,6 +141,7 @@ class SupervisorController extends Controller
         $items = Item::with('inventory')
             ->where('is_active', true)
             ->select('id', 'item_name', 'item_code', 'price')
+            ->orderBy('item_name', 'asc')
             ->get()
             ->map(function ($item) {
                 return [
@@ -259,7 +261,7 @@ class SupervisorController extends Controller
         foreach ($request->items as $index => $itemData) {
             $inventory = Inventory::where('item_id', $itemData['item_id'])->first();
             $availableStock = $inventory ? $inventory->current_stock : 0;
-            
+
             if ($itemData['wasted_quantity'] > $availableStock) {
                 $item = Item::find($itemData['item_id']);
                 return back()->withErrors([

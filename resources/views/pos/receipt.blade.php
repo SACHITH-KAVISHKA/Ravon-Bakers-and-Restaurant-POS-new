@@ -237,8 +237,14 @@
             @elseif($sale->payment_method === 'card')
                 <div>
                     <span>Card Payment:</span>
-                    <span>LKR {{ number_format($sale->total, 2) }}</span>
+                    <span>LKR {{ number_format($sale->card_payment ?? 0, 2) }}</span>
                 </div>
+                @if(($sale->card_payment ?? 0) < $sale->total)
+                    <div>
+                        <span>Credit Balance:</span>
+                        <span>LKR {{ number_format($sale->total - ($sale->card_payment ?? 0), 2) }}</span>
+                    </div>
+                @endif
             @elseif($sale->payment_method === 'credit')
                 <div>
                     <span>Amount Due:</span>
@@ -360,6 +366,7 @@
             "customerPayment": "{{ number_format($sale->customer_payment ?? 0, 2) }}",
             "cardPayment": "{{ number_format($sale->card_payment ?? 0, 2) }}",
             "balance": "{{ number_format($sale->balance ?? 0, 2) }}",
+            "creditBalance": "{{ number_format($sale->credit_balance ?? 0, 2) }}",
             "showCashDetails": {{ $sale->payment_method === 'cash' ? 'true' : 'false' }},
             "showCardCashDetails": {{ (in_array($sale->payment_method, ['card_and_cash', 'CARD & CASH']) || str_contains(strtolower($sale->payment_method), 'card') && str_contains(strtolower($sale->payment_method), 'cash')) ? 'true' : 'false' }},
             "showCardOnly": {{ $sale->payment_method === 'card' ? 'true' : 'false' }},
@@ -549,8 +556,19 @@
                     } else if (receiptData.showCardOnly) {
                         // CARD only payment method
                         pdf.text('Card Payment:', 5, yPosition);
-                        pdf.text(`LKR ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
-                        yPosition += 6;
+                        pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth-5, yPosition, { align: 'right' });
+                        yPosition += 5;
+                        
+                        // Show credit balance if card payment is less than total
+                        const cardAmount = parseFloat(receiptData.cardPayment) || 0;
+                        const totalAmount = parseFloat(receiptData.total) || 0;
+                        if (cardAmount < totalAmount) {
+                            const creditBalance = (totalAmount - cardAmount).toFixed(2);
+                            pdf.text('Credit Balance:', 5, yPosition);
+                            pdf.text(`LKR ${creditBalance}`, pageWidth-5, yPosition, { align: 'right' });
+                            yPosition += 5;
+                        }
+                        yPosition += 1;
                     } else if (receiptData.showCredit) {
                         // CREDIT payment method
                         pdf.text('Amount Due:', 5, yPosition);

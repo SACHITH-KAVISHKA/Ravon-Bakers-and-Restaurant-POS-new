@@ -1055,6 +1055,17 @@
             border-color: #545b62;
         }
 
+        .modal-number-btn.backspace-btn {
+            background: #ffc107;
+            color: #212529;
+            border-color: #ffc107;
+        }
+
+        .modal-number-btn.backspace-btn:hover {
+            background: #e0a800;
+            border-color: #e0a800;
+        }
+
         .payment-summary {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -1093,6 +1104,18 @@
             border-top: 1px solid #dee2e6;
             padding-top: 8px;
             margin-top: 8px;
+        }
+
+        .summary-row.credit-row {
+            font-weight: bold;
+            font-size: 16px;
+            color: #dc3545;
+            border-top: 1px solid #dee2e6;
+            padding-top: 8px;
+            margin-top: 8px;
+            background: #fff5f5;
+            border-radius: 4px;
+            padding: 8px;
         }
 
         .payment-amount-input {
@@ -1501,10 +1524,10 @@
                                 <div class="row g-2 mt-1">
                                     <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('0')">0</button></div>
                                     <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('.')">.</button></div>
-                                    <div class="col-4"><button class="modal-number-btn clear-btn" onclick="clearModalActiveInput()">C</button></div>
+                                    <div class="col-4"><button class="modal-number-btn backspace-btn" onclick="backspaceModalActiveInput()">⌫</button></div>
                                 </div>
                                 <div class="row g-2 mt-2">
-                                    <div class="col-12"><button class="modal-number-btn enter-btn" onclick="processModalPayment()">Enter</button></div>
+                                    <div class="col-12"><button class="modal-number-btn clear-btn" onclick="clearModalActiveInput()">C</button></div>
                                 </div>
                             </div>
                         </div>
@@ -1535,6 +1558,10 @@
                                     <div class="summary-row balance-row">
                                         <span>Balance ——></span>
                                         <span id="modal-balance">0.00</span>
+                                    </div>
+                                    <div class="summary-row credit-row" id="modal-credit-row" style="display: none;">
+                                        <span>Credit ——></span>
+                                        <span id="modal-credit">0.00</span>
                                     </div>
                                 </div>
                             </div>
@@ -1956,10 +1983,9 @@
             } else if (method === 'CARD') {
                 cashInputGroup.style.display = 'none';
                 cardInputGroup.style.display = 'flex';
-                // Auto-fill card amount with total
-                const total = getTotalAmount();
-                modalCardPayment = total;
-                cardInput.value = total.toFixed(2);
+                // Allow user to enter card amount (don't auto-fill)
+                modalCardPayment = 0;
+                cardInput.value = '';
                 activeModalInput = 'card';
             } else if (method === 'CARD & CASH') {
                 cashInputGroup.style.display = 'flex';
@@ -2159,10 +2185,9 @@
                 document.getElementById('modal-cash-input').value = '';
                 modalCustomerPayment = 0;
             } else if (modalSelectedPaymentMethod === 'CARD') {
-                // For CARD, reset to total amount
-                const total = getTotalAmount();
-                document.getElementById('modal-card-input').value = total.toFixed(2);
-                modalCardPayment = total;
+                // Clear card input (don't auto-fill with total)
+                document.getElementById('modal-card-input').value = '';
+                modalCardPayment = 0;
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
                 // Clear the active input
                 if (activeModalInput === 'cash') {
@@ -2181,6 +2206,49 @@
             updateModalTotals();
         }
 
+        // Backspace modal active input (remove one character at a time)
+        function backspaceModalActiveInput() {
+            if (!modalSelectedPaymentMethod) return;
+
+            let paymentInput;
+
+            // Determine which input to use based on payment method
+            if (modalSelectedPaymentMethod === 'CASH') {
+                paymentInput = document.getElementById('modal-cash-input');
+            } else if (modalSelectedPaymentMethod === 'CARD') {
+                paymentInput = document.getElementById('modal-card-input');
+            } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
+                paymentInput = activeModalInput === 'cash'
+                    ? document.getElementById('modal-cash-input')
+                    : document.getElementById('modal-card-input');
+            } else if (modalSelectedPaymentMethod === 'CREDIT') {
+                return;
+            }
+
+            if (!paymentInput) return;
+
+            const currentValue = paymentInput.value;
+            if (currentValue.length > 0) {
+                paymentInput.value = currentValue.slice(0, -1);
+                
+                // If empty, set to '0'
+                if (paymentInput.value === '') {
+                    paymentInput.value = '0';
+                }
+            }
+
+            // Update the payment amounts
+            if (modalSelectedPaymentMethod === 'CASH' || (modalSelectedPaymentMethod === 'CARD & CASH' && activeModalInput === 'cash')) {
+                modalCustomerPayment = parseFloat(paymentInput.value) || 0;
+            }
+
+            if (modalSelectedPaymentMethod === 'CARD' || (modalSelectedPaymentMethod === 'CARD & CASH' && activeModalInput === 'card')) {
+                modalCardPayment = parseFloat(paymentInput.value) || 0;
+            }
+
+            updateModalTotals();
+        }
+
         // Update modal totals
         function updateModalTotals() {
             const total = getTotalAmount();
@@ -2190,32 +2258,69 @@
             document.getElementById('modal-total').textContent = total.toFixed(2);
             
             let balance = 0;
+            let creditAmount = 0;
             
             // Calculate based on payment method
             if (modalSelectedPaymentMethod === 'CASH') {
-                // CASH: show cash amount and calculate balance
+                // CASH: show cash amount and calculate balance/credit
                 document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
                 document.getElementById('modal-card-amount').textContent = '0.00';
-                balance = modalCustomerPayment - total;
+                
+                if (modalCustomerPayment < total) {
+                    // Insufficient payment - calculate credit
+                    creditAmount = total - modalCustomerPayment;
+                    balance = 0;
+                } else {
+                    // Sufficient payment - calculate change
+                    balance = modalCustomerPayment - total;
+                }
             } else if (modalSelectedPaymentMethod === 'CARD') {
-                // CARD: card amount equals total, balance is 0
+                // CARD: card amount and calculate credit if insufficient
                 document.getElementById('modal-cash-amount').textContent = '0.00';
                 document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
-                balance = 0;
+                
+                if (modalCardPayment < total) {
+                    // Insufficient payment - calculate credit
+                    creditAmount = total - modalCardPayment;
+                    balance = 0;
+                } else {
+                    // Card payments don't give change
+                    balance = 0;
+                }
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
-                // CARD & CASH: show both amounts and calculate balance
+                // CARD & CASH: show both amounts and calculate balance/credit
                 document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
                 document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
                 const totalPaid = modalCustomerPayment + modalCardPayment;
-                balance = totalPaid - total;
+                
+                if (totalPaid < total) {
+                    // Insufficient payment - calculate credit
+                    creditAmount = total - totalPaid;
+                    balance = 0;
+                } else {
+                    // Sufficient payment - calculate change
+                    balance = totalPaid - total;
+                }
             } else if (modalSelectedPaymentMethod === 'CREDIT') {
-                // CREDIT: balance equals total (credit balance)
+                // CREDIT: entire amount as credit
                 document.getElementById('modal-cash-amount').textContent = '0.00';
                 document.getElementById('modal-card-amount').textContent = '0.00';
-                balance = total; // Store as credit balance
+                creditAmount = total;
+                balance = 0;
             }
             
+            // Update balance display
             document.getElementById('modal-balance').textContent = balance.toFixed(2);
+            
+            // Update credit display
+            const creditElement = document.getElementById('modal-credit');
+            const creditRow = document.getElementById('modal-credit-row');
+            
+            if (creditElement && creditRow) {
+                creditElement.textContent = creditAmount.toFixed(2);
+                // Show/hide credit row based on whether there's credit
+                creditRow.style.display = creditAmount > 0 ? 'flex' : 'none';
+            }
         }
 
         // Process modal payment
@@ -2235,26 +2340,35 @@
             let balance = 0;
             let creditBalance = 0;
 
-            // Calculate balance and validate based on payment method
+            // Calculate balance and credit based on payment method
             if (modalSelectedPaymentMethod === 'CASH') {
                 if (modalCustomerPayment < total) {
-                    showError('Insufficient cash payment amount');
-                    return;
+                    // Calculate unpaid amount as credit
+                    creditBalance = total - modalCustomerPayment;
+                    balance = 0; // No change to give back
+                } else {
+                    balance = modalCustomerPayment - total;
                 }
-                balance = modalCustomerPayment - total;
             } else if (modalSelectedPaymentMethod === 'CARD') {
-                // Card payment should equal total, balance is 0
-                balance = 0;
+                if (modalCardPayment < total) {
+                    // Calculate unpaid amount as credit
+                    creditBalance = total - modalCardPayment;
+                    balance = 0;
+                } else {
+                    balance = 0; // Card payments don't give change
+                }
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
                 if (totalPaid < total) {
-                    showError('Insufficient payment amount (cash + card)');
-                    return;
+                    // Calculate unpaid amount as credit
+                    creditBalance = total - totalPaid;
+                    balance = 0;
+                } else {
+                    balance = totalPaid - total;
                 }
-                balance = totalPaid - total;
             } else if (modalSelectedPaymentMethod === 'CREDIT') {
                 // For credit, the total becomes the credit balance
                 creditBalance = total;
-                balance = total; // Show as balance
+                balance = 0; // No cash change for credit
             }
 
             // Prepare order data
@@ -2476,8 +2590,8 @@
                     totalPaid = customerPaymentAmount + cardPaymentAmount;
                     balance = totalPaid - subtotal;
                 } else if (paymentMethod === 'CARD') {
-                    totalPaid = subtotal; // For card, amount paid equals total
-                    balance = 0;
+                    totalPaid = cardPaymentAmount; // Use actual card payment amount
+                    balance = cardPaymentAmount - subtotal; // Could be negative (credit)
                 } else if (paymentMethod === 'CREDIT') {
                     totalPaid = 0;
                     balance = -subtotal; // Negative balance for credit
@@ -2740,6 +2854,26 @@
                         });
                         yPosition += 6;
                     }
+                } else if (receiptData.paymentMethod === 'CARD') {
+                    // For CARD only payment method
+                    pdf.text('Card Payment:', leftMargin, yPosition);
+                    pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
+                        align: 'right'
+                    });
+                    yPosition += 5;
+                    
+                    // Show credit balance if card payment is less than total
+                    const cardAmount = parseFloat(receiptData.cardPayment) || 0;
+                    const totalAmount = parseFloat(receiptData.total) || 0;
+                    if (cardAmount < totalAmount) {
+                        const creditBalance = (totalAmount - cardAmount).toFixed(2);
+                        pdf.text('Credit Balance:', leftMargin, yPosition);
+                        pdf.text(`LKR ${creditBalance}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 5;
+                    }
+                    yPosition += 1;
                 } else if (receiptData.paymentMethod === 'CREDIT') {
                     // For CREDIT payment method
                     pdf.text('Amount Due:', leftMargin, yPosition);

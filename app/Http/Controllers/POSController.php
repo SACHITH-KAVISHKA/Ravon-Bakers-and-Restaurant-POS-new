@@ -115,38 +115,39 @@ class POSController extends Controller
         // Handle payment calculations based on payment method
         switch ($request->payment_method) {
             case 'CASH':
-                // Validate payment amount for cash transactions
+                // Allow partial payments - any unpaid amount becomes credit
                 if ($customerPayment < $total) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Insufficient payment amount'
-                    ]);
+                    $creditBalance = $total - $customerPayment;
+                    $balance = 0;
+                } else {
+                    $balance = $customerPayment - $total;
                 }
-                $balance = $customerPayment - $total;
                 break;
                 
             case 'CARD':
-                // For card only, set card payment to total, no customer payment needed
-                $cardPayment = $total;
-                $customerPayment = 0;
-                $balance = 0;
+                // Allow partial card payments - any unpaid amount becomes credit
+                if ($cardPayment < $total) {
+                    $creditBalance = $total - $cardPayment;
+                    $balance = 0;
+                } else {
+                    $balance = 0; // Card payments don't give change
+                }
+                $customerPayment = 0; // No cash involved
                 break;
                 
             case 'CARD & CASH':
-                // Validate combined payment
-                if (($customerPayment + $cardPayment) < $total) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Insufficient payment amount'
-                    ]);
+                // Allow partial combined payments - any unpaid amount becomes credit
+                $totalPaid = $customerPayment + $cardPayment;
+                if ($totalPaid < $total) {
+                    $creditBalance = $total - $totalPaid;
+                    $balance = 0;
+                } else {
+                    $balance = $totalPaid - $total;
                 }
-                // Balance = customer payment - (subtotal - card payment)
-                $remainingAfterCard = $total - $cardPayment;
-                $balance = $customerPayment - $remainingAfterCard;
                 break;
                 
             case 'CREDIT':
-                // For credit, no payment made, negative balance
+                // For credit, no payment made, entire amount as credit
                 $customerPayment = 0;
                 $cardPayment = 0;
                 $balance = 0;

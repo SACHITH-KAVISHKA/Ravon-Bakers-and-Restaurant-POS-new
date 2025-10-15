@@ -43,7 +43,7 @@ class SalesReportController extends Controller
         }
 
         // Get sales with pagination
-        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(15);
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
 
         // Calculate totals for the filtered data
         $totals = Sale::query()
@@ -55,6 +55,8 @@ class SalesReportController extends Controller
                 COUNT(*) as total_transactions,
                 SUM(subtotal) as total_subtotal,
                 SUM(customer_payment) as total_customer_payment,
+                SUM(card_payment) as total_card_payment,
+                SUM(credit_balance) as total_credit_balance,
                 SUM(balance) as total_balance
             ')
             ->first();
@@ -124,7 +126,21 @@ class SalesReportController extends Controller
             $query->where('branch_id', $branchId);
         }
 
-        $sales = $query->orderBy('created_at', 'desc')->get();
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
+
+        // Calculate totals for export
+        $totals = Sale::query()
+            ->where('status', 1)
+            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->selectRaw('
+                SUM(subtotal) as total_subtotal,
+                SUM(customer_payment) as total_customer_payment,
+                SUM(card_payment) as total_card_payment,
+                SUM(credit_balance) as total_credit_balance
+            ')
+            ->first();
 
         // Create spreadsheet
         $spreadsheet = new Spreadsheet();
@@ -133,12 +149,13 @@ class SalesReportController extends Controller
         // Set headers
         $headers = [
             'A1' => 'Receipt No',
-            'B1' => 'User Name',
+            'B1' => 'Branch Name',
             'C1' => 'Subtotal',
             'D1' => 'Payment Method',
-            'E1' => 'Customer Payment',
-            'F1' => 'Balance',
-            'G1' => 'Date',
+            'E1' => 'Cash',
+            'F1' => 'Card',
+            'G1' => 'Credit',
+            'H1' => 'Date',
         ];
 
         foreach ($headers as $cell => $header) {
@@ -150,17 +167,32 @@ class SalesReportController extends Controller
         $row = 2;
         foreach ($sales as $sale) {
             $sheet->setCellValue('A' . $row, $sale->receipt_no);
-            $sheet->setCellValue('B' . $row, $sale->user_name);
+            $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
             $sheet->setCellValue('C' . $row, $sale->subtotal);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
-            $sheet->setCellValue('E' . $row, $sale->customer_payment);
-            $sheet->setCellValue('F' . $row, $sale->balance);
-            $sheet->setCellValue('G' . $row, $sale->created_at->format('Y-m-d H:i:s'));
+            $sheet->setCellValue('E' . $row, $sale->customer_payment ?? 0);
+            $sheet->setCellValue('F' . $row, $sale->card_payment ?? 0);
+            $sheet->setCellValue('G' . $row, $sale->credit_balance ?? 0);
+            $sheet->setCellValue('H' . $row, $sale->created_at->format('Y-m-d H:i:s'));
             $row++;
         }
 
+        // Add totals row
+        $sheet->setCellValue('A' . $row, 'TOTAL');
+        $sheet->setCellValue('B' . $row, '');
+        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('D' . $row, '');
+        $sheet->setCellValue('E' . $row, $totals->total_customer_payment ?? 0);
+        $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
+        $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);
+        $sheet->setCellValue('H' . $row, '');
+
+        // Style the totals row
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('E3F2FD');
+
         // Auto-size columns
-        foreach (range('A', 'G') as $column) {
+        foreach (range('A', 'H') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 

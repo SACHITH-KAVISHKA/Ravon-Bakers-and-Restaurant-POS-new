@@ -18,7 +18,7 @@ class ItemController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         
@@ -28,10 +28,21 @@ class ItemController extends Controller
         }
         
         // Admin sees all items
-        $items = Item::with(['inventory'])
-                    ->where('is_active', true)
-                    ->latest()
-                    ->paginate(15);
+        $query = Item::with(['inventory'])
+                    ->where('is_active', true);
+        
+        // Apply search filter
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('item_name', 'LIKE', '%' . $search . '%')
+                  ->orWhere('item_code', 'LIKE', '%' . $search . '%')
+                  ->orWhere('category', 'LIKE', '%' . $search . '%');
+            });
+        }
+        
+        $items = $query->orderBy('item_name', 'asc')
+                      ->paginate(100);
         
         return view('items.index', compact('items'));
     }

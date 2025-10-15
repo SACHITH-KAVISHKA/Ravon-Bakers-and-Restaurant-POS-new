@@ -69,8 +69,11 @@
                         <tr>
                             <th class="d-none d-sm-table-cell">Receipt No</th>
                             <th>Branch name</th>
-                            <th class="d-none d-md-table-cell">Subtotal</th>
+                            <th class="d-none d-md-table-cell">Total</th>
                             <th class="d-none d-lg-table-cell">Payment</th>
+                            <th class="d-none d-xl-table-cell">Cash</th>
+                            <th class="d-none d-xl-table-cell">Card</th>
+                            <th class="d-none d-xl-table-cell">Credit</th>
                             <th>Date/Time</th>
                             <th>Actions</th>
                         </tr>
@@ -92,6 +95,9 @@
                             <td class="d-none d-lg-table-cell">
                                 <span class="badge bg-info">{{ $sale->payment_method }}</span>
                             </td>
+                            <td class="d-none d-xl-table-cell">LKR {{ number_format($sale->customer_payment ?? 0, 2) }}</td>
+                            <td class="d-none d-xl-table-cell">LKR {{ number_format($sale->card_payment ?? 0, 2) }}</td>
+                            <td class="d-none d-xl-table-cell">LKR {{ number_format($sale->credit_balance ?? 0, 2) }}</td>
                             <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
                             <td>
                                 <div class="d-flex gap-1 flex-wrap">
@@ -116,6 +122,17 @@
                             </td>
                         </tr>
                         @endforeach
+
+                        <!-- Totals Row -->
+                        <tr class="table-info fw-bold">
+                            <td colspan="2" class="text-end">TOTAL (All Records):</td>
+                            <td class="d-none d-md-table-cell">LKR {{ number_format($totals->total_subtotal ?? 0, 2) }}</td>
+                            <td class="d-none d-lg-table-cell">-</td>
+                            <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_customer_payment ?? 0, 2) }}</td>
+                            <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_card_payment ?? 0, 2) }}</td>
+                            <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_credit_balance ?? 0, 2) }}</td>
+                            <td colspan="2"></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

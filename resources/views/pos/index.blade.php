@@ -1044,6 +1044,17 @@
             border-color: #218838;
         }
 
+        .modal-number-btn.digit-btn {
+            background: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+
+        .modal-number-btn.digit-btn:hover {
+            background: #545b62;
+            border-color: #545b62;
+        }
+
         .payment-summary {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -1473,29 +1484,27 @@
                             <!-- Number Pad -->
                             <div class="modal-number-pad mt-4">
                                 <div class="row g-2">
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('2000')">2000</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('5000')">5000</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('7')">7</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('500')">500</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('1000')">1000</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('8')">8</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('100')">100</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('200')">200</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('9')">9</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('4')">4</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('5')">5</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('6')">6</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('1')">1</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('2')">2</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('3')">3</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('20')">20</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('50')">50</button></div>
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('0')">0</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('7')">7</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('8')">8</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('9')">9</button></div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('4')">4</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('5')">5</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('6')">6</button></div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('1')">1</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('2')">2</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('3')">3</button></div>
+                                </div>
+                                <div class="row g-2 mt-1">
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('0')">0</button></div>
+                                    <div class="col-4"><button class="modal-number-btn digit-btn" onclick="handleDigitInput('.')">.</button></div>
+                                    <div class="col-4"><button class="modal-number-btn clear-btn" onclick="clearModalActiveInput()">C</button></div>
                                 </div>
                                 <div class="row g-2 mt-2">
-                                    <div class="col-4"><button class="modal-number-btn" onclick="addToModalActiveInput('.')">.</button></div>
-                                    <div class="col-4"><button class="modal-number-btn clear-btn" onclick="clearModalActiveInput()">C1</button></div>
-                                    <div class="col-4"><button class="modal-number-btn enter-btn" onclick="processModalPayment()">Enter</button></div>
+                                    <div class="col-12"><button class="modal-number-btn enter-btn" onclick="processModalPayment()">Enter</button></div>
                                 </div>
                             </div>
                         </div>
@@ -1535,13 +1544,13 @@
                                 <!-- Cash Input (shown for CASH and CASH & CARD) -->
                                 <div class="input-group mb-2" id="modal-cash-input-group" style="display: none;">
                                     <span class="input-group-text">Cash Amount</span>
-                                    <input type="number" class="form-control payment-amount-input" id="modal-cash-input" placeholder="0.00" step="0.01" readonly onclick="setActiveModalInput('cash')" style="cursor: pointer;">
+                                    <input type="number" class="form-control payment-amount-input" id="modal-cash-input" placeholder="0.00" step="0.01" onclick="setActiveModalInput('cash')" onkeydown="handleModalKeyInput(event, 'cash')" style="cursor: pointer;">
                                 </div>
                                 
                                 <!-- Card Input (shown for CARD and CASH & CARD) -->
                                 <div class="input-group" id="modal-card-input-group" style="display: none;">
                                     <span class="input-group-text">Card Amount</span>
-                                    <input type="number" class="form-control payment-amount-input" id="modal-card-input" placeholder="0.00" step="0.01" readonly onclick="setActiveModalInput('card')" style="cursor: pointer;">
+                                    <input type="number" class="form-control payment-amount-input" id="modal-card-input" placeholder="0.00" step="0.01" onclick="setActiveModalInput('card')" onkeydown="handleModalKeyInput(event, 'card')" style="cursor: pointer;">
                                 </div>
                             </div>
                         </div>
@@ -1995,12 +2004,61 @@
             }
         }
 
-        // Add number to modal active input
-        function addToModalActiveInput(value) {
+        // Handle digit input (appends to current value like a number pad)
+        function handleDigitInput(value) {
             if (!modalSelectedPaymentMethod) return;
-            
+
             let paymentInput;
-            
+
+            // Determine which input to use based on payment method
+            if (modalSelectedPaymentMethod === 'CASH') {
+                paymentInput = document.getElementById('modal-cash-input');
+            } else if (modalSelectedPaymentMethod === 'CARD') {
+                paymentInput = document.getElementById('modal-card-input');
+            } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
+                paymentInput = activeModalInput === 'cash'
+                    ? document.getElementById('modal-cash-input')
+                    : document.getElementById('modal-card-input');
+            } else if (modalSelectedPaymentMethod === 'CREDIT') {
+                return;
+            }
+
+            if (!paymentInput) return;
+
+            const currentValue = paymentInput.value || '0';
+
+            if (value === '.') {
+                // Handle decimal point
+                if (!currentValue.includes('.')) {
+                    paymentInput.value = currentValue + value;
+                }
+            } else {
+                // Handle digits - normal append behavior
+                if (currentValue === '0') {
+                    paymentInput.value = value;
+                } else {
+                    paymentInput.value = currentValue + value;
+                }
+            }
+
+            // Update the payment amounts
+            if (modalSelectedPaymentMethod === 'CASH' || (modalSelectedPaymentMethod === 'CARD & CASH' && activeModalInput === 'cash')) {
+                modalCustomerPayment = parseFloat(paymentInput.value) || 0;
+            }
+
+            if (modalSelectedPaymentMethod === 'CARD' || (modalSelectedPaymentMethod === 'CARD & CASH' && activeModalInput === 'card')) {
+                modalCardPayment = parseFloat(paymentInput.value) || 0;
+            }
+
+            updateModalTotals();
+        }
+
+        // Append number to modal active input (appends to current value like a number pad)
+        function appendToModalActiveInput(value) {
+            if (!modalSelectedPaymentMethod) return;
+
+            let paymentInput;
+
             // Determine which input to use based on payment method
             if (modalSelectedPaymentMethod === 'CASH') {
                 paymentInput = document.getElementById('modal-cash-input');
@@ -2008,40 +2066,89 @@
                 paymentInput = document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
                 // Use active input for CASH & CARD mode
-                paymentInput = activeModalInput === 'cash' 
+                paymentInput = activeModalInput === 'cash'
                     ? document.getElementById('modal-cash-input')
                     : document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CREDIT') {
                 // For credit, no input needed (balance is auto-calculated)
                 return;
             }
-            
+
             if (!paymentInput) return;
-            
+
             const currentValue = paymentInput.value || '0';
-            
+
             if (value === '.') {
+                // Handle decimal point - only add if no decimal exists and ensure proper format
                 if (!currentValue.includes('.')) {
-                    paymentInput.value = currentValue + value;
+                    if (currentValue === '0' || currentValue === '') {
+                        paymentInput.value = '0.';
+                    } else {
+                        paymentInput.value = currentValue + '.';
+                    }
                 }
+                // If decimal already exists, don't add another one
+                return;
             } else {
+                // Handle digits - normal append behavior
                 if (currentValue === '0') {
                     paymentInput.value = value;
                 } else {
                     paymentInput.value = currentValue + value;
                 }
             }
-            
+
             // Update the payment amounts
             if (modalSelectedPaymentMethod === 'CASH' || (modalSelectedPaymentMethod === 'CARD & CASH' && activeModalInput === 'cash')) {
                 modalCustomerPayment = parseFloat(paymentInput.value) || 0;
             }
-            
+
             if (modalSelectedPaymentMethod === 'CARD' || (modalSelectedPaymentMethod === 'CARD & CASH' && activeModalInput === 'card')) {
                 modalCardPayment = parseFloat(paymentInput.value) || 0;
             }
-            
+
             updateModalTotals();
+        }
+
+        // Handle keyboard input for modal payment fields
+        function handleModalKeyInput(event, inputType) {
+            // Allow backspace, delete, tab, escape, enter, and arrow keys
+            if ([8, 9, 27, 13, 37, 38, 39, 40].includes(event.keyCode) ||
+                // Allow Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z
+                ((event.ctrlKey || event.metaKey) && [65, 67, 86, 88, 90].includes(event.keyCode))) {
+                return;
+            }
+
+            // Check if it's a decimal point
+            if (event.keyCode === 110 || event.keyCode === 190) { // decimal point
+                const currentInput = event.target;
+                if (currentInput.value.includes('.')) {
+                    // Already has decimal point, prevent adding another
+                    event.preventDefault();
+                    return;
+                }
+            }
+
+            // Allow digits 0-9, decimal point, and numpad digits
+            if (!((event.keyCode >= 48 && event.keyCode <= 57) || // 0-9
+                  (event.keyCode >= 96 && event.keyCode <= 105) || // numpad 0-9
+                  event.keyCode === 110 || event.keyCode === 190)) { // decimal point
+                event.preventDefault();
+                return;
+            }
+
+            // Set active input based on which field is being typed in
+            setActiveModalInput(inputType);
+
+            // Update payment amounts after a short delay to allow input to update
+            setTimeout(() => {
+                if (inputType === 'cash') {
+                    modalCustomerPayment = parseFloat(document.getElementById('modal-cash-input').value) || 0;
+                } else {
+                    modalCardPayment = parseFloat(document.getElementById('modal-card-input').value) || 0;
+                }
+                updateModalTotals();
+            }, 10);
         }
 
         // Clear modal active input

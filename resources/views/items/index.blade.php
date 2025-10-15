@@ -11,6 +11,33 @@
         @endcan
     </div>
 
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('items.index') }}" class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label for="search" class="form-label fw-semibold">Search Items</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ request('search') }}" 
+                           placeholder="Search by item name, code, or category...">
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-search me-2"></i>Search
+                        </button>
+                        @if(request('search'))
+                        <a href="{{ route('items.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-2"></i>Clear Search
+                        </a>
+                        @endif
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -70,14 +97,21 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="6" class="text-center text-muted py-4">
                                 <i class="bi bi-box-seam fa-3x mb-3"></i>
+                                @if(request('search'))
+                                <div>No items found matching "{{ request('search') }}"</div>
+                                <small>
+                                    <a href="{{ route('items.index') }}">Clear search to view all items</a>
+                                </small>
+                                @else
                                 <div>No items found</div>
                                 @can('create', App\Models\Item::class)
                                 <small>
                                     <a href="{{ route('items.create') }}">Add your first item</a>
                                 </small>
                                 @endcan
+                                @endif
                             </td>
                         </tr>
                         @endforelse

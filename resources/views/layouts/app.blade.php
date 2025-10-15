@@ -782,8 +782,8 @@
             });
             
             // Close sidebar when nav link is clicked on mobile
-            const navLinks = sidebar.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
+            const mobileNavLinks = sidebar.querySelectorAll('.nav-link');
+            mobileNavLinks.forEach(link => {
                 link.addEventListener('click', function() {
                     if (window.innerWidth <= 768) {
                         closeMobileSidebar();

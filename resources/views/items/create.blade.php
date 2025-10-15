@@ -6,37 +6,47 @@
         </a>
     </div>
 
-    <div class="row">
-        <div class="col-md-8">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10 col-xl-8">
             <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Add New Item
+                    </h5>
+                </div>
                 <div class="card-body">
                     <form action="{{ route('items.store') }}" method="POST">
                         @csrf
                         
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="item_code" class="form-label">Item Code</label>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label for="item_code" class="form-label fw-semibold">Item Code</label>
                                 <input type="text" 
-                                       class="form-control" 
+                                       class="form-control form-control-lg" 
                                        id="item_code" 
                                        name="item_code_display" 
                                        value="{{ $nextItemCode }}" 
                                        readonly>
+                                <div class="form-text">Auto-generated item code</div>
                             </div>
                             
-                            <div class="col-md-6 mb-3">
-                                <label for="item_name" class="form-label">Item Name *</label>
-                                <input type="text" class="form-control @error('item_name') is-invalid @enderror" 
-                                       id="item_name" name="item_name" value="{{ old('item_name') }}" required>
+                            <div class="col-12 col-md-6">
+                                <label for="item_name" class="form-label fw-semibold">Item Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-lg @error('item_name') is-invalid @enderror" 
+                                       id="item_name" name="item_name" value="{{ old('item_name') }}" required
+                                       placeholder="Enter item name">
                                 @error('item_name')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                        </div>                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="category" class="form-label">Category *</label>
-                                <select class="form-control @error('category') is-invalid @enderror" id="category" name="category" required>
+                        </div>
+
+                        <div class="row g-3 mt-2">
+                            <div class="col-12 col-md-6">
+                                <label for="category" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-lg @error('category') is-invalid @enderror" 
+                                        id="category" name="category" required>
                                     <option value="">Select Category</option>
                                     @foreach($categories as $category)
                                         <option value="{{ $category->name }}" {{ old('category') == $category->name ? 'selected' : '' }}>
@@ -49,29 +59,36 @@
                                 @enderror
                             </div>
                             
-                            <div class="col-md-6 mb-3">
-                                <label for="price" class="form-label">Price (LKR) *</label>
-                                <input type="number" step="0.01" class="form-control @error('price') is-invalid @enderror" 
-                                       id="price" name="price" value="{{ old('price') }}" required>
-                                @error('price')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                            <div class="col-12 col-md-6">
+                                <label for="price" class="form-label fw-semibold">Price (LKR) <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text">LKR</span>
+                                    <input type="number" step="0.01" min="0" class="form-control @error('price') is-invalid @enderror" 
+                                           id="price" name="price" value="{{ old('price') }}" required
+                                           placeholder="0.00">
+                                    @error('price')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description</label>
+                        <div class="mt-3">
+                            <label for="description" class="form-label fw-semibold">Description</label>
                             <textarea class="form-control @error('description') is-invalid @enderror" 
-                                      id="description" name="description" rows="3">{{ old('description') }}</textarea>
+                                      id="description" name="description" rows="4"
+                                      placeholder="Enter item description (optional)">{{ old('description') }}</textarea>
                             @error('description')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ route('items.index') }}" class="btn btn-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> Create Item
+                        <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">
+                            <a href="{{ route('items.index') }}" class="btn btn-outline-secondary btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save me-2"></i>Create Item
                             </button>
                         </div>
                     </form>

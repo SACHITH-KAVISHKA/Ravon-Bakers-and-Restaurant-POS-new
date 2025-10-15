@@ -72,6 +72,26 @@
             gap: 10px;
         }
 
+        .cart-toggle-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .cart-toggle-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .cart-toggle-btn i {
+            margin-right: 5px;
+        }
+
         .header-btn {
             background: rgba(255, 255, 255, 0.2);
             color: white;
@@ -208,6 +228,39 @@
             font-size: 16px;
             font-weight: bold;
             color: #28a745;
+        }
+
+        /* Stock Status Styles */
+        .stock-info {
+            margin-top: 8px;
+            font-size: 11px;
+        }
+
+        .stock-available {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .stock-low {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .stock-not-in-branch {
+            color: #6c757d;
+            font-weight: 600;
+        }
+
+        .item-card.available {
+            border-left: 4px solid #28a745;
+        }
+
+        .item-card.low-stock {
+            border-left: 4px solid #ffc107;
+        }
+
+        .item-card.not-in-branch {
+            border-left: 4px solid #6c757d;
         }
 
         /* Payment Panel Styles */
@@ -1048,6 +1101,179 @@
         .card-type-inputs .form-control {
             font-size: 12px;
         }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .pos-container {
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            .pos-header {
+                padding: 8px 15px;
+                font-size: 16px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .header-left {
+                font-size: 12px;
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .header-center {
+                font-size: 16px;
+                order: -1;
+                flex: 1 1 100%;
+                text-align: center;
+                margin-bottom: 5px;
+            }
+
+            .header-right {
+                gap: 8px;
+            }
+
+            .header-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            .pos-content {
+                flex-direction: column;
+                height: calc(100vh - 80px);
+            }
+
+            .categories-panel {
+                width: 100%;
+                height: 120px;
+                border-right: none;
+                border-bottom: 2px solid #dee2e6;
+                overflow-x: auto;
+                overflow-y: hidden;
+            }
+
+            .category-list {
+                display: flex;
+                flex-direction: row;
+                padding: 0 10px;
+                height: 100%;
+            }
+
+            .category-item {
+                flex: 0 0 auto;
+                width: 120px;
+                border-bottom: none;
+                border-right: 1px solid #e9ecef;
+                padding: 10px;
+                white-space: nowrap;
+                font-size: 12px;
+            }
+
+            .category-item:last-child {
+                border-right: none;
+            }
+
+            .items-panel {
+                flex: 1;
+                padding: 15px;
+                overflow-y: auto;
+            }
+
+            .items-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 10px;
+            }
+
+            .item-card {
+                padding: 10px;
+                border-radius: 8px;
+            }
+
+            .item-name {
+                font-size: 12px;
+            }
+
+            .item-price {
+                font-size: 13px;
+            }
+
+            .payment-panel {
+                width: 100%;
+                height: 400px;
+                border-left: none;
+                border-top: 2px solid #dee2e6;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                z-index: 1000;
+                background: white;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            }
+
+            .payment-panel.show {
+                display: flex;
+            }
+
+            .cart-section {
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .cart-item {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            .payment-section {
+                padding: 15px;
+            }
+
+            .payment-buttons {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .payment-btn {
+                flex: 1 1 calc(50% - 8px);
+                min-width: 120px;
+                padding: 12px 8px;
+                font-size: 14px;
+            }
+
+            .payment-amount-input {
+                font-size: 16px;
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .items-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 8px;
+            }
+
+            .item-card {
+                padding: 8px;
+            }
+
+            .payment-btn {
+                flex: 1 1 calc(50% - 6px);
+                min-width: 100px;
+                padding: 10px 6px;
+                font-size: 13px;
+            }
+
+            .categories-panel {
+                height: 100px;
+            }
+
+            .category-item {
+                width: 100px;
+                padding: 8px 6px;
+                font-size: 11px;
+            }
+        }
     </style>
 </head>
 
@@ -1068,6 +1294,10 @@
             RAVON BAKERS - POS SYSTEM
         </div>
         <div class="header-right">
+            <button class="cart-toggle-btn d-md-none" id="cart-toggle-btn" onclick="toggleCart()">
+                <i class="bi bi-cart3"></i>
+                <span id="cart-count">0</span>
+            </button>
             <button class="header-btn" onclick="clearAllOrders()" style="margin-right: 10px; background: #dc3545;">
                 <i class="bi bi-trash"></i> Clear
             </button>
@@ -1131,7 +1361,7 @@
             </div>
 
             <!-- Right Panel - Cart & Payment -->
-            <div class="payment-panel">
+            <div class="payment-panel d-none d-md-flex">
                 <!-- Receipt Info -->
                 <div class="receipt-info">
                     <div class="receipt-id">RECEIPT: <span id="receipt-no">{{ 'RCP' . now()->format('ymd') . str_pad(\App\Models\Sale::whereDate('created_at', now()->toDateString())->count() + 1, 4, '0', STR_PAD_LEFT) }}</span></div>
@@ -1437,6 +1667,13 @@
             }
 
             updateTotals();
+            
+            // Update mobile cart count
+            const cartCountElement = document.getElementById('cart-count');
+            if (cartCountElement) {
+                const totalItems = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
+                cartCountElement.textContent = totalItems;
+            }
         }
 
         // Update totals
@@ -1566,6 +1803,14 @@
         // Navigation function
         function goToDashboard() {
             window.location.href = '{{ route("dashboard") }}';
+        }
+
+        // Toggle cart on mobile
+        function toggleCart() {
+            const paymentPanel = document.querySelector('.payment-panel');
+            if (window.innerWidth <= 768) {
+                paymentPanel.classList.toggle('show');
+            }
         }
 
         // Update time display

@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [StockTransferController::class, 'create'])->name('create');
             Route::post('/', [StockTransferController::class, 'store'])->name('store');
             Route::get('/{stockTransfer}', [StockTransferController::class, 'show'])->name('show');
+                Route::delete('/{stockTransfer}', [StockTransferController::class, 'destroy'])->name('destroy');
             Route::get('/api/inventory/{item}', [StockTransferController::class, 'getInventory'])->name('api.inventory');
         });
     });

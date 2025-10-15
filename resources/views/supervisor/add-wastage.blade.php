@@ -29,7 +29,7 @@
                     
                     <!-- Date & Time Section -->
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-2">
                             <label for="date_time" class="form-label fw-semibold">Date & Time</label>
                             <input type="datetime-local" 
                                    class="form-control @error('date_time') is-invalid @enderror" 
@@ -52,10 +52,10 @@
                             <table class="table table-bordered" id="itemsTable">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 40%;">Items</th>
+                                        <th style="width: 35%;">Items</th>
                                         <th style="width: 20%;">Available Stock</th>
-                                        <th style="width: 20%;">Wasted Quantity</th>
-                                        <th style="width: 10%;">Action</th>
+                                        <th style="width: 30%;">Wasted Quantity</th>
+                                        <th style="width: 15%;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="itemsTableBody">

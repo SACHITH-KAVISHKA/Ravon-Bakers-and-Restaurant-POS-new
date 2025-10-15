@@ -255,7 +255,8 @@
                 transition: transform 0.3s ease;
                 position: fixed;
                 z-index: 1050;
-                width: 250px;
+                width: 280px;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.3);
             }
             
             .sidebar.show {
@@ -267,14 +268,86 @@
                 margin-left: 0 !important;
             }
             
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                z-index: 1040;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            
+            .sidebar-overlay.show {
+                display: block;
+                opacity: 1;
+            }
+            
             #sidebarToggle {
                 display: none;
+            }
+            
+            .navbar-toggler {
+                display: block !important;
+                border: none;
+                padding: 8px;
+                background: rgba(255,255,255,0.1);
+                color: #495057;
+                border-radius: 6px;
+            }
+            
+            .navbar-toggler:focus {
+                box-shadow: none;
             }
         }
         
         @media (min-width: 769px) {
             .navbar-toggler {
                 display: none !important;
+            }
+        }
+        
+        /* Mobile-specific improvements */
+        @media (max-width: 576px) {
+            .container-fluid {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            
+            .card {
+                margin-bottom: 1rem;
+            }
+            
+            .btn {
+                min-height: 44px;
+                font-size: 16px;
+            }
+            
+            .form-control {
+                min-height: 44px;
+                font-size: 16px;
+            }
+            
+            .navbar-brand {
+                font-size: 18px;
+            }
+            
+            .stats-card h3 {
+                font-size: 1.8rem;
+            }
+            
+            .table-responsive {
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 768px) and (min-width: 577px) {
+            .container-fluid {
+                padding-left: 20px;
+                padding-right: 20px;
             }
         }
         
@@ -372,7 +445,7 @@
                         <a class="nav-link {{ request()->routeIs('supervisor.add-inventory') ? 'active' : '' }}" 
                            href="{{ route('supervisor.add-inventory') }}">
                             <i class="bi bi-plus-circle"></i>
-                            <span>Add Inventory</span>
+                            <span>Add Products</span>
                         </a>
                     </li>
 
@@ -497,6 +570,9 @@
         </div>
     </nav>
 
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Main content -->
     <main class="content-wrapper">
         <!-- Top Navigation -->
@@ -604,9 +680,28 @@
         // Mobile sidebar toggle
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
             const sidebarToggle = document.getElementById('sidebarToggle');
             const contentWrapper = document.querySelector('.content-wrapper');
-            const toggleBtn = document.querySelector('[data-bs-toggle="collapse"]');
+            const toggleBtn = document.querySelector('.navbar-toggler');
+            
+            // Function to close mobile sidebar
+            function closeMobileSidebar() {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('show');
+                    sidebarOverlay.classList.remove('show');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            // Function to open mobile sidebar
+            function openMobileSidebar() {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.add('show');
+                    sidebarOverlay.classList.add('show');
+                    document.body.style.overflow = 'hidden';
+                }
+            }
             
             // Desktop sidebar toggle
             if (sidebarToggle) {
@@ -629,16 +724,43 @@
             // Mobile sidebar toggle
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', function() {
-                    sidebar.classList.toggle('show');
+                    if (sidebar.classList.contains('show')) {
+                        closeMobileSidebar();
+                    } else {
+                        openMobileSidebar();
+                    }
                 });
             }
             
-            // Close mobile sidebar when clicking outside
+            // Close mobile sidebar when clicking overlay
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeMobileSidebar);
+            }
+            
+            // Close mobile sidebar when clicking outside or on a nav link
             document.addEventListener('click', function(e) {
                 if (window.innerWidth <= 768) {
                     if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-                        sidebar.classList.remove('show');
+                        closeMobileSidebar();
                     }
+                }
+            });
+            
+            // Close sidebar when nav link is clicked on mobile
+            const navLinks = sidebar.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        closeMobileSidebar();
+                    }
+                });
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    closeMobileSidebar();
+                    document.body.style.overflow = '';
                 }
             });
         });

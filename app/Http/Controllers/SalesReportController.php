@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,7 @@ class SalesReportController extends Controller
         // Default to today's date
         $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
-        $searchTerm = $request->get('search');
+        $branchId = $request->get('branch_id');
 
         // Apply date filter
         if ($startDate) {
@@ -36,30 +37,20 @@ class SalesReportController extends Controller
             $query->whereDate('created_at', '<=', $endDate);
         }
 
-        // Apply search filter
-        if ($searchTerm) {
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('receipt_no', 'like', "%{$searchTerm}%")
-                    ->orWhere('user_name', 'like', "%{$searchTerm}%")
-                    ->orWhere('payment_method', 'like', "%{$searchTerm}%");
-            });
+        // Apply branch filter
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
         }
 
         // Get sales with pagination
-        $sales = $query->orderBy('created_at', 'desc')->paginate(15);
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(15);
 
         // Calculate totals for the filtered data
         $totals = Sale::query()
             ->where('status', 1)
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            ->when($searchTerm, function ($q) use ($searchTerm) {
-                $q->where(function ($query) use ($searchTerm) {
-                    $query->where('receipt_no', 'like', "%{$searchTerm}%")
-                        ->orWhere('user_name', 'like', "%{$searchTerm}%")
-                        ->orWhere('payment_method', 'like', "%{$searchTerm}%");
-                });
-            })
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->selectRaw('
                 COUNT(*) as total_transactions,
                 SUM(subtotal) as total_subtotal,
@@ -68,7 +59,10 @@ class SalesReportController extends Controller
             ')
             ->first();
 
-        return view('sales-report.index', compact('sales', 'totals', 'startDate', 'endDate', 'searchTerm'));
+        // Get available branches for the dropdown
+        $branches = Branch::active()->orderBy('name')->get();
+
+        return view('sales-report.index', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
     }
 
     /**
@@ -76,12 +70,14 @@ class SalesReportController extends Controller
      */
     public function getSaleItems(Sale $sale)
     {
+        $sale->load('branch');
         $saleItems = $sale->saleItems()->with('item')->get();
 
         return response()->json([
             'sale' => [
                 'receipt_no' => $sale->receipt_no,
                 'user_name' => $sale->user_name,
+                'branch_name' => $sale->branch->name ?? 'N/A',
                 'subtotal' => $sale->subtotal,
                 'discount' => $sale->discount,
                 'tax' => $sale->tax,
@@ -109,7 +105,7 @@ class SalesReportController extends Controller
     {
         $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
-        $searchTerm = $request->get('search');
+        $branchId = $request->get('branch_id');
 
         $query = Sale::query();
         // Only export active sales
@@ -124,12 +120,8 @@ class SalesReportController extends Controller
             $query->whereDate('created_at', '<=', $endDate);
         }
 
-        if ($searchTerm) {
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('receipt_no', 'like', "%{$searchTerm}%")
-                    ->orWhere('user_name', 'like', "%{$searchTerm}%")
-                    ->orWhere('payment_method', 'like', "%{$searchTerm}%");
-            });
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
         }
 
         $sales = $query->orderBy('created_at', 'desc')->get();

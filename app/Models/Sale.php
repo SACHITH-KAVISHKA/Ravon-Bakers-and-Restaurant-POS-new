@@ -42,4 +42,12 @@ class Sale extends Model
     {
         return $this->hasMany(SaleItem::class);
     }
+
+    /**
+     * Get the branch for this sale
+     */
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 }

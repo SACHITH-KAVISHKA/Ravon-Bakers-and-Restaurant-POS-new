@@ -1,6 +1,9 @@
 <x-app-layout>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
+            <p class="text-muted mb-0 d-none d-md-block">Welcome back! Here's your business overview.</p>
+        </div>
         <div class="text-muted">
             <i class="bi bi-calendar3"></i>
             {{ now()->format('l, F j, Y') }}
@@ -8,66 +11,62 @@
     </div>
 
     <!-- Stats Cards Row -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stats-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">Total Items</div>
-                            <div class="h3 mb-0 font-weight-bold">{{ $totalItems ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="bi bi-box-seam fa-2x"></i>
-                        </div>
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card stats-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Items</div>
+                        <div class="h3 mb-0 font-weight-bold">{{ $totalItems ?? 0 }}</div>
+                        <small class="text-white-50">In inventory</small>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-box-seam fa-2x"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stats-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">Total Purchases</div>
-                            <div class="h3 mb-0 font-weight-bold">{{ $totalPurchases ?? 0 }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="bi bi-cart-plus fa-2x"></i>
-                        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card stats-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Purchases</div>
+                        <div class="h3 mb-0 font-weight-bold">{{ $totalPurchases ?? 0 }}</div>
+                        <small class="text-white-50">Purchase orders</small>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-cart-plus fa-2x"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stats-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">Total Value</div>
-                            <div class="h3 mb-0 font-weight-bold">LKR {{ number_format($totalValue ?? 0, 2) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="bi bi-boxes fa-2x"></i>
-                        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card stats-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Value</div>
+                        <div class="h3 mb-0 font-weight-bold">LKR {{ number_format($totalValue ?? 0, 2) }}</div>
+                        <small class="text-white-50">Inventory value</small>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-boxes fa-2x"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card stats-card">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1">Today's Sales</div>
-                            <div class="h3 mb-0 font-weight-bold">LKR {{ number_format($todaySales ?? 0, 2) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="bi bi-currency-dollar fa-2x"></i>
-                        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card stats-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Today's Sales</div>
+                        <div class="h3 mb-0 font-weight-bold">LKR {{ number_format($todaySales ?? 0, 2) }}</div>
+                        <small class="text-white-50">Revenue today</small>
+                    </div>
+                    <div class="ms-3">
+                        <i class="bi bi-currency-dollar fa-2x"></i>
                     </div>
                 </div>
             </div>

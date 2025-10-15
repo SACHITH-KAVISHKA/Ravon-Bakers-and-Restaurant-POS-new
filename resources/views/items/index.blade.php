@@ -14,44 +14,33 @@
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
                         <tr>
-                            <th>Item Code</th>
+                            <th class="d-none d-md-table-cell">Item Code</th>
                             <th>Item Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Current Stock</th>
-                            <th>Status</th>
+                            <th class="d-none d-lg-table-cell">Category</th>
+                            <th class="d-none d-sm-table-cell">Price</th>
+                            <th class="d-none d-sm-table-cell">Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($items as $item)
                         <tr>
-                            <td><code>{{ $item->item_code }}</code></td>
-                            <td>{{ $item->item_name }}</td>
+                            <td class="d-none d-md-table-cell"><code>{{ $item->item_code }}</code></td>
                             <td>
+                                <div class="d-flex flex-column">
+                                    <strong>{{ $item->item_name }}</strong>
+                                    <small class="text-muted d-md-none">{{ $item->item_code }}</small>
+                                    <small class="text-muted d-lg-none">{{ $item->category }}</small>
+                                </div>
+                            </td>
+                            <td class="d-none d-lg-table-cell">
                                 <span class="badge bg-secondary">{{ $item->category }}</span>
                             </td>
-                            <td>LKR {{ number_format($item->price, 2) }}</td>
-                            <td>
-                                @if($item->inventory)
-                                    @if($item->inventory->isLowStock())
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="bi bi-exclamation-triangle"></i>
-                                            {{ $item->inventory->current_stock }}
-                                        </span>
-                                    @else
-                                        <span class="badge bg-success">
-                                            {{ $item->inventory->current_stock }}
-                                        </span>
-                                    @endif
-                                @else
-                                    <span class="badge bg-secondary">0</span>
-                                @endif
-                            </td>
-                            <td>
+                            <td class="d-none d-sm-table-cell">LKR {{ number_format($item->price, 2) }}</td>
+                            <td class="d-none d-sm-table-cell">
                                 @if($item->is_active)
                                     <span class="badge bg-success">Active</span>
                                 @else
@@ -59,19 +48,20 @@
                                 @endif
                             </td>
                             <td>
-                                <div class="d-flex gap-1">
-                                    <a href="{{ route('items.show', $item) }}" class="btn btn-outline-info btn-sm">
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <a href="{{ route('items.show', $item) }}" class="btn btn-outline-info btn-sm" title="View">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     @can('update', $item)
-                                    <a href="{{ route('items.edit', $item) }}" class="btn btn-outline-warning btn-sm">
+                                    <a href="{{ route('items.edit', $item) }}" class="btn btn-outline-warning btn-sm" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     @endcan
                                     @can('delete', $item)
                                     <button type="button" class="btn btn-outline-danger btn-sm" 
                                             data-bs-toggle="modal" 
-                                            data-bs-target="#deleteItemModal{{ $item->id }}">
+                                            data-bs-target="#deleteItemModal{{ $item->id }}"
+                                            title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                     @endcan
@@ -80,7 +70,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="7" class="text-center text-muted py-4">
                                 <i class="bi bi-box-seam fa-3x mb-3"></i>
                                 <div>No items found</div>
                                 @can('create', App\Models\Item::class)

@@ -241,21 +241,26 @@ class StockTransferController extends Controller
                     $sourceInventory->decrement('current_stock', $transferItem->quantity);
                 }
 
-                // Add to destination branch
-                $destInventory = Inventory::where('item_id', $transferItem->item_id)
-                    ->where('branch_id', $stockTransfer->to_branch_id)
-                    ->first();
+                // Add to destination branch: update if exists, otherwise create
+                $destInventory = Inventory::firstOrNew([
+                    'item_id' => $transferItem->item_id,
+                    'branch_id' => $stockTransfer->to_branch_id,
+                ]);
 
-                if ($destInventory) {
+                if ($destInventory->exists) {
+                    // existing record -> increment
                     $destInventory->increment('current_stock', $transferItem->quantity);
                 } else {
-                    // Create new inventory record for this branch
-                    Inventory::create([
-                        'item_id' => $transferItem->item_id,
-                        'branch_id' => $stockTransfer->to_branch_id,
-                        'current_stock' => $transferItem->quantity,
-                        'low_stock_alert' => 10, // Default value
-                    ]);
+                    // new record -> set initial values
+                    // try to copy low_stock_alert from source inventory if available
+                    $defaultLowAlert = 10;
+                    if (isset($sourceInventory) && $sourceInventory) {
+                        $defaultLowAlert = $sourceInventory->low_stock_alert ?? $defaultLowAlert;
+                    }
+
+                    $destInventory->current_stock = $transferItem->quantity;
+                    $destInventory->low_stock_alert = $defaultLowAlert;
+                    $destInventory->save();
                 }
             }
         });
@@ -291,6 +296,39 @@ class StockTransferController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Stock transfer has been rejected.');
+    }
+
+    /**
+     * Destroy (delete) a pending stock transfer - supervisor only
+     */
+    public function destroy(StockTransfer $stockTransfer)
+    {
+        $user = Auth::user();
+
+        // Only supervisors can delete transfers via supervisor routes
+        if ($user->role !== 'supervisor') {
+            abort(403, 'Unauthorized.');
+        }
+
+        // Only allow deleting transfers created by this supervisor and still pending
+        if ($stockTransfer->created_by !== $user->id) {
+            return redirect()->back()->with('error', 'You can only delete transfers you created.');
+        }
+
+        if (!$stockTransfer->isPending()) {
+            return redirect()->back()->with('error', 'Only pending transfers can be deleted.');
+        }
+
+        DB::transaction(function () use ($stockTransfer) {
+            // Delete transfer items first
+            $stockTransfer->transferItems()->delete();
+
+            // Delete the transfer itself
+            $stockTransfer->delete();
+        });
+
+        return redirect()->route('supervisor.stock-transfer.by-status')
+            ->with('success', 'Pending stock transfer has been deleted.');
     }
 
     /**

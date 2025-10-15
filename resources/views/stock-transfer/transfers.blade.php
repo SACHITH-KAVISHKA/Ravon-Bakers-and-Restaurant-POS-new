@@ -150,6 +150,17 @@
                                                 <i class="bi bi-eye"></i>
                                             </a>
 
+                                            {{-- Supervisors who created the transfer can delete pending transfers --}}
+                                            @if($transfer->status === 'pending' && auth()->user() && auth()->user()->role === 'supervisor' && auth()->user()->id === $transfer->created_by)
+                                                <form method="POST" action="{{ route('supervisor.stock-transfer.destroy', $transfer) }}" class="d-inline-block ms-1" onsubmit="return confirm('Are you sure you want to delete this pending transfer?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Transfer">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @endif
+
                                             @if($transfer->status === 'pending' && auth()->user()->branch_id === $transfer->to_branch_id)
                                             <!-- Accept: open confirmation modal -->
                                             <button type="button"

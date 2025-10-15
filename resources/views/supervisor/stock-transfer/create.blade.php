@@ -29,7 +29,7 @@
                     
                     <!-- Transfer Details -->
                     <div class="row mb-4">
-                        <div class="col-md-6">
+                        <div class="col-md-2">
                             <label for="date_time" class="form-label fw-semibold">
                                 <i class="bi bi-calendar"></i> Date & Time
                             </label>
@@ -44,7 +44,7 @@
                             @enderror
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-md-2">
                             <label for="to_branch_id" class="form-label fw-semibold">
                                 <i class="bi bi-building"></i> Destination Branch
                             </label>
@@ -62,9 +62,6 @@
                             @error('to_branch_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <div class="form-text">
-                                <i class="bi bi-info-circle"></i> Transferring from Central Inventory to selected branch
-                            </div>
                         </div>
                     </div>
 

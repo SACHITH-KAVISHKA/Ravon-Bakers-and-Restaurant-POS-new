@@ -1,8 +1,11 @@
 <x-app-layout>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="bi bi-bar-chart-fill me-2"></i> Daily Sales Report
-        </h1>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="bi bi-bar-chart-fill me-2"></i> Daily Sales Report
+            </h1>
+            <p class="text-muted mb-0 d-none d-md-block">View and export sales transactions</p>
+        </div>
         <div class="text-muted">
             <i class="bi bi-calendar3"></i>
             {{ now()->format('l, F j, Y') }}
@@ -13,27 +16,32 @@
     <div class="card mb-4">
         <div class="card-body">
             <form method="GET" action="{{ route('sales-report.index') }}" class="row g-3">
-                <div class="col-md-3">
-                    <label for="start_date" class="form-label">Start Date</label>
-                    <input type="date" class="form-control" id="start_date" name="start_date" 
-                           value="{{ $startDate }}">
+                <div class="col-12 col-md-6 col-lg-3">
+                    <label for="start_date" class="form-label fw-semibold">Start Date</label>
+                    <input type="date" class="form-control form-control-lg" id="start_date" name="start_date"
+                        value="{{ $startDate }}">
                 </div>
-                <div class="col-md-3">
-                    <label for="end_date" class="form-label">End Date</label>
-                    <input type="date" class="form-control" id="end_date" name="end_date" 
-                           value="{{ $endDate }}">
+                <div class="col-12 col-md-6 col-lg-3">
+                    <label for="end_date" class="form-label fw-semibold">End Date</label>
+                    <input type="date" class="form-control form-control-lg" id="end_date" name="end_date"
+                        value="{{ $endDate }}">
                 </div>
-                <div class="col-md-4">
-                    <label for="search" class="form-label">Search</label>
-                    <input type="text" class="form-control" id="search" name="search" 
-                           placeholder="Receipt No, User Name, Payment Method..." 
-                           value="{{ $searchTerm }}">
+                <div class="col-12 col-md-8 col-lg-4">
+                    <label for="branch_id" class="form-label fw-semibold">Branch</label>
+                    <select class="form-select form-select-lg" id="branch_id" name="branch_id">
+                        <option value="">All Branches</option>
+                        @foreach($branches as $branch)
+                            <option value="{{ $branch->id }}" {{ $branchId == $branch->id ? 'selected' : '' }}>
+                                {{ $branch->name }}
+                            </option>
+                        @endforeach
+                    </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-md-4 col-lg-2">
                     <label class="form-label">&nbsp;</label>
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-search"></i> Search
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-search me-2"></i>Search
                         </button>
                     </div>
                 </div>
@@ -44,10 +52,10 @@
     <!-- Summary Cards removed per admin view requirement -->
 
     <!-- Export Section -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 gap-2">
         <h5 class="mb-0">Sales Transactions</h5>
-        <a href="{{ route('sales-report.export', request()->query()) }}" class="btn btn-success">
-            <i class="bi bi-file-earmark-excel"></i> Export to Excel
+        <a href="{{ route('sales-report.export', request()->query()) }}" class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
         </a>
     </div>
 
@@ -55,68 +63,73 @@
     <div class="card">
         <div class="card-body">
             @if($sales->count() > 0)
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Receipt No</th>
-                                <th>User Name</th>
-                                <th>Subtotal</th>
-                                <th>Payment Method</th>
-                                <th>Customer Payment</th>
-                                <th>Balance</th>
-                                <th>Date/Time</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($sales as $sale)
-                                <tr>
-                                    <td>
-                                        <span class="badge bg-primary">{{ $sale->receipt_no }}</span>
-                                    </td>
-                                    <td>{{ $sale->user_name }}</td>
-                                    <td>LKR {{ number_format($sale->subtotal, 2) }}</td>
-                                    <td>
-                                        <span class="badge bg-info">{{ $sale->payment_method }}</span>
-                                    </td>
-                                    <td>LKR {{ number_format($sale->customer_payment, 2) }}</td>
-                                    <td class="{{ $sale->balance > 0 ? 'text-success' : ($sale->balance < 0 ? 'text-danger' : '') }}">
-                                        LKR {{ number_format($sale->balance, 2) }}
-                                    </td>
-                                    <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
-                                    <td class="action-cell" data-sale-id="{{ $sale->id }}">
-                                        <button class="btn btn-sm btn-outline-primary view-items-btn" 
-                                                data-sale-id="{{ $sale->id }}"
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#saleItemsModal">
-                                            <i class="bi bi-eye"></i> View Items
-                                        </button>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="d-none d-sm-table-cell">Receipt No</th>
+                            <th>Branch name</th>
+                            <th class="d-none d-md-table-cell">Subtotal</th>
+                            <th class="d-none d-lg-table-cell">Payment</th>
+                            <th>Date/Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($sales as $sale)
+                        <tr>
+                            <td class="d-none d-sm-table-cell">
+                                <span class="badge bg-primary">{{ $sale->receipt_no }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <strong>{{ $sale->branch->name ?? 'N/A' }}</strong>
+                                    <small class="text-muted d-sm-none">{{ $sale->receipt_no }}</small>
+                                    <small class="text-muted d-md-none">LKR {{ number_format($sale->subtotal, 2) }}</small>
+                                </div>
+                            </td>
+                            <td class="d-none d-md-table-cell">LKR {{ number_format($sale->subtotal, 2) }}</td>
+                            <td class="d-none d-lg-table-cell">
+                                <span class="badge bg-info">{{ $sale->payment_method }}</span>
+                            </td>
+                            <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
+                            <td>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <button class="btn btn-sm btn-outline-primary view-items-btn" 
+                                        data-sale-id="{{ $sale->id }}"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#saleItemsModal"
+                                        title="View Items">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
 
-                                        @if($sale->status ?? 1)
-                                            <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn" data-sale-id="{{ $sale->id }}">
-                                                <i class="bi bi-trash"></i> Delete
-                                            </button>
-                                        @else
-                                            <span class="badge bg-secondary ms-1">Deleted</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                    @if($sale->status ?? 1)
+                                    <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn" 
+                                            data-sale-id="{{ $sale->id }}"
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    @else
+                                    <span class="badge bg-secondary ms-1">Deleted</span>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-                <!-- Pagination -->
-                <div class="d-flex justify-content-center mt-3">
-                    {{ $sales->appends(request()->query())->links() }}
-                </div>
+            <!-- Pagination -->
+            <div class="d-flex justify-content-center mt-3">
+                {{ $sales->appends(request()->query())->links() }}
+            </div>
             @else
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox display-1 text-muted"></i>
-                    <h4 class="text-muted mt-3">No sales found</h4>
-                    <p class="text-muted">Try adjusting your search criteria or date range.</p>
-                </div>
+            <div class="text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No sales found</h4>
+                <p class="text-muted">Try adjusting your search criteria or date range.</p>
+            </div>
             @endif
         </div>
     </div>
@@ -145,7 +158,7 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <strong>Receipt No:</strong> <span id="modal-receipt-no"></span><br>
-                                        <strong>User:</strong> <span id="modal-user-name"></span><br>
+                                        <strong>Branch:</strong> <span id="modal-branch-name"></span><br>
                                         <strong>Payment Method:</strong> <span id="modal-payment-method"></span><br>
                                         <strong>Date:</strong> <span id="modal-date"></span>
                                     </div>
@@ -217,23 +230,23 @@
                 const saleId = $(this).data('sale-id');
                 $('#saleDetailsLoading').show();
                 $('#saleDetailsContent').hide();
-                
+
                 // Clear previous data
                 $('#modal-items-list').empty();
-                
+
                 // Fetch sale details
                 $.get(`{{ url('sales-report/sale-items') }}/${saleId}`)
                     .done(function(response) {
                         // Populate sale information
                         $('#modal-receipt-no').text(response.sale.receipt_no);
-                        $('#modal-user-name').text(response.sale.user_name);
+                        $('#modal-branch-name').text(response.sale.branch_name || 'N/A');
                         $('#modal-payment-method').text(response.sale.payment_method);
                         $('#modal-date').text(new Date(response.sale.created_at).toLocaleString());
                         $('#modal-subtotal').text(parseFloat(response.sale.subtotal).toFixed(2));
                         $('#modal-discount').text(parseFloat(response.sale.discount).toFixed(2));
                         $('#modal-tax').text(parseFloat(response.sale.tax).toFixed(2));
                         $('#modal-total').text(parseFloat(response.sale.total).toFixed(2));
-                        
+
                         // Populate items
                         let itemsHtml = '';
                         response.items.forEach(function(item) {
@@ -247,7 +260,7 @@
                             `;
                         });
                         $('#modal-items-list').html(itemsHtml);
-                        
+
                         $('#saleDetailsLoading').hide();
                         $('#saleDetailsContent').show();
                     })

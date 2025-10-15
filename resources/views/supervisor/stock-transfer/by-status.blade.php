@@ -151,6 +151,17 @@
                                                         <i class="bi bi-exclamation-triangle"></i>
                                                     </button>
                                                 @endif
+
+                                                {{-- Delete button for pending transfers created by this supervisor --}}
+                                                @if($transfer->status === 'pending' && auth()->user() && auth()->user()->id === $transfer->created_by)
+                                                    <form method="POST" action="{{ route('supervisor.stock-transfer.destroy', $transfer) }}" class="d-inline-block ms-1" onsubmit="return confirm('Are you sure you want to delete this pending transfer?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Transfer">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

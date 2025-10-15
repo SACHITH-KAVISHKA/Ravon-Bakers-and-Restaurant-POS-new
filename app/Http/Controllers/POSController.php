@@ -23,14 +23,11 @@ class POSController extends Controller
         
         $user = Auth::user();
         
-        // If user is staff, only show items available in their branch inventory
+        // Show all active items regardless of stock availability
+        // Staff can sell items even without stock in their branch
         if ($user && $user->role === 'staff' && $user->branch_id) {
-            // Get items that have stock in the staff member's branch
-            $items = Item::whereHas('inventory', function($query) use ($user) {
-                $query->where('branch_id', $user->branch_id)
-                      ->where('current_stock', '>', 0);
-            })
-            ->where('is_active', true)
+            // Get all active items with branch inventory loaded
+            $items = Item::where('is_active', true)
             ->with(['inventory' => function($query) use ($user) {
                 $query->where('branch_id', $user->branch_id);
             }])
@@ -38,7 +35,7 @@ class POSController extends Controller
             ->get()
             ->groupBy('category');
         } else {
-            // For admin/supervisor, show all items (with central inventory or all inventory)
+            // For admin/supervisor, show all active items
             $items = Item::where('is_active', true)
                 ->orderBy('category')
                 ->get()
@@ -88,21 +85,8 @@ class POSController extends Controller
             $item = Item::find($requestItem['id']);
             $quantity = $requestItem['quantity'];
             
-            // For staff users, validate stock availability in their branch
-            $user = Auth::user();
-            if ($user && $user->role === 'staff' && $user->branch_id) {
-                $inventory = Inventory::where('item_id', $item->id)
-                    ->where('branch_id', $user->branch_id)
-                    ->first();
-                
-                if (!$inventory || $inventory->current_stock < $quantity) {
-                    $availableStock = $inventory ? $inventory->current_stock : 0;
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Insufficient stock for {$item->item_name}. Available: {$availableStock}, Requested: {$quantity}"
-                    ]);
-                }
-            }
+            // No stock validation here - allow sale even without stock
+            // Stock will be reduced only if available in the branch
             
             $unitPrice = $item->price;
             $totalPrice = $unitPrice * $quantity;
@@ -209,19 +193,35 @@ class POSController extends Controller
 
             $saleId = $sale->id;
 
-            // Create sale items and reduce inventory
+            // Create sale items and update inventory
             foreach ($saleItems as $saleItem) {
                 $saleItem['sale_id'] = $sale->id;
                 SaleItem::create($saleItem);
                 
-                // Reduce inventory stock for staff users
+                // Handle inventory for branch staff
                 if ($user->role === 'staff' && $user->branch_id) {
                     $inventory = Inventory::where('item_id', $saleItem['item_id'])
                         ->where('branch_id', $user->branch_id)
                         ->first();
                     
                     if ($inventory) {
+                        // Scenario 1 & 2: Inventory exists - reduce stock (can go negative)
                         $inventory->decrement('current_stock', $saleItem['quantity']);
+                    } else {
+                        // Scenario 3: No inventory record - create new with negative quantity
+                        // Get default low_stock_alert from central inventory if available
+                        $centralInventory = Inventory::where('item_id', $saleItem['item_id'])
+                            ->whereNull('branch_id')
+                            ->first();
+                        
+                        $defaultLowAlert = $centralInventory ? $centralInventory->low_stock_alert : 10;
+                        
+                        Inventory::create([
+                            'item_id' => $saleItem['item_id'],
+                            'branch_id' => $user->branch_id,
+                            'current_stock' => -$saleItem['quantity'], // Negative to indicate deficit
+                            'low_stock_alert' => $defaultLowAlert,
+                        ]);
                     }
                 }
             }

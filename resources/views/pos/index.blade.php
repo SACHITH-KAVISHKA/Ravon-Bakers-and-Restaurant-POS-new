@@ -2275,7 +2275,7 @@
                     balance = modalCustomerPayment - total;
                 }
             } else if (modalSelectedPaymentMethod === 'CARD') {
-                // CARD: card amount and calculate credit if insufficient
+                // CARD: card amount and calculate balance/credit
                 document.getElementById('modal-cash-amount').textContent = '0.00';
                 document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
                 
@@ -2283,9 +2283,14 @@
                     // Insufficient payment - calculate credit
                     creditAmount = total - modalCardPayment;
                     balance = 0;
+                } else if (modalCardPayment > total) {
+                    // Overpayment - show balance (change)
+                    balance = modalCardPayment - total;
+                    creditAmount = 0;
                 } else {
-                    // Card payments don't give change
+                    // Exact payment
                     balance = 0;
+                    creditAmount = 0;
                 }
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
                 // CARD & CASH: show both amounts and calculate balance/credit
@@ -2351,11 +2356,17 @@
                 }
             } else if (modalSelectedPaymentMethod === 'CARD') {
                 if (modalCardPayment < total) {
-                    // Calculate unpaid amount as credit
+                    // Underpayment - calculate unpaid amount as credit
                     creditBalance = total - modalCardPayment;
                     balance = 0;
+                } else if (modalCardPayment > total) {
+                    // Overpayment - show change as balance
+                    balance = modalCardPayment - total;
+                    creditBalance = 0;
                 } else {
-                    balance = 0; // Card payments don't give change
+                    // Exact payment
+                    balance = 0;
+                    creditBalance = 0;
                 }
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
                 if (totalPaid < total) {
@@ -2518,8 +2529,37 @@
 
             if (paymentMethod === 'CASH') {
                 cashDetails.style.display = 'block';
-                document.getElementById('amount-paid-display').textContent = `LKR ${formatNumber(data.customer_payment || customerPayment)}`;
-                document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(data.balance || 0)}`;
+                const cashPaymentValue = parseFloat(data.customer_payment) || (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
+                const balanceValue = parseFloat(data.balance) || 0;
+                const creditValue = parseFloat(data.credit_balance) || 0;
+                
+                document.getElementById('amount-paid-display').textContent = `LKR ${formatNumber(cashPaymentValue)}`;
+                
+                // Show either balance or credit
+                if (creditValue > 0) {
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditValue)} (Credit)`;
+                } else if (balanceValue > 0) {
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balanceValue)} (Change)`;
+                } else {
+                    document.getElementById('balance-display-receipt').textContent = `LKR 0.00`;
+                }
+            } else if (paymentMethod === 'CARD') {
+                cashDetails.style.display = 'block';
+                const cardPaymentValue = parseFloat(data.card_payment) || (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
+                const totalValue = parseFloat(data.total) || getTotalAmount();
+                const balanceValue = parseFloat(data.balance) || 0;
+                const creditValue = parseFloat(data.credit_balance) || 0;
+                
+                document.getElementById('amount-paid-display').textContent = `LKR ${formatNumber(cardPaymentValue)}`;
+                
+                // Show either balance or credit
+                if (creditValue > 0) {
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditValue)} (Credit)`;
+                } else if (balanceValue > 0) {
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balanceValue)} (Change)`;
+                } else {
+                    document.getElementById('balance-display-receipt').textContent = `LKR 0.00`;
+                }
             } else if (paymentMethod === 'CARD & CASH') {
                 cashDetails.style.display = 'block';
 
@@ -2527,19 +2567,28 @@
                 const cardPaymentValue = parseFloat(data.card_payment) || (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
                 const customerPaymentValue = parseFloat(data.customer_payment) || (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
                 const totalPaid = customerPaymentValue + cardPaymentValue;
-                const balanceValue = parseFloat(data.balance) || (totalPaid - getTotalAmount());
+                const totalValue = parseFloat(data.total) || getTotalAmount();
+                const balanceValue = parseFloat(data.balance) || 0;
+                const creditValue = parseFloat(data.credit_balance) || 0;
 
                 // Update display to show detailed breakdown
                 const amountDisplay = document.getElementById('amount-paid-display');
                 if (amountDisplay) {
                     amountDisplay.innerHTML = `
-                        Customer: LKR ${formatNumber(customerPaymentValue)}<br>
+                        Cash: LKR ${formatNumber(customerPaymentValue)}<br>
                         Card: LKR ${formatNumber(cardPaymentValue)}<br>
                         <strong>Total: LKR ${formatNumber(totalPaid)}</strong>
                     `;
                 }
 
-                document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balanceValue)}`;
+                // Show either balance or credit
+                if (creditValue > 0) {
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditValue)} (Credit)`;
+                } else if (balanceValue > 0) {
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balanceValue)} (Change)`;
+                } else {
+                    document.getElementById('balance-display-receipt').textContent = `LKR 0.00`;
+                }
             } else {
                 cashDetails.style.display = 'none';
             }

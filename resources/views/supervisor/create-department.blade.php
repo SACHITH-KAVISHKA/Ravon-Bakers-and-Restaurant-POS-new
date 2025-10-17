@@ -56,7 +56,7 @@
                     
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('supervisor.add-inventory') }}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left"></i> Back to Add Inventory
+                            <i class="bi bi-arrow-left"></i> Back to Add Production
                         </a>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check-circle"></i> Create Department

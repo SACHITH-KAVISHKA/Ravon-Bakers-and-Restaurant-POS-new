@@ -180,6 +180,44 @@
             width: 20px;
         }
 
+        /* Reports submenu styles */
+        .sidebar .nav-link .bi-chevron-down {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        .sidebar .nav-link[aria-expanded="true"] .bi-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .sidebar #reportsSubmenu {
+            transition: all 0.3s ease;
+        }
+
+        .sidebar #reportsSubmenu .nav-link {
+            padding-left: 45px;
+            font-size: 14px;
+            margin: 1px 0;
+        }
+
+        .sidebar #reportsSubmenu .nav-link i {
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        /* Submenu container for custom toggle */
+        .submenu-container {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .submenu-container.show {
+            max-height: 500px;
+            opacity: 1;
+        }
+
         .navbar-brand {
             font-weight: 600;
             color: #667eea !important;
@@ -427,15 +465,7 @@
                         <a class="nav-link {{ request()->routeIs('supervisor.add-inventory') ? 'active' : '' }}"
                            href="{{ route('supervisor.add-inventory') }}">
                             <i class="bi bi-plus-circle"></i>
-                            <span>Add Products</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('supervisor.inventory-history') ? 'active' : '' }}"
-                           href="{{ route('supervisor.inventory-history') }}">
-                            <i class="bi bi-boxes"></i>
-                            <span>Stock by Category</span>
+                            <span>Add Production</span>
                         </a>
                     </li>
 
@@ -443,17 +473,10 @@
                         <a class="nav-link {{ request()->routeIs('supervisor.add-wastage') ? 'active' : '' }}"
                            href="{{ route('supervisor.add-wastage') }}">
                             <i class="bi bi-trash"></i>
-                            <span>Add Wastage</span>
+                            <span>Production Wastage</span>
                         </a>
                     </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('supervisor.wastage-view') ? 'active' : '' }}"
-                           href="{{ route('supervisor.wastage-view') }}">
-                            <i class="bi bi-eye"></i>
-                            <span>View Wastage</span>
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('supervisor.stock-transfer.create') ? 'active' : '' }}"
                            href="{{ route('supervisor.stock-transfer.create') }}">
@@ -462,12 +485,41 @@
                         </a>
                     </li>
 
+                    <!-- Reports dropdown -->
+                    @php
+                        $reportsActive = request()->routeIs('supervisor.wastage-view') || request()->routeIs('stock-transfer.transfers') || request()->routeIs('supervisor.inventory-history');
+                    @endphp
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') && !request()->routeIs('supervisor.stock-transfer.create') ? 'active' : '' }}"
-                           href="{{ route('stock-transfer.transfers') }}">
-                            <i class="bi bi-list-check"></i>
-                            <span>View Transfers</span>
+                        <a class="nav-link d-flex justify-content-between align-items-center {{ $reportsActive ? 'active' : '' }}" 
+                           href="javascript:void(0);" 
+                           onclick="toggleReportsMenu(event)" 
+                           id="reportsToggle"
+                           aria-expanded="{{ $reportsActive ? 'true' : 'false' }}">
+                            <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
+                            <i class="bi bi-chevron-down"></i>
                         </a>
+                        <div class="submenu-container {{ $reportsActive ? 'show' : '' }}" id="reportsSubmenu" style="display: {{ $reportsActive ? 'block' : 'none' }};">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('supervisor.wastage-view') ? 'active' : '' }}" href="{{ route('supervisor.wastage-view') }}">
+                                        <i class="bi bi-eye"></i>
+                                        <span>View Wastage</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" href="{{ route('stock-transfer.transfers') }}">
+                                        <i class="bi bi-list-check"></i>
+                                        <span>View Transfer</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('supervisor.inventory-history') ? 'active' : '' }}" href="{{ route('supervisor.inventory-history') }}">
+                                        <i class="bi bi-boxes"></i>
+                                        <span>Stock Report</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
                     @else
                     <!-- Regular Navigation for Admin and Staff -->
@@ -797,6 +849,41 @@
                     closeMobileSidebar();
                     document.body.style.overflow = '';
                 }
+            });
+
+            // Keep 'Reports' submenu stable: open on related routes and avoid accidental collapse
+            // Simple toggle function that won't auto-close
+            window.toggleReportsMenu = function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const toggle = document.getElementById('reportsToggle');
+                const submenu = document.getElementById('reportsSubmenu');
+                
+                if (!toggle || !submenu) return;
+                
+                const isExpanded = submenu.classList.contains('show');
+                
+                if (isExpanded) {
+                    submenu.classList.remove('show');
+                    submenu.style.display = 'none';
+                    toggle.setAttribute('aria-expanded', 'false');
+                } else {
+                    submenu.classList.add('show');
+                    submenu.style.display = 'block';
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            };
+            
+            // Ensure submenu links don't trigger any parent toggles
+            document.addEventListener('DOMContentLoaded', function() {
+                const submenuLinks = document.querySelectorAll('#reportsSubmenu a');
+                submenuLinks.forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        // Let the navigation happen naturally
+                    });
+                });
             });
         });
     </script>

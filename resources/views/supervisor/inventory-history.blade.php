@@ -11,7 +11,7 @@
                     <i class="bi bi-boxes" style="color: #667eea;"></i> Available Stock by Category
                 </h1>
                 <a href="{{ route('supervisor.add-inventory') }}" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-                    <i class="bi bi-plus-circle"></i> Add Inventory
+                    <i class="bi bi-plus-circle"></i> Add Production
                 </a>
             </div>
         </div>
@@ -78,7 +78,7 @@
                     <h4 class="text-muted mt-3">No Stock Available</h4>
                     <p class="text-muted">There are currently no items with available stock.</p>
                     <a href="{{ route('supervisor.add-inventory') }}" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-                        <i class="bi bi-plus-circle"></i> Add Inventory
+                        <i class="bi bi-plus-circle"></i> Add Production
                     </a>
                 </div>
             </div>

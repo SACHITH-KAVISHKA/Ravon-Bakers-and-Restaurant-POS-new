@@ -2547,17 +2547,20 @@
                 cashDetails.style.display = 'block';
                 const cardPaymentValue = parseFloat(data.card_payment) || (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
                 const totalValue = parseFloat(data.total) || getTotalAmount();
-                const balanceValue = parseFloat(data.balance) || 0;
-                const creditValue = parseFloat(data.credit_balance) || 0;
                 
-                document.getElementById('amount-paid-display').textContent = `LKR ${formatNumber(cardPaymentValue)}`;
+                document.getElementById('amount-paid-display').textContent = `Card Payment: LKR ${formatNumber(cardPaymentValue)}`;
                 
-                // Show either balance or credit
-                if (creditValue > 0) {
-                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditValue)} (Credit)`;
-                } else if (balanceValue > 0) {
-                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balanceValue)} (Change)`;
+                // Show balance only when overpaid, or credit when underpaid
+                if (cardPaymentValue > totalValue) {
+                    // Scenario 1: Overpaid - show balance (change)
+                    const balance = cardPaymentValue - totalValue;
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balance)}`;
+                } else if (cardPaymentValue < totalValue) {
+                    // Scenario 2: Underpaid - show credit balance
+                    const creditBalance = totalValue - cardPaymentValue;
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditBalance)} (Credit)`;
                 } else {
+                    // Scenario 3: Exact payment - no balance or credit
                     document.getElementById('balance-display-receipt').textContent = `LKR 0.00`;
                 }
             } else if (paymentMethod === 'CARD & CASH') {
@@ -2568,8 +2571,6 @@
                 const customerPaymentValue = parseFloat(data.customer_payment) || (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
                 const totalPaid = customerPaymentValue + cardPaymentValue;
                 const totalValue = parseFloat(data.total) || getTotalAmount();
-                const balanceValue = parseFloat(data.balance) || 0;
-                const creditValue = parseFloat(data.credit_balance) || 0;
 
                 // Update display to show detailed breakdown
                 const amountDisplay = document.getElementById('amount-paid-display');
@@ -2581,12 +2582,17 @@
                     `;
                 }
 
-                // Show either balance or credit
-                if (creditValue > 0) {
-                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditValue)} (Credit)`;
-                } else if (balanceValue > 0) {
-                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balanceValue)} (Change)`;
+                // Show balance only when overpaid, or credit when underpaid
+                if (totalPaid > totalValue) {
+                    // Overpaid - show balance (change)
+                    const balance = totalPaid - totalValue;
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(balance)}`;
+                } else if (totalPaid < totalValue) {
+                    // Underpaid - show credit balance
+                    const creditBalance = totalValue - totalPaid;
+                    document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditBalance)} (Credit)`;
                 } else {
+                    // Exact payment - no balance or credit
                     document.getElementById('balance-display-receipt').textContent = `LKR 0.00`;
                 }
             } else {
@@ -2875,19 +2881,36 @@
                         });
                         yPosition += 5;
 
+                        // Remove commas before parsing to handle formatted numbers correctly
+                        const cashAmount = parseFloat(receiptData.customerPayment.replace(/,/g, '')) || 0;
+                        const cardAmount = parseFloat(receiptData.cardPayment.replace(/,/g, '')) || 0;
+                        const totalPaid = (cashAmount + cardAmount).toFixed(2);
+                        
                         pdf.text('Total Paid:', leftMargin, yPosition);
-                        pdf.text(`LKR ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${totalPaid}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 5;
 
-                        // Calculate balance correctly: (Customer Payment + Card Payment) - Total
-                        const calculatedBalance = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment) - parseFloat(receiptData.total)).toFixed(2);
-                        pdf.text('Balance:', leftMargin, yPosition);
-                        pdf.text(`LKR ${calculatedBalance}`, pageWidth - rightMargin, yPosition, {
-                            align: 'right'
-                        });
-                        yPosition += 6;
+                        // Use the balance value from backend (already calculated correctly)
+                        const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
+                        
+                        if (balanceValue > 0) {
+                            // Overpaid - show balance
+                            pdf.text('Balance:', leftMargin, yPosition);
+                            pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+                                align: 'right'
+                            });
+                            yPosition += 5;
+                        } else if (balanceValue < 0) {
+                            // Underpaid - show credit balance
+                            pdf.text('Credit Balance:', leftMargin, yPosition);
+                            pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
+                                align: 'right'
+                            });
+                            yPosition += 5;
+                        }
+                        yPosition += 1;
                     } else {
                         // For CASH only payment method
                         pdf.text('Amount Paid:', leftMargin, yPosition);
@@ -2911,13 +2934,21 @@
                     });
                     yPosition += 5;
                     
-                    // Show credit balance if card payment is less than total
-                    const cardAmount = parseFloat(receiptData.cardPayment) || 0;
-                    const totalAmount = parseFloat(receiptData.total) || 0;
-                    if (cardAmount < totalAmount) {
-                        const creditBalance = (totalAmount - cardAmount).toFixed(2);
+                    // Show balance when overpaid or credit balance when underpaid
+                    // Use the balance value from backend (already calculated correctly)
+                    const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
+                    
+                    if (balanceValue > 0) {
+                        // Overpaid - show balance (change)
+                        pdf.text('Balance:', leftMargin, yPosition);
+                        pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+                            align: 'right'
+                        });
+                        yPosition += 5;
+                    } else if (balanceValue < 0) {
+                        // Underpaid - show credit balance
                         pdf.text('Credit Balance:', leftMargin, yPosition);
-                        pdf.text(`LKR ${creditBalance}`, pageWidth - rightMargin, yPosition, {
+                        pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
                         });
                         yPosition += 5;
@@ -2931,10 +2962,7 @@
                     });
                     yPosition += 5;
 
-                    pdf.text('Credit Balance:', leftMargin, yPosition);
-                    pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
-                        align: 'right'
-                    });
+                    // For CREDIT payments we intentionally omit printing a 'Credit Balance' on the receipt.
                     yPosition += 6;
                 }
 

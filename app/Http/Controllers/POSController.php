@@ -130,7 +130,7 @@ class POSController extends Controller
                     $creditBalance = $total - $cardPayment;
                     $balance = 0;
                 } else {
-                    $balance = 0; // Card payments don't give change
+                    $balance = $cardPayment - $total; // Calculate overpayment balance
                 }
                 $customerPayment = 0; // No cash involved
                 break;

@@ -230,16 +230,31 @@
                     <span>Total Paid:</span>
                     <span>LKR {{ number_format(($sale->customer_payment ?? 0) + ($sale->card_payment ?? 0), 2) }}</span>
                 </div>
-                <div>
-                    <span>Balance:</span>
-                    <span>LKR {{ number_format((($sale->customer_payment ?? 0) + ($sale->card_payment ?? 0)) - $sale->total, 2) }}</span>
-                </div>
+                @php
+                    $totalPaid = ($sale->customer_payment ?? 0) + ($sale->card_payment ?? 0);
+                @endphp
+                @if($totalPaid > $sale->total)
+                    <div>
+                        <span>Balance:</span>
+                        <span>LKR {{ number_format($totalPaid - $sale->total, 2) }}</span>
+                    </div>
+                @elseif($totalPaid < $sale->total)
+                    <div>
+                        <span>Credit Balance:</span>
+                        <span>LKR {{ number_format($sale->total - $totalPaid, 2) }}</span>
+                    </div>
+                @endif
             @elseif($sale->payment_method === 'card')
                 <div>
                     <span>Card Payment:</span>
                     <span>LKR {{ number_format($sale->card_payment ?? 0, 2) }}</span>
                 </div>
-                @if(($sale->card_payment ?? 0) < $sale->total)
+                @if(($sale->card_payment ?? 0) > $sale->total)
+                    <div>
+                        <span>Balance:</span>
+                        <span>LKR {{ number_format(($sale->card_payment ?? 0) - $sale->total, 2) }}</span>
+                    </div>
+                @elseif(($sale->card_payment ?? 0) < $sale->total)
                     <div>
                         <span>Credit Balance:</span>
                         <span>LKR {{ number_format($sale->total - ($sale->card_payment ?? 0), 2) }}</span>
@@ -250,10 +265,7 @@
                     <span>Amount Due:</span>
                     <span>LKR {{ number_format($sale->total, 2) }}</span>
                 </div>
-                <div>
-                    <span>Credit Balance:</span>
-                    <span>LKR {{ number_format($sale->credit_balance ?? $sale->total, 2) }}</span>
-                </div>
+                <!-- For CREDIT payments, only show the amount due. Credit balance is intentionally omitted. -->
             @else
                 {{-- Fallback for unrecognized payment methods --}}
                 <div style="color: red; font-size: 10px;">
@@ -545,24 +557,44 @@
                         pdf.text('Card Payment:', 5, yPosition);
                         pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth-5, yPosition, { align: 'right' });
                         yPosition += 5;
-                        const totalPaid = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment)).toFixed(2);
+                        // Remove commas from formatted numbers before parsing
+                        const cashAmt = parseFloat(receiptData.customerPayment.replace(/,/g, '')) || 0;
+                        const cardAmt = parseFloat(receiptData.cardPayment.replace(/,/g, '')) || 0;
+                        const totalPaid = (cashAmt + cardAmt).toFixed(2);
                         pdf.text('Total Paid:', 5, yPosition);
                         pdf.text(`LKR ${totalPaid}`, pageWidth-5, yPosition, { align: 'right' });
                         yPosition += 5;
-                        const calculatedBalance = (parseFloat(receiptData.customerPayment) + parseFloat(receiptData.cardPayment) - parseFloat(receiptData.total)).toFixed(2);
-                        pdf.text('Balance:', 5, yPosition);
-                        pdf.text(`LKR ${calculatedBalance}`, pageWidth-5, yPosition, { align: 'right' });
-                        yPosition += 6;
+                        
+                        // Show balance only when overpaid, or credit balance when underpaid
+                        const totalAmount = parseFloat(receiptData.total.replace(/,/g, '')) || 0;
+                        if (parseFloat(totalPaid) > totalAmount) {
+                            const balance = (parseFloat(totalPaid) - totalAmount).toFixed(2);
+                            pdf.text('Balance:', 5, yPosition);
+                            pdf.text(`LKR ${balance}`, pageWidth-5, yPosition, { align: 'right' });
+                            yPosition += 5;
+                        } else if (parseFloat(totalPaid) < totalAmount) {
+                            const creditBalance = (totalAmount - parseFloat(totalPaid)).toFixed(2);
+                            pdf.text('Credit Balance:', 5, yPosition);
+                            pdf.text(`LKR ${creditBalance}`, pageWidth-5, yPosition, { align: 'right' });
+                            yPosition += 5;
+                        }
+                        yPosition += 1;
                     } else if (receiptData.showCardOnly) {
                         // CARD only payment method
                         pdf.text('Card Payment:', 5, yPosition);
                         pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth-5, yPosition, { align: 'right' });
                         yPosition += 5;
                         
-                        // Show credit balance if card payment is less than total
-                        const cardAmount = parseFloat(receiptData.cardPayment) || 0;
-                        const totalAmount = parseFloat(receiptData.total) || 0;
-                        if (cardAmount < totalAmount) {
+                        // Show balance only when overpaid, or credit balance when underpaid
+                        const cardAmount = parseFloat(receiptData.cardPayment.replace(/,/g, '')) || 0;
+                        const totalAmount = parseFloat(receiptData.total.replace(/,/g, '')) || 0;
+                        
+                        if (cardAmount > totalAmount) {
+                            const balance = (cardAmount - totalAmount).toFixed(2);
+                            pdf.text('Balance:', 5, yPosition);
+                            pdf.text(`LKR ${balance}`, pageWidth-5, yPosition, { align: 'right' });
+                            yPosition += 5;
+                        } else if (cardAmount < totalAmount) {
                             const creditBalance = (totalAmount - cardAmount).toFixed(2);
                             pdf.text('Credit Balance:', 5, yPosition);
                             pdf.text(`LKR ${creditBalance}`, pageWidth-5, yPosition, { align: 'right' });
@@ -570,11 +602,8 @@
                         }
                         yPosition += 1;
                     } else if (receiptData.showCredit) {
-                        // CREDIT payment method
+                        // CREDIT payment method - show only the amount due, omit credit balance on printed receipt
                         pdf.text('Amount Due:', 5, yPosition);
-                        pdf.text(`LKR ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
-                        yPosition += 5;
-                        pdf.text('Credit Balance:', 5, yPosition);
                         pdf.text(`LKR ${receiptData.total}`, pageWidth-5, yPosition, { align: 'right' });
                         yPosition += 6;
                     } else {

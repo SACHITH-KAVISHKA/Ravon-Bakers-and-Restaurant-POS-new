@@ -38,7 +38,7 @@ class SalesDataSeeder extends Seeder
                     $item->update([
                         'item_name' => "Item " . $item->id,
                         'description' => "Description for item " . $item->id,
-                        'price' => $item->price ?: rand(500, 5000) / 100,
+                        'price' => ($item->branchPrices()->first()?->price) ?? (rand(500, 5000) / 100),
                     ]);
                 }
             }

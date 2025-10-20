@@ -25,22 +25,45 @@ class POSController extends Controller
         
         // Show all active items regardless of stock availability
         // Staff can sell items even without stock in their branch
+        // Always eager load branchPrices (and branch) and inventory for efficiency
+        $query = Item::where('is_active', true)
+            ->with(['branchPrices.branch'])
+            ->orderBy('category');
+
         if ($user && $user->role === 'staff' && $user->branch_id) {
-            // Get all active items with branch inventory loaded
-            $items = Item::where('is_active', true)
-            ->with(['inventory' => function($query) use ($user) {
-                $query->where('branch_id', $user->branch_id);
-            }])
-            ->orderBy('category')
-            ->get()
-            ->groupBy('category');
+            // For staff, also eager-load inventory for their branch
+            $query = $query->with(['inventory' => function($q) use ($user) {
+                $q->where('branch_id', $user->branch_id);
+            }]);
         } else {
-            // For admin/supervisor, show all active items
-            $items = Item::where('is_active', true)
-                ->orderBy('category')
-                ->get()
-                ->groupBy('category');
+            $query = $query->with('inventory');
         }
+
+        $items = $query->get()->groupBy('category');
+
+        // Attach a branch-aware pos_price attribute to each item so views can use it
+        $items = $items->map(function ($categoryItems) use ($user) {
+            return $categoryItems->map(function ($item) use ($user) {
+                $posPrice = 0;
+                // If staff with branch, prefer that branch's price
+                if ($user && $user->role === 'staff' && $user->branch_id) {
+                    $bp = $item->branchPrices->firstWhere('branch_id', $user->branch_id);
+                    if ($bp) {
+                        $posPrice = $bp->price;
+                    }
+                }
+
+                // fallback to first branch price if none found
+                if ($posPrice == 0) {
+                    $firstBp = $item->branchPrices->first();
+                    $posPrice = $firstBp ? $firstBp->price : 0;
+                }
+
+                // Attach attribute
+                $item->setAttribute('pos_price', $posPrice);
+                return $item;
+            });
+        });
             
         return view('pos.index', compact('items'));
     }
@@ -88,7 +111,13 @@ class POSController extends Controller
             // No stock validation here - allow sale even without stock
             // Stock will be reduced only if available in the branch
             
-            $unitPrice = $item->price;
+            // Prefer branch price for the staff user's branch when processing a sale
+            $user = Auth::user();
+            if ($user && $user->role === 'staff' && $user->branch_id) {
+                $unitPrice = $item->branchPrices()->where('branch_id', $user->branch_id)->first()?->price ?? ($item->branchPrices()->first()?->price ?? 0);
+            } else {
+                $unitPrice = $item->branchPrices()->first()?->price ?? 0;
+            }
             $totalPrice = $unitPrice * $quantity;
             
             $subtotal += $totalPrice;

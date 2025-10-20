@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\InventoryRequestItem;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,7 @@ class ItemController extends Controller
         }
         
         // Admin sees all items
-        $query = Item::with(['inventory'])
+    $query = Item::with(['inventory', 'branchPrices.branch'])
                     ->where('is_active', true);
         
         // Apply search filter
@@ -41,10 +42,12 @@ class ItemController extends Controller
             });
         }
         
-        $items = $query->orderBy('item_name', 'asc')
-                      ->paginate(100);
-        
-        return view('items.index', compact('items'));
+    $items = $query->orderBy('item_name', 'asc')
+              ->paginate(100);
+
+    $branches = Branch::orderBy('name')->get();
+
+    return view('items.index', compact('items', 'branches'));
     }
 
     /**
@@ -91,24 +94,25 @@ class ItemController extends Controller
                 }
             ],
             'category' => 'required|string|exists:categories,name,status,1',
-            'price' => 'required|numeric|min:0',
+            // 'price' moved to branch-specific pricing
             'description' => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($request) {
+    DB::transaction(function () use ($request) {
             // Check if an inactive item with the same name already exists
             $existingItem = Item::where('item_name', $request->item_name)
                                ->where('is_active', false)
                                ->first();
             
-            if ($existingItem) {
+                if ($existingItem) {
                 // Reactivate the existing item
                 $existingItem->update([
                     'category' => $request->category,
-                    'price' => $request->price,
+                        //'price' => moved to branch prices
                     'description' => $request->description,
                     'is_active' => true,
                 ]);
+                $item = $existingItem;
             } else {
                 // Generate next item code
                 $itemCode = $this->generateNextItemCode();
@@ -117,10 +121,20 @@ class ItemController extends Controller
                     'item_name' => $request->item_name,
                     'item_code' => $itemCode,
                     'category' => $request->category,
-                    'price' => $request->price,
                     'description' => $request->description,
                     'is_active' => true,
                 ]);
+            }
+
+            // Save branch-specific prices if provided
+            if ($request->has('branch_prices') && is_array($request->branch_prices)) {
+                foreach ($request->branch_prices as $bp) {
+                    if (empty($bp['branch_id'])) continue;
+                    \App\Models\ItemBranchPrice::updateOrCreate(
+                        ['item_id' => $item->id, 'branch_id' => $bp['branch_id']],
+                        ['price' => $bp['price'] ?? 0]
+                    );
+                }
             }
         });
 
@@ -185,7 +199,7 @@ class ItemController extends Controller
                 }
             ],
             'category' => 'required|string|exists:categories,name,status,1',
-            'price' => 'required|numeric|min:0',
+            // 'price' moved to branch-specific pricing
             'description' => 'nullable|string',
         ]);
 
@@ -194,9 +208,27 @@ class ItemController extends Controller
                 'item_name' => $request->item_name,
                 // item_code is not updated - it stays the same
                 'category' => $request->category,
-                'price' => $request->price,
+                //'price' => moved to branch prices
                 'description' => $request->description,
             ]);
+
+            // Update branch-specific prices if provided
+            if ($request->has('branch_prices') && is_array($request->branch_prices)) {
+                $incoming = [];
+                foreach ($request->branch_prices as $bp) {
+                    if (empty($bp['branch_id'])) continue;
+                    $incoming[$bp['branch_id']] = $bp['price'] ?? 0;
+                    \App\Models\ItemBranchPrice::updateOrCreate(
+                        ['item_id' => $item->id, 'branch_id' => $bp['branch_id']],
+                        ['price' => $bp['price'] ?? 0]
+                    );
+                }
+
+                // Delete branch prices that were removed in the form
+                \App\Models\ItemBranchPrice::where('item_id', $item->id)
+                    ->whereNotIn('branch_id', array_keys($incoming))
+                    ->delete();
+            }
         });
 
         return redirect()->route('items.index')->with('success', 'Item updated successfully.');

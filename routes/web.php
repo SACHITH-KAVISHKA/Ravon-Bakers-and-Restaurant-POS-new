@@ -31,6 +31,13 @@ Route::middleware('auth')->group(function () {
 
     // Item Management - All users can view, only admin can modify
     Route::resource('items', ItemController::class);
+    // Item branch prices management (admin)
+    Route::prefix('items')->name('items.')->group(function () {
+        Route::get('{item}/prices', [App\Http\Controllers\ItemBranchPriceController::class, 'index'])->name('prices.index');
+        Route::post('{item}/prices', [App\Http\Controllers\ItemBranchPriceController::class, 'store'])->name('prices.store');
+        Route::put('{item}/prices/{price}', [App\Http\Controllers\ItemBranchPriceController::class, 'update'])->name('prices.update');
+        Route::delete('{item}/prices/{price}', [App\Http\Controllers\ItemBranchPriceController::class, 'destroy'])->name('prices.destroy');
+    });
 
     // Category Management - All users can view, only admin can modify
     Route::resource('categories', CategoryController::class);

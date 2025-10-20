@@ -43,7 +43,9 @@
                                 <div class="bg-light rounded-3 p-3 text-center">
                                     <i class="bi bi-cash-coin text-success fs-3 mb-2"></i>
                                     <h6 class="text-muted mb-1">Price</h6>
-                                    <h4 class="text-success mb-0">LKR {{ number_format($item->price, 2) }}</h4>
+                                    <a href="{{ route('items.prices.index', $item) }}" class="btn btn-outline-primary">
+                                        View branch-specific prices
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -62,6 +64,40 @@
                             </div>
                         </div>
                         @endif
+                        
+                        <!-- Branch-specific Prices Summary -->
+                        <div class="card bg-light border-0 mb-4">
+                            <div class="card-header bg-transparent border-0 pb-0">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-geo-alt-fill text-secondary me-2"></i>
+                                    Branch Prices
+                                </h6>
+                            </div>
+                            <div class="card-body pt-2">
+                                @if($item->branchPrices && $item->branchPrices->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Branch</th>
+                                                <th>Price (LKR)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($item->branchPrices as $bp)
+                                            <tr>
+                                                <td>{{ $bp->branch->name ?? '—' }}</td>
+                                                <td>LKR {{ number_format($bp->price, 2) }}</td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @else
+                                <p class="mb-0 text-muted">No branch-specific prices set for this item.</p>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -28,7 +28,6 @@
                                        name="item_code_display" 
                                        value="{{ $nextItemCode }}" 
                                        readonly>
-                                <div class="form-text">Auto-generated item code</div>
                             </div>
                             
                             <div class="col-12 col-md-6">
@@ -49,7 +48,7 @@
                                         id="category" name="category" required>
                                     <option value="">Select Category</option>
                                     @foreach($categories as $category)
-                                        <option value="{{ $category->name }}" {{ old('category') == $category->name ? 'selected' : '' }}>
+                                        <option value="{{ $category->name }}" @selected(old('category') == $category->name)>
                                             {{ $category->name }}
                                         </option>
                                     @endforeach
@@ -59,18 +58,7 @@
                                 @enderror
                             </div>
                             
-                            <div class="col-12 col-md-6">
-                                <label for="price" class="form-label fw-semibold">Price (LKR) <span class="text-danger">*</span></label>
-                                <div class="input-group input-group-lg">
-                                    <span class="input-group-text">LKR</span>
-                                    <input type="number" step="0.01" min="0" class="form-control @error('price') is-invalid @enderror" 
-                                           id="price" name="price" value="{{ old('price') }}" required
-                                           placeholder="0.00">
-                                    @error('price')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
+                            <!-- Price moved to branch-specific pricing. See Branch Prices section below. -->
                         </div>
 
                         <div class="mt-3">
@@ -82,6 +70,13 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+
+                        {{-- Branch Prices Section --}}
+                        @php
+                            // Pass empty array for create view
+                        @endphp
+                        <input type="hidden" id="__branchPricesForItem" value="[]">
+                        @include('items.partials.branch_prices')
 
                         <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-4">
                             <a href="{{ route('items.index') }}" class="btn btn-outline-secondary btn-lg">

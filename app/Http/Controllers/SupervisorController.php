@@ -73,10 +73,10 @@ class SupervisorController extends Controller
     public function addInventory()
     {
         $departments = Department::where('is_active', true)->get();
-        $items = Item::with('inventory')
-                    ->orderBy('item_name', 'asc')
-                    ->where('is_active', true)
-                    ->get();
+    $items = Item::with('inventory', 'branchPrices')
+            ->orderBy('item_name', 'asc')
+            ->where('is_active', true)
+            ->get();
 
         return view('supervisor.add-inventory', compact('departments', 'items'));
     }
@@ -140,15 +140,15 @@ class SupervisorController extends Controller
     {
         $items = Item::with('inventory')
             ->where('is_active', true)
-            ->select('id', 'item_name', 'item_code', 'price')
-            ->orderBy('item_name', 'asc')
-            ->get()
-            ->map(function ($item) {
+                ->orderBy('item_name', 'asc')
+                ->get()
+                ->map(function ($item) {
+                $firstBp = $item->branchPrices->first();
                 return [
                     'id' => $item->id,
                     'item_name' => $item->item_name,
                     'item_code' => $item->item_code,
-                    'price' => $item->price,
+                    'price' => $firstBp ? $firstBp->price : 0,
                     'current_stock' => $item->inventory ? $item->inventory->current_stock : 0,
                 ];
             });
@@ -206,11 +206,12 @@ class SupervisorController extends Controller
                     }),
                     'items' => $categoryItems->map(function ($item) {
                         $inventory = $item->inventory;
+                        $firstBp = $item->branchPrices->first();
                         return [
                             'id' => $item->id,
                             'name' => $item->item_name,
                             'item_code' => $item->item_code,
-                            'price' => $item->price,
+                            'price' => $firstBp ? $firstBp->price : 0,
                             'current_stock' => $inventory ? $inventory->current_stock : 0,
                             'is_low_stock' => $inventory && $inventory->current_stock <= 10
                         ];

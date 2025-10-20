@@ -38,10 +38,14 @@ class DashboardController extends Controller
             $itemIds = Inventory::where('branch_id', $branchId)->pluck('item_id')->toArray();
             $totalPurchases = Purchase::whereIn('item_id', $itemIds)->count();
 
-            // Total value of inventory in this branch (current_stock * item price)
-            $totalValue = Inventory::where('branch_id', $branchId)
-                ->join('items', 'inventories.item_id', '=', 'items.id')
-                ->selectRaw('COALESCE(SUM(inventories.current_stock * items.price), 0) as total')
+            // Total value of inventory in this branch using branch-specific prices
+            // Join inventories -> item_branch_prices (left join so items without branch price count as 0)
+            $totalValue = Inventory::where('inventories.branch_id', $branchId)
+                ->leftJoin('item_branch_prices as bp', function ($join) use ($branchId) {
+                    $join->on('inventories.item_id', '=', 'bp.item_id')
+                         ->where('bp.branch_id', '=', $branchId);
+                })
+                ->selectRaw('COALESCE(SUM(inventories.current_stock * COALESCE(bp.price, 0)), 0) as total')
                 ->value('total');
 
             // Prefer using sale.branch_id (available after migration); fall back to user_name mapping.

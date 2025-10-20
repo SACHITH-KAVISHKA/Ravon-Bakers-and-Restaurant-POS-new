@@ -11,13 +11,11 @@ class Item extends Model
         'item_name',
         'item_code',
         'category',
-        'price',
         'description',
         'is_active',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
@@ -59,6 +57,29 @@ class Item extends Model
     public function inventoryRequestItems(): HasMany
     {
         return $this->hasMany(InventoryRequestItem::class);
+    }
+
+    /**
+     * Branch-specific prices for this item
+     */
+    public function branchPrices()
+    {
+        return $this->hasMany(ItemBranchPrice::class);
+    }
+
+    /**
+     * Fallback price accessor: return the first branch price if items.price column is removed.
+     */
+    public function getPriceAttribute($value)
+    {
+        // If a DB value exists (rare if column was present) prefer it
+        if (! is_null($value)) {
+            return $value;
+        }
+
+        // Fallback: use the first branch price (if any)
+        $bp = $this->branchPrices()->first();
+        return $bp ? (float) $bp->price : 0.0;
     }
 
     /**

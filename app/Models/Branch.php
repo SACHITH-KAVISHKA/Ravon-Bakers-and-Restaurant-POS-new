@@ -43,6 +43,14 @@ class Branch extends Model
     }
 
     /**
+     * Get branch-specific item prices
+     */
+    public function itemPrices()
+    {
+        return $this->hasMany(\App\Models\ItemBranchPrice::class, 'branch_id');
+    }
+
+    /**
      * Get stock transfers received by this branch.
      */
     public function receivedTransfers(): HasMany

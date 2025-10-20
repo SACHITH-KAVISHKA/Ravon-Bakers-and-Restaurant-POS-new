@@ -50,7 +50,7 @@
                                     <select class="form-control @error('category') is-invalid @enderror" id="category" name="category" required>
                                         <option value="">Select Category</option>
                                         @foreach($categories as $category)
-                                            <option value="{{ $category->name }}" {{ old('category', $item->category) == $category->name ? 'selected' : '' }}>
+                                            <option value="{{ $category->name }}" @selected(old('category', $item->category) == $category->name)>
                                                 {{ $category->name }}
                                             </option>
                                         @endforeach
@@ -60,20 +60,7 @@
                                     @enderror
                                 </div>
                                 
-                                <div class="col-md-6 mb-3">
-                                    <label for="price" class="form-label">Price (LKR) *</label>
-                                    <input type="number" 
-                                           class="form-control @error('price') is-invalid @enderror" 
-                                           id="price" 
-                                           name="price" 
-                                           step="0.01" 
-                                           min="0" 
-                                           value="{{ old('price', $item->price) }}" 
-                                           required>
-                                    @error('price')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
+                                <!-- Price moved to branch-specific pricing. Use Branch Prices section below to set per-branch rates. -->
                             </div>
 
                             <div class="mb-3">
@@ -87,6 +74,13 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
+
+                            {{-- Branch Prices Section --}}
+                            @php
+                                $bps = $item->branchPrices()->with('branch')->get()->map(function($b){ return ['branch_id'=>$b->branch_id,'price'=>$b->price]; });
+                            @endphp
+                            <script>window.__branchPricesForItem = @json($bps->values());</script>
+                            @include('items.partials.branch_prices')
                         </div>
                         
                         <div class="card-footer bg-light">

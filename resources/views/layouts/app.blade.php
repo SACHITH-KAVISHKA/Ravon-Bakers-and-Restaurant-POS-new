@@ -498,7 +498,7 @@
                             <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
                             <i class="bi bi-chevron-down"></i>
                         </a>
-                        <div class="submenu-container {{ $reportsActive ? 'show' : '' }}" id="reportsSubmenu" style="display: {{ $reportsActive ? 'block' : 'none' }};">
+                        <div class="submenu-container {{ $reportsActive ? 'show' : '' }}" id="reportsSubmenu">
                             <ul class="nav flex-column ms-3">
                                 <li class="nav-item">
                                     <a class="nav-link {{ request()->routeIs('supervisor.wastage-view') ? 'active' : '' }}" href="{{ route('supervisor.wastage-view') }}">

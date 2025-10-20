@@ -47,7 +47,11 @@
                             <th class="d-none d-md-table-cell">Item Code</th>
                             <th>Item Name</th>
                             <th class="d-none d-lg-table-cell">Category</th>
-                            <th class="d-none d-sm-table-cell">Price</th>
+                            <!-- Price removed: use branch-specific prices instead -->
+                            {{-- one header column per branch --}}
+                            @foreach($branches as $branch)
+                                <th class="text-center d-none d-lg-table-cell">{{ $branch->name }}</th>
+                            @endforeach
                             <th class="d-none d-sm-table-cell">Status</th>
                             <th>Actions</th>
                         </tr>
@@ -66,7 +70,20 @@
                             <td class="d-none d-lg-table-cell">
                                 <span class="badge bg-secondary">{{ $item->category }}</span>
                             </td>
-                            <td class="d-none d-sm-table-cell">LKR {{ number_format($item->price, 2) }}</td>
+                            <!-- Price removed: use branch-specific prices instead -->
+
+                            {{-- prices per branch (each branch column) --}}
+                            @foreach($branches as $branch)
+                                @php $bp = $item->branchPrices->firstWhere('branch_id', $branch->id); @endphp
+                                <td class="text-center d-none d-lg-table-cell">
+                                    @if($bp)
+                                        LKR {{ number_format($bp->price, 2) }}
+                                    @else
+                                        <small class="text-muted">—</small>
+                                    @endif
+                                </td>
+                            @endforeach
+
                             <td class="d-none d-sm-table-cell">
                                 @if($item->is_active)
                                     <span class="badge bg-success">Active</span>
@@ -76,7 +93,7 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-1 flex-wrap">
-                                    <a href="{{ route('items.show', $item) }}" class="btn btn-outline-info btn-sm" title="View">
+                                    <a href="{{ route('items.prices.index', $item) }}" class="btn btn-outline-info btn-sm" title="View Prices">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     @can('update', $item)
@@ -97,7 +114,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
+                            <td colspan="{{ 6 + $branches->count() }}" class="text-center text-muted py-4">
                                 <i class="bi bi-box-seam fa-3x mb-3"></i>
                                 @if(request('search'))
                                 <div>No items found matching "{{ request('search') }}"</div>

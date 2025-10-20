@@ -86,8 +86,9 @@
                                             <select class="form-select item-select" name="items[0][item_id]" required>
                                                 <option value="">Select Item</option>
                                                 @foreach($items as $item)
+                                                @php $firstBp = $item->branchPrices->first(); $fallbackPrice = $firstBp ? $firstBp->price : 0; @endphp
                                                 <option value="{{ $item->id }}"
-                                                    data-price="{{ $item->price }}"
+                                                    data-price="{{ $fallbackPrice }}"
                                                     data-code="{{ $item->item_code }}">
                                                     {{ $item->item_name }}
                                                     @if($item->inventory)
@@ -203,8 +204,9 @@
                 <select class="form-select item-select" name="items[${index}][item_id]" required>
                     <option value="">Select Item</option>
                     @foreach($items as $item)
+                        @php $firstBp = $item->branchPrices->first(); $fallbackPrice = $firstBp ? $firstBp->price : 0; @endphp
                         <option value="{{ $item->id }}" 
-                                data-price="{{ $item->price }}"
+                                data-price="{{ $fallbackPrice }}"
                                 data-code="{{ $item->item_code }}">
                             {{ $item->item_name }}
                             @if($item->inventory)

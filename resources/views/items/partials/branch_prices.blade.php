@@ -1,6 +1,6 @@
 @php
     // Load branches for the dropdown. It's small and safe to load here for now.
-    $branches = \App\Models\Branch::orderBy('name')->get();
+    $branches = \App\Models\Branch::orderBy('name')->where('id', '!=', 1)->get();
 @endphp
 
 <div class="card mb-3">
@@ -28,7 +28,7 @@
             const row = document.createElement('div');
             row.className = 'row g-2 align-items-center mb-2 branch-price-row';
             row.innerHTML = `
-                <div class="col-7 col-md-7">
+                <div class="col-4 col-md-4">
                     <select name="branch_prices[${index}][branch_id]" class="form-select form-select-sm" required>
                         <option value="">Select Branch</option>
                         ${branches.map(b => `<option value="${b.id}" ${selectedBranchId==b.id? 'selected':''}>${b.name}</option>`).join('')}

@@ -22,19 +22,16 @@ class StockTransferController extends Controller
         if (!Gate::allows('supervisor-access')) {
             abort(403, 'Unauthorized access. Only supervisors can create stock transfers.');
         }
-
-        // Get all active branches for destination
         $branches = Branch::active()
             ->orderBy('name')
             ->get();
 
-        // Get items available in central inventory (branch_id = null)
         $items = Item::with(['inventory' => function($query) {
-            $query->whereNull('branch_id'); // Central inventory
+            $query->where('branch_id', 1);
         }])
         ->where('is_active', true)
         ->whereHas('inventory', function($query) {
-            $query->whereNull('branch_id') // Central inventory
+            $query->where('branch_id', 1)
                   ->where('current_stock', '>', 0);
         })
         ->orderBy('item_name')
@@ -75,13 +72,13 @@ class StockTransferController extends Controller
 
             // Process each item
             foreach ($request->items as $itemData) {
-                // Get current inventory for this item in central inventory
+                
                 $inventory = Inventory::where('item_id', $itemData['item_id'])
-                    ->whereNull('branch_id') // Central inventory
+                    ->where('branch_id', 1) // Main branch inventory
                     ->first();
 
                 if (!$inventory || $inventory->current_stock < $itemData['quantity']) {
-                    throw new \Exception("Insufficient stock in central inventory for item ID: {$itemData['item_id']}");
+                    throw new \Exception("Insufficient stock in main branch inventory for item ID: {$itemData['item_id']}");
                 }
 
                 // Create transfer item
@@ -232,9 +229,9 @@ class StockTransferController extends Controller
 
             // Process each item
             foreach ($stockTransfer->transferItems as $transferItem) {
-                // Deduct from central inventory (source)
+                // Deduct from main branch inventory (source)
                 $sourceInventory = Inventory::where('item_id', $transferItem->item_id)
-                    ->whereNull('branch_id') // Central inventory
+                    ->where('branch_id', 1) // Main branch inventory
                     ->first();
 
                 if ($sourceInventory && $sourceInventory->current_stock >= $transferItem->quantity) {
@@ -340,9 +337,9 @@ class StockTransferController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        // Get inventory from central inventory (branch_id = null)
+        // Get inventory from main branch (branch_id = 1)
         $inventory = Inventory::where('item_id', $item->id)
-            ->whereNull('branch_id') // Central inventory
+            ->where('branch_id', 1) // Main branch inventory
             ->first();
 
         return response()->json([

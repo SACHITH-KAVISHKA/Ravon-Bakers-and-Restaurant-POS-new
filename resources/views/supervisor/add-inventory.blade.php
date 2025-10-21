@@ -90,12 +90,7 @@
                                                 <option value="{{ $item->id }}"
                                                     data-price="{{ $fallbackPrice }}"
                                                     data-code="{{ $item->item_code }}">
-                                                    {{ $item->item_name }}
-                                                    @if($item->inventory)
-                                                    (Current: {{ $item->inventory->current_stock }})
-                                                    @else
-                                                    (Current: 0)
-                                                    @endif
+                                                    {{ $item->item_name }} (Current: {{ $item->available_stock ?? 0 }})
                                                 </option>
                                                 @endforeach
                                             </select>
@@ -208,12 +203,7 @@
                         <option value="{{ $item->id }}" 
                                 data-price="{{ $fallbackPrice }}"
                                 data-code="{{ $item->item_code }}">
-                            {{ $item->item_name }}
-                            @if($item->inventory)
-                                (Current: {{ $item->inventory->current_stock }})
-                            @else
-                                (Current: 0)
-                            @endif
+                            {{ $item->item_name }} (Current: {{ $item->available_stock ?? 0 }})
                         </option>
                     @endforeach
                 </select>

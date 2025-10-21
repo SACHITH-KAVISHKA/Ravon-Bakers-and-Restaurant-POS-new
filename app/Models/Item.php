@@ -36,11 +36,21 @@ class Item extends Model
     }
 
     /**
-     * Get inventory for this item
+     * Get inventory for this item (across all branches)
      */
     public function inventory()
     {
-        return $this->hasOne(Inventory::class);
+        return $this->hasMany(Inventory::class);
+    }
+
+    /**
+     * Get inventory for main branch
+     */
+    public function mainInventory()
+    {
+        return $this->hasOne(Inventory::class)->whereHas('branch', function($query) {
+            $query->where('name', 'Main Branch');
+        });
     }
 
     /**

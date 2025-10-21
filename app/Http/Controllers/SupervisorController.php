@@ -11,6 +11,7 @@ use App\Models\Inventory;
 use App\Models\Wastage;
 use App\Models\WastageItem;
 use App\Models\StockTransfer;
+use App\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -73,10 +74,31 @@ class SupervisorController extends Controller
     public function addInventory()
     {
         $departments = Department::where('is_active', true)->get();
-    $items = Item::with('inventory', 'branchPrices')
-            ->orderBy('item_name', 'asc')
+        $items = Item::with('inventory', 'branchPrices')
             ->where('is_active', true)
+            ->orderBy('item_name', 'asc')
             ->get();
+
+        // Determine main branch (if exists) to show main-branch stock in the form
+        $mainBranch = Branch::where('name', 'Main Branch')->first();
+        if (! $mainBranch) {
+            $mainBranch = Branch::where('status', 1)->first();
+        }
+
+        // Attach a convenient available_stock attribute (main branch stock) to each item
+        foreach ($items as $item) {
+            if ($item->relationLoaded('inventory')) {
+                if ($mainBranch) {
+                    $mainInv = $item->inventory->where('branch_id', $mainBranch->id)->first();
+                    $item->available_stock = $mainInv ? $mainInv->current_stock : 0;
+                } else {
+                    // Fallback: sum all inventories
+                    $item->available_stock = (int) $item->inventory->sum('current_stock');
+                }
+            } else {
+                $item->available_stock = 0;
+            }
+        }
 
         return view('supervisor.add-inventory', compact('departments', 'items'));
     }
@@ -119,9 +141,10 @@ class SupervisorController extends Controller
                 if ($inventory) {
                     $inventory->increment('current_stock', $itemData['quantity']);
                 } else {
-                    // Create new inventory record if it doesn't exist
+                    // Create new inventory record if it doesn't exist (main stock: branch_id = 1)
                     Inventory::create([
                         'item_id' => $itemData['item_id'],
+                        'branch_id' => 1,
                         'current_stock' => $itemData['quantity'],
                         'low_stock_alert' => 10, // default value
                     ]);
@@ -144,12 +167,20 @@ class SupervisorController extends Controller
                 ->get()
                 ->map(function ($item) {
                 $firstBp = $item->branchPrices->first();
+                // inventory is now a collection (multiple branches); sum or use first
+                $available = 0;
+                if ($item->relationLoaded('inventory')) {
+                    // Try to find main branch inventory first
+                    $main = $item->inventory->first();
+                    $available = $item->inventory->sum('current_stock');
+                }
+
                 return [
                     'id' => $item->id,
                     'item_name' => $item->item_name,
                     'item_code' => $item->item_code,
                     'price' => $firstBp ? $firstBp->price : 0,
-                    'current_stock' => $item->inventory ? $item->inventory->current_stock : 0,
+                    'current_stock' => $available,
                 ];
             });
 
@@ -187,39 +218,136 @@ class SupervisorController extends Controller
     /**
      * Show available stock items organized by category
      */
-    public function inventoryHistory()
+    public function inventoryHistory(Request $request)
     {
-        // Get all active items with their current inventory and group by category
-        $itemsByCategory = Item::with('inventory')
+        // Get date and time filters
+        $filterDate = $request->input('date');
+        $filterTime = $request->input('time');
+
+        // Get all branches
+        $branches = Branch::where('status', 1)->orderBy('name')->get();
+        $mainBranch = $branches->where('name', 'Main Branch')->first();
+        
+        // If no main branch found, use the first branch as main
+        if (!$mainBranch) {
+            $mainBranch = $branches->first();
+        }
+        
+        $otherBranches = $branches->where('id', '!=', $mainBranch->id ?? null);
+
+        // If date/time filter is applied, query historical data
+        if ($filterDate || $filterTime) {
+            $allItems = $this->getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
+        } else {
+            // Show current inventory if no filter
+            $allItems = $this->getCurrentStockData($mainBranch, $otherBranches);
+        }
+
+        return view('supervisor.inventory-history', compact('allItems', 'branches', 'mainBranch', 'otherBranches', 'filterDate', 'filterTime'));
+    }
+
+    /**
+     * Get current stock data from inventory table
+     */
+    private function getCurrentStockData($mainBranch, $otherBranches)
+    {
+        return Item::with('inventory.branch')
             ->where('is_active', true)
             ->get()
-            ->filter(function ($item) {
-                return $item->inventory && $item->inventory->current_stock > 0;
-            })
-            ->groupBy('category')
-            ->map(function ($categoryItems, $categoryName) {
+            ->map(function ($item) use ($mainBranch, $otherBranches) {
+                // Get main branch stock
+                $mainStock = $item->inventory->where('branch_id', $mainBranch->id)->first();
+                
+                // Get other branches stock
+                $branchStocks = [];
+                foreach ($otherBranches as $branch) {
+                    $branchInventory = $item->inventory->where('branch_id', $branch->id)->first();
+                    $branchStocks[$branch->name] = $branchInventory ? $branchInventory->current_stock : 0;
+                }
+                
                 return [
-                    'category_name' => $categoryName,
-                    'total_items' => $categoryItems->count(),
-                    'total_stock' => $categoryItems->sum(function ($item) {
-                        return $item->inventory ? $item->inventory->current_stock : 0;
-                    }),
-                    'items' => $categoryItems->map(function ($item) {
-                        $inventory = $item->inventory;
-                        $firstBp = $item->branchPrices->first();
-                        return [
-                            'id' => $item->id,
-                            'name' => $item->item_name,
-                            'item_code' => $item->item_code,
-                            'price' => $firstBp ? $firstBp->price : 0,
-                            'current_stock' => $inventory ? $inventory->current_stock : 0,
-                            'is_low_stock' => $inventory && $inventory->current_stock <= 10
-                        ];
-                    })->values()->all()
+                    'id' => $item->id,
+                    'name' => $item->item_name,
+                    'item_code' => $item->item_code,
+                    'category' => $item->category,
+                    'main_stock' => $mainStock ? $mainStock->current_stock : 0,
+                    'branch_stocks' => $branchStocks,
+                    'last_updated' => $mainStock ? $mainStock->updated_at : null
                 ];
-            });
+            })
+            ->sortBy('name')
+            ->values();
+    }
 
-        return view('supervisor.inventory-history', compact('itemsByCategory'));
+    /**
+     * Get historical stock data based on date/time filters
+     */
+    private function getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches)
+    {
+        // Build datetime condition
+        $dateTimeCondition = function($query) use ($filterDate, $filterTime) {
+            if ($filterDate && $filterTime) {
+                $dateTime = $filterDate . ' ' . $filterTime;
+                $query->where('date_time', '>=', $dateTime);
+            } elseif ($filterDate) {
+                $query->whereDate('date_time', $filterDate);
+            } elseif ($filterTime) {
+                $query->whereTime('date_time', '>=', $filterTime);
+            }
+        };
+
+        // Get inventory requests (main stock additions) with date/time filter
+        $inventoryRequests = InventoryRequest::with(['inventoryRequestItems.item'])
+            ->where($dateTimeCondition)
+            ->where('status', 'completed')
+            ->get();
+
+        // Get stock transfers (branch distributions) with date/time filter
+        $stockTransfers = StockTransfer::with(['transferItems.item', 'toBranch'])
+            ->where($dateTimeCondition)
+            ->where('status', 'accepted')
+            ->get();
+
+        // Get all active items
+        $allItems = Item::where('is_active', true)->get();
+
+        // Build result array
+        $result = $allItems->map(function ($item) use ($inventoryRequests, $stockTransfers, $mainBranch, $otherBranches) {
+            // Calculate main stock from inventory requests
+            $mainStock = $inventoryRequests->flatMap(function ($request) {
+                return $request->inventoryRequestItems;
+            })
+            ->where('item_id', $item->id)
+            ->sum('quantity');
+
+            // Calculate branch stocks from stock transfers
+            $branchStocks = [];
+            foreach ($otherBranches as $branch) {
+                $branchStock = $stockTransfers
+                    ->where('to_branch_id', $branch->id)
+                    ->flatMap(function ($transfer) {
+                        return $transfer->transferItems;
+                    })
+                    ->where('item_id', $item->id)
+                    ->sum('quantity');
+                
+                $branchStocks[$branch->name] = (int) $branchStock;
+            }
+
+            return [
+                'id' => $item->id,
+                'name' => $item->item_name,
+                'item_code' => $item->item_code,
+                'category' => $item->category,
+                'main_stock' => (int) $mainStock,
+                'branch_stocks' => $branchStocks,
+                'last_updated' => null
+            ];
+        })
+        ->sortBy('name')
+        ->values();
+
+        return $result;
     }
 
     /**
@@ -231,14 +359,15 @@ class SupervisorController extends Controller
             ->where('is_active', true)
             ->get()
             ->filter(function ($item) {
-                return $item->inventory && $item->inventory->current_stock > 0;
+                // inventory is collection - check summed stock > 0
+                return $item->inventory && $item->inventory->sum('current_stock') > 0;
             })
             ->map(function ($item) {
                 return [
                     'id' => $item->id,
                     'item_name' => $item->item_name,
                     'item_code' => $item->item_code,
-                    'available_stock' => $item->inventory->current_stock
+                    'available_stock' => (int) $item->inventory->sum('current_stock')
                 ];
             });
 

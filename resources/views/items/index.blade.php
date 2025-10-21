@@ -50,7 +50,9 @@
                             <!-- Price removed: use branch-specific prices instead -->
                             {{-- one header column per branch --}}
                             @foreach($branches as $branch)
-                                <th class="text-center d-none d-lg-table-cell">{{ $branch->name }}</th>
+                                @if($branch->id !== 1)
+                                    <th class="text-center d-none d-lg-table-cell">{{ $branch->name }}</th>
+                                @endif
                             @endforeach
                             <th class="d-none d-sm-table-cell">Status</th>
                             <th>Actions</th>
@@ -74,14 +76,16 @@
 
                             {{-- prices per branch (each branch column) --}}
                             @foreach($branches as $branch)
-                                @php $bp = $item->branchPrices->firstWhere('branch_id', $branch->id); @endphp
-                                <td class="text-center d-none d-lg-table-cell">
-                                    @if($bp)
-                                        LKR {{ number_format($bp->price, 2) }}
-                                    @else
-                                        <small class="text-muted">—</small>
-                                    @endif
-                                </td>
+                                @if($branch->id !== 1)
+                                    @php $bp = $item->branchPrices->firstWhere('branch_id', $branch->id); @endphp
+                                    <td class="text-center d-none d-lg-table-cell">
+                                        @if($bp)
+                                            LKR {{ number_format($bp->price, 2) }}
+                                        @else
+                                            <small class="text-muted">—</small>
+                                        @endif
+                                    </td>
+                                @endif
                             @endforeach
 
                             <td class="d-none d-sm-table-cell">
@@ -93,9 +97,7 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-1 flex-wrap">
-                                    <a href="{{ route('items.prices.index', $item) }}" class="btn btn-outline-info btn-sm" title="View Prices">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
+                                    {{-- Eye icon and view prices link removed as requested --}}
                                     @can('update', $item)
                                     <a href="{{ route('items.edit', $item) }}" class="btn btn-outline-warning btn-sm" title="Edit">
                                         <i class="bi bi-pencil"></i>

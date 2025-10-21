@@ -54,9 +54,11 @@
                                     required>
                                 <option value="">Select Destination Branch</option>
                                 @foreach($branches as $branch)
-                                    <option value="{{ $branch->id }}" {{ old('to_branch_id') == $branch->id ? 'selected' : '' }}>
-                                        {{ $branch->name }}
-                                    </option>
+                                    @if($branch->id != 1)
+                                        <option value="{{ $branch->id }}" {{ old('to_branch_id') == $branch->id ? 'selected' : '' }}>
+                                            {{ $branch->name }}
+                                        </option>
+                                    @endif
                                 @endforeach
                             </select>
                             @error('to_branch_id')
@@ -136,9 +138,7 @@
             <select class="form-control item-select" name="items[INDEX][item_id]" required>
                 <option value="">Select Item</option>
                 @foreach($items as $item)
-                    <option value="{{ $item->id }}" data-unit="{{ $item->item_unit }}">
-                        {{ $item->item_name }}
-                    </option>
+                    <option value="{{ $item->id }}">{{ $item->item_name }}</option>
                 @endforeach
             </select>
         </td>
@@ -186,7 +186,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         itemSelect.addEventListener('change', function() {
             updateAvailableQuantity(this);
-            updateItemUnit(this);
         });
         
         transferQty.addEventListener('input', function() {
@@ -246,14 +245,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             availableQtyInput.value = '';
         }
-    }
-    
-    function updateItemUnit(selectElement) {
-        const option = selectElement.options[selectElement.selectedIndex];
-        const unit = option.getAttribute('data-unit') || '-';
-        const row = selectElement.closest('.item-row');
-        const unitSpan = row.querySelector('.item-unit');
-        unitSpan.textContent = unit;
     }
     
     function validateTransferQuantity(input) {

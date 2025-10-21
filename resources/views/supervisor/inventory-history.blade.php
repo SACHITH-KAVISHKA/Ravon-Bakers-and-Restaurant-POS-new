@@ -10,9 +10,11 @@
                 <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                     <i class="bi bi-boxes" style="color: #667eea;"></i> Inventory Stock by Branch
                 </h1>
+                @can('supervisor-access')
                 <a href="{{ route('supervisor.add-inventory') }}" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
                     <i class="bi bi-plus-circle"></i> Add Production
                 </a>
+                @endcan
             </div>
         </div>
     </div>

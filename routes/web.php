@@ -49,6 +49,9 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:manage-users')->group(function () {
         Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/api/branches/active', [BranchController::class, 'getActiveBranches'])->name('branches.active');
+        
+        // Admin Stock Report
+        Route::get('/admin/stock-report', [SupervisorController::class, 'inventoryHistory'])->name('admin.stock-report');
     });
 
     // POS System - All authenticated users can access

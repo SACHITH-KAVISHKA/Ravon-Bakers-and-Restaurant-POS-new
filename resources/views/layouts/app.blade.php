@@ -205,6 +205,22 @@
             margin-right: 8px;
         }
 
+        /* Admin Reports submenu styles */
+        .sidebar #adminReportsSubmenu {
+            transition: all 0.3s ease;
+        }
+
+        .sidebar #adminReportsSubmenu .nav-link {
+            padding-left: 45px;
+            font-size: 14px;
+            margin: 1px 0;
+        }
+
+        .sidebar #adminReportsSubmenu .nav-link i {
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
         /* Submenu container for custom toggle */
         .submenu-container {
             overflow: hidden;
@@ -440,8 +456,8 @@
                             <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
                         </a>
                     @else
-                        <!-- Admins don't use the standard dashboard; link logo to sales-report -->
-                        <a href="{{ route('sales-report.index') }}" style="text-decoration: none;">
+                        <!-- Admins link logo to user management -->
+                        <a href="{{ route('users.index') }}" style="text-decoration: none;">
                             <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
                         </a>
                     @endif
@@ -534,13 +550,7 @@
                     @endif
 
                     @can('manage-users')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}"
-                           href="{{ route('sales-report.index') }}">
-                            <i class="bi bi-file-earmark-bar-graph"></i>
-                            <span>Daily Sales Report</span>
-                        </a>
-                    </li>
+
 
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
@@ -575,6 +585,37 @@
                             <i class="bi bi-box-seam"></i>
                             <span>Item Management</span>
                         </a>
+                    </li>
+
+                                        <!-- Admin Reports dropdown -->
+                    @php
+                        $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('admin.stock-report');
+                    @endphp
+                    <li class="nav-item">
+                        <a class="nav-link d-flex justify-content-between align-items-center {{ $adminReportsActive ? 'active' : '' }}" 
+                           href="javascript:void(0);" 
+                           onclick="toggleAdminReportsMenu(event)" 
+                           id="adminReportsToggle"
+                           aria-expanded="{{ $adminReportsActive ? 'true' : 'false' }}">
+                            <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
+                            <i class="bi bi-chevron-down"></i>
+                        </a>
+                        <div class="submenu-container {{ $adminReportsActive ? 'show' : '' }}" id="adminReportsSubmenu">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" href="{{ route('sales-report.index') }}">
+                                        <i class="bi bi-cash-coin"></i>
+                                        <span>Daily Sales Report</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('admin.stock-report') ? 'active' : '' }}" href="{{ route('admin.stock-report') }}">
+                                        <i class="bi bi-boxes"></i>
+                                        <span>Stock Report</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
                     @endif
 
@@ -629,7 +670,7 @@
                     </a>
                 @else
                     @if(auth()->user()->role === 'admin')
-                        <a class="navbar-brand d-flex align-items-center" href="{{ route('sales-report.index') }}">
+                        <a class="navbar-brand d-flex align-items-center" href="{{ route('users.index') }}">
                             <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
                             <span>Ravon Restaurant</span>
                         </a>
@@ -875,13 +916,42 @@
                 }
             };
             
+            // Admin Reports submenu toggle (similar functionality)
+            window.toggleAdminReportsMenu = function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const toggle = document.getElementById('adminReportsToggle');
+                const submenu = document.getElementById('adminReportsSubmenu');
+                
+                if (!toggle || !submenu) return;
+                
+                const isExpanded = submenu.classList.contains('show');
+                
+                if (isExpanded) {
+                    submenu.classList.remove('show');
+                    submenu.style.display = 'none';
+                    toggle.setAttribute('aria-expanded', 'false');
+                } else {
+                    submenu.classList.add('show');
+                    submenu.style.display = 'block';
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            };
+            
             // Ensure submenu links don't trigger any parent toggles
             document.addEventListener('DOMContentLoaded', function() {
-                const submenuLinks = document.querySelectorAll('#reportsSubmenu a');
-                submenuLinks.forEach(link => {
+                const supervisorSubmenuLinks = document.querySelectorAll('#reportsSubmenu a');
+                supervisorSubmenuLinks.forEach(link => {
                     link.addEventListener('click', function(e) {
                         e.stopPropagation();
-                        // Let the navigation happen naturally
+                    });
+                });
+                
+                const adminSubmenuLinks = document.querySelectorAll('#adminReportsSubmenu a');
+                adminSubmenuLinks.forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.stopPropagation();
                     });
                 });
             });

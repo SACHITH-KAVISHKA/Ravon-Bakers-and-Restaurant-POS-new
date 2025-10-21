@@ -21,9 +21,9 @@ class DashboardController extends Controller
             return redirect()->route('supervisor.dashboard');
         }
 
-        // Redirect admins to the daily sales report page
+        // Redirect admins to the user management page
         if (Auth::check() && Auth::user()->role === 'admin') {
-            return redirect()->route('sales-report.index');
+            return redirect()->route('users.index');
         }
         $user = Auth::user();
 

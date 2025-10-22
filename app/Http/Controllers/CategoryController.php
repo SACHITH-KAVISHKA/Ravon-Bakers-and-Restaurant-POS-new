@@ -10,7 +10,7 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 class CategoryController extends Controller
 {
     use AuthorizesRequests;
-    
+
     /**
      * Display a listing of the resource.
      */
@@ -20,11 +20,11 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can access category management.');
         }
-        
+
         $this->authorize('viewAny', Category::class);
-        
+
         $categories = Category::active()->orderBy('name')->get();
-        
+
         return view('categories.index', compact('categories'));
     }
 
@@ -37,11 +37,11 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can create categories.');
         }
-        
+
         $this->authorize('create', Category::class);
-        
+
         $categories = Category::active()->orderBy('name')->get();
-        
+
         return view('categories.create', compact('categories'));
     }
 
@@ -54,9 +54,9 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can create categories.');
         }
-        
+
         $this->authorize('create', Category::class);
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -66,7 +66,7 @@ class CategoryController extends Controller
             ['name' => $validated['name']], // Find by name
             ['status' => 1] // Set status to active
         );
-        
+
         if ($category->wasRecentlyCreated) {
             $message = 'Category created successfully!';
         } else {
@@ -74,7 +74,7 @@ class CategoryController extends Controller
         }
 
         return redirect()->route('categories.index')
-                        ->with('success', $message);
+            ->with('success', $message);
     }
 
     /**
@@ -86,9 +86,9 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can view category details.');
         }
-        
+
         $this->authorize('view', $category);
-        
+
         return view('categories.show', compact('category'));
     }
 
@@ -101,11 +101,11 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can edit categories.');
         }
-        
+
         $this->authorize('update', $category);
-        
+
         $categories = Category::active()->where('id', '!=', $category->id)->orderBy('name')->get();
-        
+
         return view('categories.edit', compact('category', 'categories'));
     }
 
@@ -118,9 +118,9 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can update categories.');
         }
-        
+
         $this->authorize('update', $category);
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id . ',id,status,1',
         ]);
@@ -128,7 +128,7 @@ class CategoryController extends Controller
         $category->update($validated);
 
         return redirect()->route('categories.index')
-                        ->with('success', 'Category updated successfully!');
+            ->with('success', 'Category updated successfully!');
     }
 
     /**
@@ -140,13 +140,13 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can delete categories.');
         }
-        
+
         $this->authorize('delete', $category);
-        
+
         $category->softDelete();
 
         return redirect()->route('categories.index')
-                        ->with('success', 'Category deleted successfully!');
+            ->with('success', 'Category deleted successfully!');
     }
 
     /**
@@ -158,12 +158,12 @@ class CategoryController extends Controller
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only administrators can restore categories.');
         }
-        
+
         $this->authorize('delete', $category);
-        
+
         $category->restore();
 
         return redirect()->route('categories.index')
-                        ->with('success', 'Category restored successfully!');
+            ->with('success', 'Category restored successfully!');
     }
 }

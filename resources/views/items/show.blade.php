@@ -28,7 +28,7 @@
                             </span>
                         </div>
                     </div>
-                    
+
                     <div class="card-body p-4">
                         <!-- Key Information Cards -->
                         <div class="row g-3 mb-4">
@@ -64,7 +64,7 @@
                             </div>
                         </div>
                         @endif
-                        
+
                         <!-- Branch-specific Prices Summary -->
                         <div class="card bg-light border-0 mb-4">
                             <div class="card-header bg-transparent border-0 pb-0">
@@ -120,19 +120,19 @@
                                 Edit Item
                             </a>
                             @endcan
-                            
+
                             @can('delete', $item)
                             <form action="{{ route('items.destroy', $item) }}" method="POST">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger w-100" 
-                                        onclick="return confirm('Are you sure you want to delete this item?')">
+                                <button type="submit" class="btn btn-outline-danger w-100"
+                                    onclick="return confirm('Are you sure you want to delete this item?')">
                                     <i class="bi bi-trash me-2"></i>
                                     Delete Item
                                 </button>
                             </form>
                             @endcan
-                            
+
                             <a href="{{ route('items.index') }}" class="btn btn-outline-secondary">
                                 <i class="bi bi-arrow-left me-2"></i>
                                 Back to Items

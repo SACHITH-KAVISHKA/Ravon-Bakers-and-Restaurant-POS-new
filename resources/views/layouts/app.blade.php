@@ -4,6 +4,7 @@
 // Help static analyzers understand the type of auth()->user()
 ?>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,7 +30,7 @@
         .sidebar {
             min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
             position: fixed;
             top: 0;
@@ -43,17 +44,17 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            border: 3px solid rgba(255,255,255,0.3);
+            border: 3px solid rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
             object-fit: cover;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             cursor: pointer;
         }
 
         .sidebar-logo:hover {
-            border-color: rgba(255,255,255,0.6);
+            border-color: rgba(255, 255, 255, 0.6);
             transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
 
         .sidebar.collapsed .sidebar-logo {
@@ -77,7 +78,7 @@
             font-size: 24px;
             font-weight: bold;
             color: white;
-            border: 3px solid rgba(255,255,255,0.3);
+            border: 3px solid rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
         }
 
@@ -90,7 +91,7 @@
         .sidebar-header {
             padding: 20px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             margin-bottom: 20px;
             display: flex;
             flex-direction: column;
@@ -114,7 +115,7 @@
 
         .sidebar-subtitle {
             font-size: 11px;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
             margin: 0;
             text-align: center;
             display: block;
@@ -147,11 +148,13 @@
         .sidebar.collapsed small {
             display: none;
         }
+
         .content-wrapper {
             min-height: 100vh;
             background: #f8f9fa;
             transition: margin-left 0.3s ease;
-            margin-left: 250px; /* Default sidebar width */
+            margin-left: 250px;
+            /* Default sidebar width */
             display: flex;
             flex-direction: column;
         }
@@ -161,7 +164,7 @@
         }
 
         .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             padding: 12px 20px;
             margin: 2px 0;
             border-radius: 8px;
@@ -171,7 +174,7 @@
         .sidebar .nav-link:hover,
         .sidebar .nav-link.active {
             color: white;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             transform: translateX(5px);
         }
 
@@ -241,7 +244,7 @@
 
         .card {
             border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
         }
 
@@ -338,7 +341,7 @@
             .content-wrapper.sidebar-collapsed {
                 margin-left: 0 !important;
             }
-            
+
             .sidebar-overlay {
                 display: none;
                 position: fixed;
@@ -346,30 +349,30 @@
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0,0,0,0.5);
+                background: rgba(0, 0, 0, 0.5);
                 z-index: 1040;
                 opacity: 0;
                 transition: opacity 0.3s ease;
             }
-            
+
             .sidebar-overlay.show {
                 display: block;
                 opacity: 1;
             }
-            
+
             #sidebarToggle {
                 display: none;
             }
-            
+
             .navbar-toggler {
                 display: block !important;
                 border: none;
                 padding: 8px;
-                background: rgba(255,255,255,0.1);
+                background: rgba(255, 255, 255, 0.1);
                 color: #495057;
                 border-radius: 6px;
             }
-            
+
             .navbar-toggler:focus {
                 box-shadow: none;
             }
@@ -384,6 +387,7 @@
                 display: none !important;
             }
         }
+
         /* Footer Styles */
         .main-footer {
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
@@ -391,7 +395,7 @@
             padding: 20px 0;
             margin-top: auto;
             position: relative;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         }
 
         .footer-content {
@@ -438,6 +442,7 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
+
 <body>
     <!-- Sidebar Overlay for Mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -447,20 +452,20 @@
         <div class="position-sticky pt-3">
             <div class="sidebar-header">
                 @if(auth()->user()->isSupervisor())
-                    <a href="{{ route('supervisor.dashboard') }}" style="text-decoration: none;">
-                        <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
-                    </a>
+                <a href="{{ route('supervisor.dashboard') }}" style="text-decoration: none;">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                </a>
                 @else
-                    @if(auth()->user()->role !== 'admin')
-                        <a href="{{ route('dashboard') }}" style="text-decoration: none;">
-                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
-                        </a>
-                    @else
-                        <!-- Admins link logo to user management -->
-                        <a href="{{ route('users.index') }}" style="text-decoration: none;">
-                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
-                        </a>
-                    @endif
+                @if(auth()->user()->role !== 'admin')
+                <a href="{{ route('dashboard') }}" style="text-decoration: none;">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                </a>
+                @else
+                <!-- Admins link logo to user management -->
+                <a href="{{ route('users.index') }}" style="text-decoration: none;">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
+                </a>
+                @endif
                 @endif
                 <h4 class="sidebar-title">RAVON</h4>
                 <p class="sidebar-subtitle">Bakers & Restaurant</p>
@@ -468,178 +473,184 @@
 
             <ul class="nav flex-column px-3">
                 @if(auth()->user()->isSupervisor())
-                    <!-- Supervisor Navigation -->
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('supervisor.dashboard') ? 'active' : '' }}"
-                           href="{{ route('supervisor.dashboard') }}">
-                            <i class="bi bi-speedometer2"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
+                <!-- Supervisor Navigation -->
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('supervisor.dashboard') ? 'active' : '' }}"
+                        href="{{ route('supervisor.dashboard') }}">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('supervisor.add-inventory') ? 'active' : '' }}"
-                           href="{{ route('supervisor.add-inventory') }}">
-                            <i class="bi bi-plus-circle"></i>
-                            <span>Add Production</span>
-                        </a>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('supervisor.add-inventory') ? 'active' : '' }}"
+                        href="{{ route('supervisor.add-inventory') }}">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Add Production</span>
+                    </a>
+                </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('supervisor.add-wastage') ? 'active' : '' }}"
-                           href="{{ route('supervisor.add-wastage') }}">
-                            <i class="bi bi-trash"></i>
-                            <span>Production Wastage</span>
-                        </a>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('supervisor.add-wastage') ? 'active' : '' }}"
+                        href="{{ route('supervisor.add-wastage') }}">
+                        <i class="bi bi-trash"></i>
+                        <span>Production Wastage</span>
+                    </a>
+                </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('supervisor.stock-transfer.create') ? 'active' : '' }}"
-                           href="{{ route('supervisor.stock-transfer.create') }}">
-                            <i class="bi bi-plus-circle"></i>
-                            <span>Create Transfer</span>
-                        </a>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('supervisor.stock-transfer.create') ? 'active' : '' }}"
+                        href="{{ route('supervisor.stock-transfer.create') }}">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Create Transfer</span>
+                    </a>
+                </li>
 
-                    <!-- Reports dropdown -->
-                    @php
-                        $reportsActive = request()->routeIs('supervisor.wastage-view') || request()->routeIs('stock-transfer.transfers') || request()->routeIs('supervisor.inventory-history');
-                    @endphp
-                    <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center {{ $reportsActive ? 'active' : '' }}" 
-                           href="javascript:void(0);" 
-                           onclick="toggleReportsMenu(event)" 
-                           id="reportsToggle"
-                           aria-expanded="{{ $reportsActive ? 'true' : 'false' }}">
-                            <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
-                            <i class="bi bi-chevron-down"></i>
-                        </a>
-                        <div class="submenu-container {{ $reportsActive ? 'show' : '' }}" id="reportsSubmenu">
-                            <ul class="nav flex-column ms-3">
-                                <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('supervisor.wastage-view') ? 'active' : '' }}" href="{{ route('supervisor.wastage-view') }}">
-                                        <i class="bi bi-eye"></i>
-                                        <span>View Wastage</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" href="{{ route('stock-transfer.transfers') }}">
-                                        <i class="bi bi-list-check"></i>
-                                        <span>View Transfer</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('supervisor.inventory-history') ? 'active' : '' }}" href="{{ route('supervisor.inventory-history') }}">
-                                        <i class="bi bi-boxes"></i>
-                                        <span>Stock Report</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    @else
-                    <!-- Regular Navigation for Admin and Staff -->
-                    @if(auth()->user()->role !== 'admin')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
-                           href="{{ route('dashboard') }}">
-                            <i class="bi bi-speedometer2"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    @endif
+                <!-- Reports dropdown -->
+                @php
+                $reportsActive = request()->routeIs('supervisor.wastage-view') || request()->routeIs('stock-transfer.transfers') || request()->routeIs('supervisor.inventory-history');
+                @endphp
+                <li class="nav-item">
+                    <a class="nav-link d-flex justify-content-between align-items-center {{ $reportsActive ? 'active' : '' }}"
+                        href="javascript:void(0);"
+                        onclick="toggleReportsMenu(event)"
+                        id="reportsToggle"
+                        aria-expanded="{{ $reportsActive ? 'true' : 'false' }}">
+                        <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
+                        <i class="bi bi-chevron-down"></i>
+                    </a>
+                    <div class="submenu-container {{ $reportsActive ? 'show' : '' }}" id="reportsSubmenu">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('supervisor.wastage-view') ? 'active' : '' }}" href="{{ route('supervisor.wastage-view') }}">
+                                    <i class="bi bi-eye"></i>
+                                    <span>View Wastage</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" href="{{ route('stock-transfer.transfers') }}">
+                                    <i class="bi bi-list-check"></i>
+                                    <span>View Transfer</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('supervisor.inventory-history') ? 'active' : '' }}" href="{{ route('supervisor.inventory-history') }}">
+                                    <i class="bi bi-boxes"></i>
+                                    <span>Stock Report</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                @else
+                <!-- Regular Navigation for Admin and Staff -->
+                @if(auth()->user()->role !== 'admin')
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+                        href="{{ route('dashboard') }}">
+                        <i class="bi bi-speedometer2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                @endif
 
-                    @can('manage-users')
+                @can('manage-users')
 
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
-                           href="{{ route('users.index') }}">
-                            <i class="bi bi-people"></i>
-                            <span>User Management</span>
-                        </a>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
+                        href="{{ route('users.index') }}">
+                        <i class="bi bi-people"></i>
+                        <span>User Management</span>
+                    </a>
+                </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}"
-                           href="{{ route('branches.index') }}">
-                            <i class="bi bi-building"></i>
-                            <span>Branch Management</span>
-                        </a>
-                    </li>
-                    @endcan
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('branches.*') ? 'active' : '' }}"
+                        href="{{ route('branches.index') }}">
+                        <i class="bi bi-building"></i>
+                        <span>Branch Management</span>
+                    </a>
+                </li>
+                @endcan
 
-                    <!-- Categories and Items - Only for Admin -->
-                    @if(auth()->user()->role === 'admin')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}"
-                           href="{{ route('categories.index') }}">
-                            <i class="bi bi-tags"></i>
-                            <span>Categories</span>
-                        </a>
-                    </li>
+                <!-- Categories and Items - Only for Admin -->
+                @if(auth()->user()->role === 'admin')
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}"
+                        href="{{ route('categories.index') }}">
+                        <i class="bi bi-tags"></i>
+                        <span>Categories</span>
+                    </a>
+                </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('items.*') ? 'active' : '' }}"
-                           href="{{ route('items.index') }}">
-                            <i class="bi bi-box-seam"></i>
-                            <span>Item Management</span>
-                        </a>
-                    </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('items.*') ? 'active' : '' }}"
+                        href="{{ route('items.index') }}">
+                        <i class="bi bi-box-seam"></i>
+                        <span>Item Management</span>
+                    </a>
+                </li>
 
-                                        <!-- Admin Reports dropdown -->
-                    @php
-                        $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('admin.stock-report');
-                    @endphp
-                    <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center {{ $adminReportsActive ? 'active' : '' }}" 
-                           href="javascript:void(0);" 
-                           onclick="toggleAdminReportsMenu(event)" 
-                           id="adminReportsToggle"
-                           aria-expanded="{{ $adminReportsActive ? 'true' : 'false' }}">
-                            <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
-                            <i class="bi bi-chevron-down"></i>
-                        </a>
-                        <div class="submenu-container {{ $adminReportsActive ? 'show' : '' }}" id="adminReportsSubmenu">
-                            <ul class="nav flex-column ms-3">
-                                <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" href="{{ route('sales-report.index') }}">
-                                        <i class="bi bi-cash-coin"></i>
-                                        <span>Daily Sales Report</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('admin.stock-report') ? 'active' : '' }}" href="{{ route('admin.stock-report') }}">
-                                        <i class="bi bi-boxes"></i>
-                                        <span>Stock Report</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
-                    @endif
+                <!-- Admin Reports dropdown -->
+                @php
+                $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('reports.*');
+                @endphp
+                <li class="nav-item">
+                    <a class="nav-link d-flex justify-content-between align-items-center {{ $adminReportsActive ? 'active' : '' }}"
+                        href="javascript:void(0);"
+                        onclick="toggleAdminReportsMenu(event)"
+                        id="adminReportsToggle"
+                        aria-expanded="{{ $adminReportsActive ? 'true' : 'false' }}">
+                        <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
+                        <i class="bi bi-chevron-down"></i>
+                    </a>
+                    <div class="submenu-container {{ $adminReportsActive ? 'show' : '' }}" id="adminReportsSubmenu">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" href="{{ route('sales-report.index') }}">
+                                    <i class="bi bi-cash-coin"></i>
+                                    <span>Daily Sales Report</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('reports.stock-report') ? 'active' : '' }}" href="{{ route('reports.stock-report') }}">
+                                    <i class="bi bi-boxes"></i>
+                                    <span>Stock Report</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('reports.item-sales') ? 'active' : '' }}" href="{{ route('reports.item-sales') }}">
+                                    <i class="bi bi-graph-up"></i>
+                                    <span>Item Sales</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                @endif
 
-                    <!-- Stock Transfer (For Staff) -->
-                    @if(auth()->user()->role === 'staff' && auth()->user()->branch_id)
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}"
-                           href="{{ route('stock-transfer.transfers') }}">
-                            <i class="bi bi-inbox"></i>
-                            <span>Stock Transfers</span>
-                        </a>
-                    </li>
-                    @endif
+                <!-- Stock Transfer (For Staff) -->
+                @if(auth()->user()->role === 'staff' && auth()->user()->branch_id)
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}"
+                        href="{{ route('stock-transfer.transfers') }}">
+                        <i class="bi bi-inbox"></i>
+                        <span>Stock Transfers</span>
+                    </a>
+                </li>
+                @endif
 
-                    <!-- Branch Inventory (For Staff) -->
-                    @if(auth()->user()->role === 'staff')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('staff.branch-inventory') ? 'active' : '' }}"
-                           href="{{ route('staff.branch-inventory') }}">
-                            <i class="bi bi-building"></i>
-                            <span>Branch Stock</span>
-                        </a>
-                    </li>
-                    @endif
+                <!-- Branch Inventory (For Staff) -->
+                @if(auth()->user()->role === 'staff')
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('staff.branch-inventory') ? 'active' : '' }}"
+                        href="{{ route('staff.branch-inventory') }}">
+                        <i class="bi bi-building"></i>
+                        <span>Branch Stock</span>
+                    </a>
+                </li>
+                @endif
                 @endif
             </ul>
         </div>
@@ -664,31 +675,31 @@
                 </button>
 
                 @if(auth()->user()->isSupervisor())
-                    <a class="navbar-brand d-flex align-items-center" href="{{ route('supervisor.dashboard') }}">
-                        <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
-                        <span>Ravon Restaurant</span>
-                    </a>
+                <a class="navbar-brand d-flex align-items-center" href="{{ route('supervisor.dashboard') }}">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                    <span>Ravon Restaurant</span>
+                </a>
                 @else
-                    @if(auth()->user()->role === 'admin')
-                        <a class="navbar-brand d-flex align-items-center" href="{{ route('users.index') }}">
-                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
-                            <span>Ravon Restaurant</span>
-                        </a>
-                    @else
-                        <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
-                            <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
-                            <span>Ravon Restaurant</span>
-                        </a>
-                    @endif
+                @if(auth()->user()->role === 'admin')
+                <a class="navbar-brand d-flex align-items-center" href="{{ route('users.index') }}">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                    <span>Ravon Restaurant</span>
+                </a>
+                @else
+                <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
+                    <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Logo" style="width: 32px; height: 32px; margin-right: 10px; border-radius: 50%;">
+                    <span>Ravon Restaurant</span>
+                </a>
+                @endif
                 @endif
 
                 <div class="d-flex align-items-center">
                     <!-- POS Button (visible to staff only, not supervisors) -->
                     @if(auth()->check() && auth()->user()->isStaff())
-                        <a href="{{ route('pos.index') }}" class="btn pos-btn me-3">
-                            <i class="bi bi-calculator"></i>
-                            POS System
-                        </a>
+                    <a href="{{ route('pos.index') }}" class="btn pos-btn me-3">
+                        <i class="bi bi-calculator"></i>
+                        POS System
+                    </a>
                     @endif
 
                     <!-- User Dropdown -->
@@ -715,17 +726,17 @@
         <!-- Page Content -->
         <div class="container-fluid px-4">
             @if (session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
             @endif
 
             @if (session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
             @endif
 
             @yield('content', $slot ?? '')
@@ -873,7 +884,7 @@
             sidebar.addEventListener('click', function(e) {
                 e.stopPropagation();
             });
-            
+
             // Close sidebar when nav link is clicked on mobile
             const mobileNavLinks = sidebar.querySelectorAll('.nav-link');
             mobileNavLinks.forEach(link => {
@@ -883,7 +894,7 @@
                     }
                 });
             });
-            
+
             // Handle window resize
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
@@ -897,14 +908,14 @@
             window.toggleReportsMenu = function(event) {
                 event.preventDefault();
                 event.stopPropagation();
-                
+
                 const toggle = document.getElementById('reportsToggle');
                 const submenu = document.getElementById('reportsSubmenu');
-                
+
                 if (!toggle || !submenu) return;
-                
+
                 const isExpanded = submenu.classList.contains('show');
-                
+
                 if (isExpanded) {
                     submenu.classList.remove('show');
                     submenu.style.display = 'none';
@@ -915,19 +926,19 @@
                     toggle.setAttribute('aria-expanded', 'true');
                 }
             };
-            
+
             // Admin Reports submenu toggle (similar functionality)
             window.toggleAdminReportsMenu = function(event) {
                 event.preventDefault();
                 event.stopPropagation();
-                
+
                 const toggle = document.getElementById('adminReportsToggle');
                 const submenu = document.getElementById('adminReportsSubmenu');
-                
+
                 if (!toggle || !submenu) return;
-                
+
                 const isExpanded = submenu.classList.contains('show');
-                
+
                 if (isExpanded) {
                     submenu.classList.remove('show');
                     submenu.style.display = 'none';
@@ -938,7 +949,7 @@
                     toggle.setAttribute('aria-expanded', 'true');
                 }
             };
-            
+
             // Ensure submenu links don't trigger any parent toggles
             document.addEventListener('DOMContentLoaded', function() {
                 const supervisorSubmenuLinks = document.querySelectorAll('#reportsSubmenu a');
@@ -947,7 +958,7 @@
                         e.stopPropagation();
                     });
                 });
-                
+
                 const adminSubmenuLinks = document.querySelectorAll('#adminReportsSubmenu a');
                 adminSubmenuLinks.forEach(link => {
                     link.addEventListener('click', function(e) {
@@ -960,4 +971,5 @@
 
     @stack('scripts')
 </body>
+
 </html>

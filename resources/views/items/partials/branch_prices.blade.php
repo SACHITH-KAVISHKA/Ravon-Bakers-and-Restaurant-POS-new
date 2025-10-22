@@ -1,6 +1,6 @@
 @php
-    // Load branches for the dropdown. It's small and safe to load here for now.
-    $branches = \App\Models\Branch::orderBy('name')->where('id', '!=', 1)->get();
+// Load branches for the dropdown. It's small and safe to load here for now.
+$branches = \App\Models\Branch::orderBy('name')->where('id', '!=', 1)->get();
 @endphp
 
 <div class="card mb-3">
@@ -8,7 +8,7 @@
         <h6 class="mb-0">Branch Prices</h6>
     </div>
     <div class="card-body">
-        <div id="branchPricesContainer" data-branches='@json($branches->map(function($b){ return ['id' => $b->id, 'name' => $b->name]; }))'></div>
+        <div id="branchPricesContainer" data-branches='@json($branches->map(function($b){ return [' id'=> $b->id, 'name' => $b->name]; }))'></div>
 
         <div class="mt-3">
             <button type="button" id="addBranchPriceBtn" class="btn btn-sm btn-outline-primary">
@@ -20,11 +20,11 @@
 
 @push('scripts')
 <script>
-    (function(){
-    const container = document.getElementById('branchPricesContainer');
-    const branches = JSON.parse(container.getAttribute('data-branches') || '[]');
+    (function() {
+        const container = document.getElementById('branchPricesContainer');
+        const branches = JSON.parse(container.getAttribute('data-branches') || '[]');
 
-        function makeRow(index, selectedBranchId = '', price = ''){
+        function makeRow(index, selectedBranchId = '', price = '') {
             const row = document.createElement('div');
             row.className = 'row g-2 align-items-center mb-2 branch-price-row';
             row.innerHTML = `
@@ -47,7 +47,7 @@
             return row;
         }
 
-        function reindex(){
+        function reindex() {
             const rows = container.querySelectorAll('.branch-price-row');
             rows.forEach((r, i) => {
                 const selects = r.querySelectorAll('select');
@@ -57,15 +57,18 @@
             });
         }
 
-        document.getElementById('addBranchPriceBtn').addEventListener('click', function(){
+        document.getElementById('addBranchPriceBtn').addEventListener('click', function() {
             const idx = container.querySelectorAll('.branch-price-row').length;
             container.appendChild(makeRow(idx));
         });
 
-        container.addEventListener('click', function(e){
-            if (e.target && e.target.classList.contains('remove-branch-price')){
+        container.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('remove-branch-price')) {
                 const row = e.target.closest('.branch-price-row');
-                if (row) { row.remove(); reindex(); }
+                if (row) {
+                    row.remove();
+                    reindex();
+                }
             }
         });
 

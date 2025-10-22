@@ -50,8 +50,12 @@ Route::middleware('auth')->group(function () {
         Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/api/branches/active', [BranchController::class, 'getActiveBranches'])->name('branches.active');
         
-        // Admin Stock Report
-        Route::get('/admin/stock-report', [SupervisorController::class, 'inventoryHistory'])->name('admin.stock-report');
+        // Admin Reports
+        Route::prefix('reports')->name('reports.')->group(function () {
+            Route::get('/stock-report', [SupervisorController::class, 'inventoryHistory'])->name('stock-report');
+            Route::get('/item-sales', [App\Http\Controllers\ItemSalesController::class, 'itemSales'])->name('item-sales');
+            Route::post('/item-sales/filter', [App\Http\Controllers\ItemSalesController::class, 'filterItemSales'])->name('item-sales.filter');
+        });
     });
 
     // POS System - All authenticated users can access

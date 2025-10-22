@@ -1242,7 +1242,7 @@
                 left: 0;
                 z-index: 1000;
                 background: white;
-                box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
             }
 
             .payment-panel.show {
@@ -1381,7 +1381,7 @@
                     @foreach($items as $category => $categoryItems)
                     @foreach($categoryItems as $item)
                     @php
-                        $displayPrice = $item->pos_price ?? ($item->branchPrices->first()?->price ?? 0);
+                    $displayPrice = $item->pos_price ?? ($item->branchPrices->first()?->price ?? 0);
                     @endphp
                     <div class="item-card"
                         data-category="{{ $category }}"
@@ -1506,7 +1506,7 @@
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <!-- Number Pad -->
                             <div class="modal-number-pad mt-4">
                                 <div class="row g-2">
@@ -1576,7 +1576,7 @@
                                     <span class="input-group-text">Cash Amount</span>
                                     <input type="number" class="form-control payment-amount-input" id="modal-cash-input" placeholder="0.00" step="0.01" onclick="setActiveModalInput('cash')" onkeydown="handleModalKeyInput(event, 'cash')" style="cursor: pointer;">
                                 </div>
-                                
+
                                 <!-- Card Input (shown for CARD and CASH & CARD) -->
                                 <div class="input-group" id="modal-card-input-group" style="display: none;">
                                     <span class="input-group-text">Card Amount</span>
@@ -1706,7 +1706,7 @@
             }
 
             updateTotals();
-            
+
             // Update mobile cart count
             const cartCountElement = document.getElementById('cart-count');
             if (cartCountElement) {
@@ -1927,24 +1927,24 @@
             modalCustomerPayment = 0;
             modalCardPayment = 0;
             activeModalInput = 'cash'; // Default to cash input
-            
+
             // Clear all payment type buttons
             document.querySelectorAll('.payment-type-btn').forEach(btn => btn.classList.remove('active'));
-            
+
             // Clear and hide input fields
             const cashInput = document.getElementById('modal-cash-input');
             const cardInput = document.getElementById('modal-card-input');
             const cashInputGroup = document.getElementById('modal-cash-input-group');
             const cardInputGroup = document.getElementById('modal-card-input-group');
-            
+
             if (cashInput) cashInput.value = '';
             if (cardInput) cardInput.value = '';
             if (cashInputGroup) cashInputGroup.style.display = 'none';
             if (cardInputGroup) cardInputGroup.style.display = 'none';
-            
+
             // Update modal totals
             updateModalTotals();
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
             modal.show();
@@ -1953,31 +1953,31 @@
         // Select payment method in modal
         function selectModalPaymentMethod(method, button) {
             modalSelectedPaymentMethod = method;
-            
+
             // Update button states
             document.querySelectorAll('.payment-type-btn').forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
-            
+
             // Clear payment amounts
             modalCustomerPayment = 0;
             modalCardPayment = 0;
-            
+
             // Get input elements
             const cashInputGroup = document.getElementById('modal-cash-input-group');
             const cardInputGroup = document.getElementById('modal-card-input-group');
             const cashInput = document.getElementById('modal-cash-input');
             const cardInput = document.getElementById('modal-card-input');
-            
+
             // Clear input values
             cashInput.value = '';
             cardInput.value = '';
-            
+
             // Reset border styles
             cashInput.style.borderColor = '#ced4da';
             cashInput.style.borderWidth = '1px';
             cardInput.style.borderColor = '#ced4da';
             cardInput.style.borderWidth = '1px';
-            
+
             // Show/hide inputs based on payment method
             if (method === 'CASH') {
                 cashInputGroup.style.display = 'flex';
@@ -2001,7 +2001,7 @@
                 cashInputGroup.style.display = 'none';
                 cardInputGroup.style.display = 'none';
             }
-            
+
             updateModalTotals();
         }
 
@@ -2011,12 +2011,12 @@
         // Set active input for CASH & CARD mode
         function setActiveModalInput(inputType) {
             if (modalSelectedPaymentMethod !== 'CARD & CASH') return;
-            
+
             activeModalInput = inputType;
-            
+
             const cashInput = document.getElementById('modal-cash-input');
             const cardInput = document.getElementById('modal-card-input');
-            
+
             // Visual feedback: add border highlight to active input
             if (cashInput && cardInput) {
                 if (inputType === 'cash') {
@@ -2045,9 +2045,9 @@
             } else if (modalSelectedPaymentMethod === 'CARD') {
                 paymentInput = document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
-                paymentInput = activeModalInput === 'cash'
-                    ? document.getElementById('modal-cash-input')
-                    : document.getElementById('modal-card-input');
+                paymentInput = activeModalInput === 'cash' ?
+                    document.getElementById('modal-cash-input') :
+                    document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CREDIT') {
                 return;
             }
@@ -2095,9 +2095,9 @@
                 paymentInput = document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
                 // Use active input for CASH & CARD mode
-                paymentInput = activeModalInput === 'cash'
-                    ? document.getElementById('modal-cash-input')
-                    : document.getElementById('modal-card-input');
+                paymentInput = activeModalInput === 'cash' ?
+                    document.getElementById('modal-cash-input') :
+                    document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CREDIT') {
                 // For credit, no input needed (balance is auto-calculated)
                 return;
@@ -2160,8 +2160,8 @@
 
             // Allow digits 0-9, decimal point, and numpad digits
             if (!((event.keyCode >= 48 && event.keyCode <= 57) || // 0-9
-                  (event.keyCode >= 96 && event.keyCode <= 105) || // numpad 0-9
-                  event.keyCode === 110 || event.keyCode === 190)) { // decimal point
+                    (event.keyCode >= 96 && event.keyCode <= 105) || // numpad 0-9
+                    event.keyCode === 110 || event.keyCode === 190)) { // decimal point
                 event.preventDefault();
                 return;
             }
@@ -2183,7 +2183,7 @@
         // Clear modal active input
         function clearModalActiveInput() {
             if (!modalSelectedPaymentMethod) return;
-            
+
             if (modalSelectedPaymentMethod === 'CASH') {
                 document.getElementById('modal-cash-input').value = '';
                 modalCustomerPayment = 0;
@@ -2205,7 +2205,7 @@
                 modalCustomerPayment = 0;
                 modalCardPayment = 0;
             }
-            
+
             updateModalTotals();
         }
 
@@ -2221,9 +2221,9 @@
             } else if (modalSelectedPaymentMethod === 'CARD') {
                 paymentInput = document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
-                paymentInput = activeModalInput === 'cash'
-                    ? document.getElementById('modal-cash-input')
-                    : document.getElementById('modal-card-input');
+                paymentInput = activeModalInput === 'cash' ?
+                    document.getElementById('modal-cash-input') :
+                    document.getElementById('modal-card-input');
             } else if (modalSelectedPaymentMethod === 'CREDIT') {
                 return;
             }
@@ -2233,7 +2233,7 @@
             const currentValue = paymentInput.value;
             if (currentValue.length > 0) {
                 paymentInput.value = currentValue.slice(0, -1);
-                
+
                 // If empty, set to '0'
                 if (paymentInput.value === '') {
                     paymentInput.value = '0';
@@ -2255,20 +2255,20 @@
         // Update modal totals
         function updateModalTotals() {
             const total = getTotalAmount();
-            
+
             // Update subtotal and total
             document.getElementById('modal-subtotal').textContent = total.toFixed(2);
             document.getElementById('modal-total').textContent = total.toFixed(2);
-            
+
             let balance = 0;
             let creditAmount = 0;
-            
+
             // Calculate based on payment method
             if (modalSelectedPaymentMethod === 'CASH') {
                 // CASH: show cash amount and calculate balance/credit
                 document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
                 document.getElementById('modal-card-amount').textContent = '0.00';
-                
+
                 if (modalCustomerPayment < total) {
                     // Insufficient payment - calculate credit
                     creditAmount = total - modalCustomerPayment;
@@ -2281,7 +2281,7 @@
                 // CARD: card amount and calculate balance/credit
                 document.getElementById('modal-cash-amount').textContent = '0.00';
                 document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
-                
+
                 if (modalCardPayment < total) {
                     // Insufficient payment - calculate credit
                     creditAmount = total - modalCardPayment;
@@ -2300,7 +2300,7 @@
                 document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
                 document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
                 const totalPaid = modalCustomerPayment + modalCardPayment;
-                
+
                 if (totalPaid < total) {
                     // Insufficient payment - calculate credit
                     creditAmount = total - totalPaid;
@@ -2316,14 +2316,14 @@
                 creditAmount = total;
                 balance = 0;
             }
-            
+
             // Update balance display
             document.getElementById('modal-balance').textContent = balance.toFixed(2);
-            
+
             // Update credit display
             const creditElement = document.getElementById('modal-credit');
             const creditRow = document.getElementById('modal-credit-row');
-            
+
             if (creditElement && creditRow) {
                 creditElement.textContent = creditAmount.toFixed(2);
                 // Show/hide credit row based on whether there's credit
@@ -2453,7 +2453,7 @@
         function clearAllOrders() {
             cart = [];
             selectedPaymentMethod = null;
-            
+
             // Reset modal state
             modalSelectedPaymentMethod = null;
             modalCustomerPayment = 0;
@@ -2535,9 +2535,9 @@
                 const cashPaymentValue = parseFloat(data.customer_payment) || (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
                 const balanceValue = parseFloat(data.balance) || 0;
                 const creditValue = parseFloat(data.credit_balance) || 0;
-                
+
                 document.getElementById('amount-paid-display').textContent = `LKR ${formatNumber(cashPaymentValue)}`;
-                
+
                 // Show either balance or credit
                 if (creditValue > 0) {
                     document.getElementById('balance-display-receipt').textContent = `LKR ${formatNumber(creditValue)} (Credit)`;
@@ -2550,9 +2550,9 @@
                 cashDetails.style.display = 'block';
                 const cardPaymentValue = parseFloat(data.card_payment) || (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
                 const totalValue = parseFloat(data.total) || getTotalAmount();
-                
+
                 document.getElementById('amount-paid-display').textContent = `Card Payment: LKR ${formatNumber(cardPaymentValue)}`;
-                
+
                 // Show balance only when overpaid, or credit when underpaid
                 if (cardPaymentValue > totalValue) {
                     // Scenario 1: Overpaid - show balance (change)
@@ -2888,7 +2888,7 @@
                         const cashAmount = parseFloat(receiptData.customerPayment.replace(/,/g, '')) || 0;
                         const cardAmount = parseFloat(receiptData.cardPayment.replace(/,/g, '')) || 0;
                         const totalPaid = (cashAmount + cardAmount).toFixed(2);
-                        
+
                         pdf.text('Total Paid:', leftMargin, yPosition);
                         pdf.text(`LKR ${totalPaid}`, pageWidth - rightMargin, yPosition, {
                             align: 'right'
@@ -2897,7 +2897,7 @@
 
                         // Use the balance value from backend (already calculated correctly)
                         const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
-                        
+
                         if (balanceValue > 0) {
                             // Overpaid - show balance
                             pdf.text('Balance:', leftMargin, yPosition);
@@ -2936,11 +2936,11 @@
                         align: 'right'
                     });
                     yPosition += 5;
-                    
+
                     // Show balance when overpaid or credit balance when underpaid
                     // Use the balance value from backend (already calculated correctly)
                     const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
-                    
+
                     if (balanceValue > 0) {
                         // Overpaid - show balance (change)
                         pdf.text('Balance:', leftMargin, yPosition);

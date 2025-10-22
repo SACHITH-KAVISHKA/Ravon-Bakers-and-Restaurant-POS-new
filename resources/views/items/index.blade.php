@@ -17,9 +17,9 @@
             <form method="GET" action="{{ route('items.index') }}" class="row g-3">
                 <div class="col-12 col-md-4">
                     <label for="search" class="form-label fw-semibold">Search Items</label>
-                    <input type="text" class="form-control" id="search" name="search" 
-                           value="{{ request('search') }}" 
-                           placeholder="Search by item name, code, or category...">
+                    <input type="text" class="form-control" id="search" name="search"
+                        value="{{ request('search') }}"
+                        placeholder="Search by item name, code, or category...">
                 </div>
                 <div class="col-12 col-md-2">
                     <label class="form-label">&nbsp;</label>
@@ -50,9 +50,9 @@
                             <!-- Price removed: use branch-specific prices instead -->
                             {{-- one header column per branch --}}
                             @foreach($branches as $branch)
-                                @if($branch->id !== 1)
-                                    <th class="text-center d-none d-lg-table-cell">{{ $branch->name }}</th>
-                                @endif
+                            @if($branch->id !== 1)
+                            <th class="text-center d-none d-lg-table-cell">{{ $branch->name }}</th>
+                            @endif
                             @endforeach
                             <th class="d-none d-sm-table-cell">Status</th>
                             <th>Actions</th>
@@ -76,23 +76,23 @@
 
                             {{-- prices per branch (each branch column) --}}
                             @foreach($branches as $branch)
-                                @if($branch->id !== 1)
-                                    @php $bp = $item->branchPrices->firstWhere('branch_id', $branch->id); @endphp
-                                    <td class="text-center d-none d-lg-table-cell">
-                                        @if($bp)
-                                            LKR {{ number_format($bp->price, 2) }}
-                                        @else
-                                            <small class="text-muted">—</small>
-                                        @endif
-                                    </td>
+                            @if($branch->id !== 1)
+                            @php $bp = $item->branchPrices->firstWhere('branch_id', $branch->id); @endphp
+                            <td class="text-center d-none d-lg-table-cell">
+                                @if($bp)
+                                LKR {{ number_format($bp->price, 2) }}
+                                @else
+                                <small class="text-muted">—</small>
                                 @endif
+                            </td>
+                            @endif
                             @endforeach
 
                             <td class="d-none d-sm-table-cell">
                                 @if($item->is_active)
-                                    <span class="badge bg-success">Active</span>
+                                <span class="badge bg-success">Active</span>
                                 @else
-                                    <span class="badge bg-danger">Inactive</span>
+                                <span class="badge bg-danger">Inactive</span>
                                 @endif
                             </td>
                             <td>
@@ -104,10 +104,10 @@
                                     </a>
                                     @endcan
                                     @can('delete', $item)
-                                    <button type="button" class="btn btn-outline-danger btn-sm" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#deleteItemModal{{ $item->id }}"
-                                            title="Delete">
+                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#deleteItemModal{{ $item->id }}"
+                                        title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                     @endcan

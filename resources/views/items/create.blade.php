@@ -18,25 +18,25 @@
                 <div class="card-body">
                     <form action="{{ route('items.store') }}" method="POST">
                         @csrf
-                        
+
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
                                 <label for="item_code" class="form-label fw-semibold">Item Code</label>
-                                <input type="text" 
-                                       class="form-control form-control-lg" 
-                                       id="item_code" 
-                                       name="item_code_display" 
-                                       value="{{ $nextItemCode }}" 
-                                       readonly>
+                                <input type="text"
+                                    class="form-control form-control-lg"
+                                    id="item_code"
+                                    name="item_code_display"
+                                    value="{{ $nextItemCode }}"
+                                    readonly>
                             </div>
-                            
+
                             <div class="col-12 col-md-6">
                                 <label for="item_name" class="form-label fw-semibold">Item Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-lg @error('item_name') is-invalid @enderror" 
-                                       id="item_name" name="item_name" value="{{ old('item_name') }}" required
-                                       placeholder="Enter item name">
+                                <input type="text" class="form-control form-control-lg @error('item_name') is-invalid @enderror"
+                                    id="item_name" name="item_name" value="{{ old('item_name') }}" required
+                                    placeholder="Enter item name">
                                 @error('item_name')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                         </div>
@@ -44,36 +44,36 @@
                         <div class="row g-3 mt-2">
                             <div class="col-12 col-md-6">
                                 <label for="category" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-lg @error('category') is-invalid @enderror" 
-                                        id="category" name="category" required>
+                                <select class="form-select form-select-lg @error('category') is-invalid @enderror"
+                                    id="category" name="category" required>
                                     <option value="">Select Category</option>
                                     @foreach($categories as $category)
-                                        <option value="{{ $category->name }}" @selected(old('category') == $category->name)>
-                                            {{ $category->name }}
-                                        </option>
+                                    <option value="{{ $category->name }}" @selected(old('category')==$category->name)>
+                                        {{ $category->name }}
+                                    </option>
                                     @endforeach
                                 </select>
                                 @error('category')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            
+
                             <!-- Price moved to branch-specific pricing. See Branch Prices section below. -->
                         </div>
 
                         <div class="mt-3">
                             <label for="description" class="form-label fw-semibold">Description</label>
-                            <textarea class="form-control @error('description') is-invalid @enderror" 
-                                      id="description" name="description" rows="4"
-                                      placeholder="Enter item description (optional)">{{ old('description') }}</textarea>
+                            <textarea class="form-control @error('description') is-invalid @enderror"
+                                id="description" name="description" rows="4"
+                                placeholder="Enter item description (optional)">{{ old('description') }}</textarea>
                             @error('description')
-                                <div class="invalid-feedback">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
                         {{-- Branch Prices Section --}}
                         @php
-                            // Pass empty array for create view
+                        // Pass empty array for create view
                         @endphp
                         <input type="hidden" id="__branchPricesForItem" value="[]">
                         @include('items.partials.branch_prices')

@@ -9,37 +9,37 @@
                             Edit Item
                         </h4>
                     </div>
-                    
+
                     <form action="{{ route('items.update', $item) }}" method="POST">
                         @csrf
                         @method('PUT')
-                        
+
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="item_code" class="form-label">Item Code</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="item_code" 
-                                           name="item_code" 
-                                           value="{{ $item->item_code }}" 
-                                           readonly>
+                                    <input type="text"
+                                        class="form-control"
+                                        id="item_code"
+                                        name="item_code"
+                                        value="{{ $item->item_code }}"
+                                        readonly>
                                     <small class="text-muted">
                                         <i class="bi bi-info-circle"></i>
                                         Item code cannot be changed after creation
                                     </small>
                                 </div>
-                                
+
                                 <div class="col-md-6 mb-3">
                                     <label for="item_name" class="form-label">Item Name *</label>
-                                    <input type="text" 
-                                           class="form-control @error('item_name') is-invalid @enderror" 
-                                           id="item_name" 
-                                           name="item_name" 
-                                           value="{{ old('item_name', $item->item_name) }}" 
-                                           required>
+                                    <input type="text"
+                                        class="form-control @error('item_name') is-invalid @enderror"
+                                        id="item_name"
+                                        name="item_name"
+                                        value="{{ old('item_name', $item->item_name) }}"
+                                        required>
                                     @error('item_name')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
                             </div>
@@ -50,39 +50,41 @@
                                     <select class="form-control @error('category') is-invalid @enderror" id="category" name="category" required>
                                         <option value="">Select Category</option>
                                         @foreach($categories as $category)
-                                            <option value="{{ $category->name }}" @selected(old('category', $item->category) == $category->name)>
-                                                {{ $category->name }}
-                                            </option>
+                                        <option value="{{ $category->name }}" @selected(old('category', $item->category) == $category->name)>
+                                            {{ $category->name }}
+                                        </option>
                                         @endforeach
                                     </select>
                                     @error('category')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                
+
                                 <!-- Price moved to branch-specific pricing. Use Branch Prices section below to set per-branch rates. -->
                             </div>
 
                             <div class="mb-3">
                                 <label for="description" class="form-label">Description</label>
-                                <textarea class="form-control @error('description') is-invalid @enderror" 
-                                          id="description" 
-                                          name="description" 
-                                          rows="3" 
-                                          placeholder="Enter item description">{{ old('description', $item->description) }}</textarea>
+                                <textarea class="form-control @error('description') is-invalid @enderror"
+                                    id="description"
+                                    name="description"
+                                    rows="3"
+                                    placeholder="Enter item description">{{ old('description', $item->description) }}</textarea>
                                 @error('description')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             {{-- Branch Prices Section --}}
                             @php
-                                $bps = $item->branchPrices()->with('branch')->get()->map(function($b){ return ['branch_id'=>$b->branch_id,'price'=>$b->price]; });
+                            $bps = $item->branchPrices()->with('branch')->get()->map(function($b){ return ['branch_id'=>$b->branch_id,'price'=>$b->price]; });
                             @endphp
-                            <script>window.__branchPricesForItem = @json($bps->values());</script>
+                            <script>
+                                window.__branchPricesForItem = @json($bps - > values());
+                            </script>
                             @include('items.partials.branch_prices')
                         </div>
-                        
+
                         <div class="card-footer bg-light">
                             <div class="d-flex justify-content-end gap-2">
                                 <a href="{{ route('items.index') }}" class="btn btn-secondary">
@@ -97,7 +99,7 @@
                         </div>
                     </form>
                 </div>
-                
+
                 <!-- Help Text -->
                 <div class="mt-4 text-center">
                     <small class="text-muted">

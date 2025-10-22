@@ -14,6 +14,7 @@ use App\Models\StockTransfer;
 use App\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class SupervisorController extends Controller
 {
@@ -237,11 +238,22 @@ class SupervisorController extends Controller
 
         // If date/time filter is applied, query historical data
         if ($filterDate || $filterTime) {
-            $allItems = $this->getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
+            $itemsCollection = $this->getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
         } else {
             // Show current inventory if no filter
-            $allItems = $this->getCurrentStockData($mainBranch, $otherBranches);
+            $itemsCollection = $this->getCurrentStockData($mainBranch, $otherBranches);
         }
+
+        // Paginate the collection to show 100 rows per page
+        $perPage = 100;
+        $page = request()->get('page', 1);
+        $total = $itemsCollection->count();
+        $itemsForCurrentPage = $itemsCollection->forPage($page, $perPage)->values();
+
+        $allItems = new LengthAwarePaginator($itemsForCurrentPage, $total, $perPage, $page, [
+            'path' => request()->url(),
+            'query' => request()->query(),
+        ]);
 
         return view('supervisor.inventory-history', compact('allItems', 'branches', 'mainBranch', 'otherBranches', 'filterDate', 'filterTime'));
     }

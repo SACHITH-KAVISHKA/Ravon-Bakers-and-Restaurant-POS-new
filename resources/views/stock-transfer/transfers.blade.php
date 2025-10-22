@@ -9,11 +9,7 @@
                     <h1 class="h3 mb-0">{{ $pageTitle }}</h1>
                     <p class="text-muted mb-0">View and manage stock transfers by status</p>
                 </div>
-                @can('supervisor-access')
-                <a href="{{ route('supervisor.stock-transfer.create') }}" class="btn btn-primary">
-                    <i class="bi bi-plus-circle"></i> Create New Transfer
-                </a>
-                @endcan
+                
             </div>
 
             <div class="card shadow-sm">
@@ -216,11 +212,7 @@
                             No transfers have been rejected.
                             @endif
                         </p>
-                        @if($status === 'pending' && auth()->user()->role === 'supervisor')
-                        <a href="{{ route('supervisor.stock-transfer.create') }}" class="btn btn-primary mt-3">
-                            <i class="bi bi-plus-circle"></i> Create First Transfer
-                        </a>
-                        @endif
+                        
                     </div>
                     @endif
                 </div>

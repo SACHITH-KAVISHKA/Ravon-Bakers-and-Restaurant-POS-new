@@ -16,7 +16,7 @@ class BranchController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to branch management.');
         }
-        
+
         $branches = Branch::withCount('users')->orderBy('name')->get();
         return view('branches.index', compact('branches'));
     }
@@ -55,7 +55,6 @@ class BranchController extends Controller
             }
 
             return redirect()->back()->with('success', 'Branch created successfully!');
-            
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->ajax()) {
                 return response()->json([

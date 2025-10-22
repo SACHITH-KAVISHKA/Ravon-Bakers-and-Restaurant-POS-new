@@ -50,4 +50,12 @@ class Sale extends Model
     {
         return $this->belongsTo(Branch::class);
     }
+
+    /**
+     * Get the user (cashier) who made this sale
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

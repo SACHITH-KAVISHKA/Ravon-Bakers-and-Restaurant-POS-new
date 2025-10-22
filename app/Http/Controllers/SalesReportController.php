@@ -57,7 +57,8 @@ class SalesReportController extends Controller
                 SUM(customer_payment) as total_customer_payment,
                 SUM(card_payment) as total_card_payment,
                 SUM(credit_balance) as total_credit_balance,
-                SUM(balance) as total_balance
+                SUM(balance) as total_balance,
+                SUM(customer_payment - COALESCE(balance,0)) as total_cash
             ')
             ->first();
 
@@ -138,7 +139,8 @@ class SalesReportController extends Controller
                 SUM(subtotal) as total_subtotal,
                 SUM(customer_payment) as total_customer_payment,
                 SUM(card_payment) as total_card_payment,
-                SUM(credit_balance) as total_credit_balance
+                SUM(credit_balance) as total_credit_balance,
+                SUM(customer_payment - COALESCE(balance,0)) as total_cash
             ')
             ->first();
 
@@ -170,7 +172,7 @@ class SalesReportController extends Controller
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
             $sheet->setCellValue('C' . $row, $sale->subtotal);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
-            $sheet->setCellValue('E' . $row, $sale->customer_payment ?? 0);
+            $sheet->setCellValue('E' . $row, ($sale->customer_payment ?? 0) - ($sale->balance ?? 0));
             $sheet->setCellValue('F' . $row, $sale->card_payment ?? 0);
             $sheet->setCellValue('G' . $row, $sale->credit_balance ?? 0);
             $sheet->setCellValue('H' . $row, $sale->created_at->format('Y-m-d H:i:s'));
@@ -182,7 +184,7 @@ class SalesReportController extends Controller
         $sheet->setCellValue('B' . $row, '');
         $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
         $sheet->setCellValue('D' . $row, '');
-        $sheet->setCellValue('E' . $row, $totals->total_customer_payment ?? 0);
+    $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
         $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
         $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);
         $sheet->setCellValue('H' . $row, '');

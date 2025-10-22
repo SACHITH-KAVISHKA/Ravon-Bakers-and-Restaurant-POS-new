@@ -7,7 +7,7 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
                     <i class="bi bi-boxes" style="color: #667eea;"></i> Inventory Stock by Branch
                 </h1>
                 @can('supervisor-access')
@@ -67,7 +67,7 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0 inventory-table">
+                            <table class="table table-hover table-sm mb-0 inventory-table">
                                 <thead style="background-color: #f8f9fa;">
                                     <tr>
                                         <th class="border-0 px-3 py-3">Item</th>
@@ -90,25 +90,23 @@
                                 <tbody>
                                     @foreach($allItems as $item)
                                         <tr class="border-bottom">
-                                            <td class="px-3 py-3">
+                                            <td class="px-2 py-2">
                                                 <div>
-                                                    <span class="fw-bold d-block" style="color: #667eea;">{{ $item['name'] }}</span>
-                                                    <small class="text-muted">{{ $item['item_code'] }}</small>
+                                                    <span class="fw-bold d-block" style="color: #667eea; font-size:0.95rem;">{{ $item['name'] }}</span>
+                                                    <small class="text-muted" style="font-size:0.8rem;">{{ $item['item_code'] }}</small>
                                                 </div>
                                             </td>
-                                            <td class="px-3 py-3 text-center" style="background-color: #f5f9ff;">
-                                                <span class="badge fs-6 px-3 py-2" style="background-color: #2196f3; color: white; font-weight: 600;">
-                                                    {{ $item['main_stock'] }}
-                                                </span>
+                                            <td class="px-2 py-2 text-center" style="background-color: #f5f9ff;">
+                                                <span class="stock-number" style="color: #0b66d1; font-weight:700; font-size:0.95rem;">{{ $item['main_stock'] }}</span>
                                             </td>
                                             @foreach($otherBranches as $branch)
-                                                <td class="px-3 py-3 text-center" style="background-color: #fffbf5;">
-                                                    <span class="badge fs-6 px-3 py-2" 
-                                                          style="background-color: {{ $item['branch_stocks'][$branch->name] > 0 ? '#ff9800' : '#e0e0e0' }}; 
-                                                                 color: {{ $item['branch_stocks'][$branch->name] > 0 ? 'white' : '#757575' }}; 
-                                                                 font-weight: 600;">
-                                                        {{ $item['branch_stocks'][$branch->name] }}
-                                                    </span>
+                                                <td class="px-2 py-2 text-center" style="background-color: #fffbf5;">
+                                                    @php $qty = $item['branch_stocks'][$branch->name]; @endphp
+                                                    @if($qty > 0)
+                                                        <span class="stock-number" style="color: #e65100; font-weight:600; font-size:0.9rem;">{{ $qty }}</span>
+                                                    @else
+                                                        <span class="text-muted" style="font-size:0.85rem;">0</span>
+                                                    @endif
                                                 </td>
                                             @endforeach
                                         </tr>
@@ -158,6 +156,17 @@
     vertical-align: middle;
 }
 
+/* Compact adjustments */
+.inventory-table tbody td, .inventory-table thead th {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+}
+
+.inventory-table .badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
 .card {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     overflow: hidden;
@@ -171,7 +180,6 @@
 .badge {
     font-weight: 500;
     letter-spacing: 0.3px;
-    min-width: 50px;
     display: inline-block;
 }
 

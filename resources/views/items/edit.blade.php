@@ -80,7 +80,7 @@
                             $bps = $item->branchPrices()->with('branch')->get()->map(function($b){ return ['branch_id'=>$b->branch_id,'price'=>$b->price]; });
                             @endphp
                             <script>
-                                window.__branchPricesForItem = @json($bps - > values());
+                                window.__branchPricesForItem = @json($bps->values());
                             </script>
                             @include('items.partials.branch_prices')
                         </div>

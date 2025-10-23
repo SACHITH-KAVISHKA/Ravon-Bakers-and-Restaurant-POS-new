@@ -8,7 +8,7 @@ $branches = \App\Models\Branch::orderBy('name')->where('id', '!=', 1)->get();
         <h6 class="mb-0">Branch Prices</h6>
     </div>
     <div class="card-body">
-        <div id="branchPricesContainer" data-branches='@json($branches->map(function($b){ return [' id'=> $b->id, 'name' => $b->name]; }))'></div>
+    <div id="branchPricesContainer" data-branches='@json($branches->map(function($b){ return ['id'=> $b->id, 'name' => $b->name]; }))'></div>
 
         <div class="mt-3">
             <button type="button" id="addBranchPriceBtn" class="btn btn-sm btn-outline-primary">

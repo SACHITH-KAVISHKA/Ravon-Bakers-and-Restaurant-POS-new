@@ -129,10 +129,17 @@ class ItemController extends Controller
             // Save branch-specific prices if provided
             if ($request->has('branch_prices') && is_array($request->branch_prices)) {
                 foreach ($request->branch_prices as $bp) {
-                    if (empty($bp['branch_id'])) continue;
+                    // Guard: ensure branch_id is present and numeric
+                    if (!isset($bp['branch_id'])) continue;
+                    // Sometimes client JS can send string 'undefined' - skip non-numeric values
+                    if (!is_numeric($bp['branch_id'])) continue;
+
+                    $branchId = (int) $bp['branch_id'];
+                    $price = is_numeric($bp['price']) ? (float) $bp['price'] : 0;
+
                     \App\Models\ItemBranchPrice::updateOrCreate(
-                        ['item_id' => $item->id, 'branch_id' => $bp['branch_id']],
-                        ['price' => $bp['price'] ?? 0]
+                        ['item_id' => $item->id, 'branch_id' => $branchId],
+                        ['price' => $price]
                     );
                 }
             }

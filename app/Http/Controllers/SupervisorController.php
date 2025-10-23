@@ -259,6 +259,66 @@ class SupervisorController extends Controller
     }
 
     /**
+     * Export inventory history/current stock as CSV (Excel-friendly)
+     */
+    public function exportInventoryHistory(Request $request)
+    {
+        $filterDate = $request->input('date');
+        $filterTime = $request->input('time');
+
+        // Get branches and determine main branch same as inventoryHistory
+        $branches = Branch::where('status', 1)->orderBy('name')->get();
+        $mainBranch = $branches->where('name', 'Main Branch')->first();
+        if (! $mainBranch) {
+            $mainBranch = $branches->first();
+        }
+        $otherBranches = $branches->where('id', '!=', $mainBranch->id ?? null);
+
+        if ($filterDate || $filterTime) {
+            $itemsCollection = $this->getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
+        } else {
+            $itemsCollection = $this->getCurrentStockData($mainBranch, $otherBranches);
+        }
+
+        // Prepare CSV headers
+        $fileName = 'inventory-history-' . now()->format('Ymd-His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+        ];
+
+        $columns = ['Item', 'Item Code', 'Main Stock'];
+        foreach ($otherBranches as $branch) {
+            $columns[] = $branch->name;
+        }
+
+        $callback = function() use ($itemsCollection, $columns, $otherBranches) {
+            $file = fopen('php://output', 'w');
+            // Write BOM for Excel compatibility with UTF-8
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($file, $columns);
+
+            foreach ($itemsCollection as $item) {
+                $row = [
+                    $item['name'] ?? '',
+                    $item['item_code'] ?? '',
+                    $item['main_stock'] ?? 0,
+                ];
+
+                foreach ($otherBranches as $branch) {
+                    $row[] = $item['branch_stocks'][$branch->name] ?? 0;
+                }
+
+                fputcsv($file, $row);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
      * Get current stock data from inventory table
      */
     private function getCurrentStockData($mainBranch, $otherBranches)
@@ -472,5 +532,183 @@ class SupervisorController extends Controller
         $wastages = $query->paginate(10);
 
         return view('supervisor.wastage-view', compact('wastages'));
+    }
+
+    /**
+     * List productions (inventory requests created by this supervisor)
+     */
+    public function productions(Request $request)
+    {
+        $query = InventoryRequest::with(['inventoryRequestItems.item'])
+            ->where('user_id', Auth::id())
+            ->where('status', 'completed')
+            ->orderBy('date_time', 'desc');
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('date_time', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('date_time', '<=', $request->date_to);
+        }
+
+        $productions = $query->paginate(15);
+
+        return view('supervisor.productions.index', compact('productions'));
+    }
+
+    /**
+     * Show a single production (inventory request and its items)
+     */
+    public function showProduction(InventoryRequest $inventoryRequest)
+    {
+        // Authorization: only owner can view
+        if ($inventoryRequest->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        $inventoryRequest->load(['department', 'inventoryRequestItems.item']);
+        return view('supervisor.productions.show', compact('inventoryRequest'));
+    }
+
+    /**
+     * Edit production
+     */
+    public function editProduction(InventoryRequest $inventoryRequest)
+    {
+        // Authorization: only owner can edit
+        if ($inventoryRequest->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        $inventoryRequest->load(['inventoryRequestItems.item']);
+        return view('supervisor.productions.edit', compact('inventoryRequest'));
+    }
+
+    /**
+     * Update production (allow updating quantities and notes)
+     */
+    public function updateProduction(Request $request, InventoryRequest $inventoryRequest)
+    {
+        // Authorization: only owner can update
+        if ($inventoryRequest->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'date_time' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request, $inventoryRequest) {
+                // Update request-level fields
+                $inventoryRequest->update([
+                    'date_time' => $request->date_time,
+                    'notes' => $request->notes,
+                ]);
+
+                // Build incoming items map by item_id => quantity
+                $incoming = collect($request->items)->mapWithKeys(function ($it) {
+                    return [$it['item_id'] => (int) $it['quantity']];
+                })->all();
+
+                // Existing items map
+                $existing = $inventoryRequest->inventoryRequestItems->mapWithKeys(function ($it) {
+                    return [$it->item_id => (int) $it->quantity];
+                })->all();
+
+                // Process diffs: for each item in union of keys
+                $allItemIds = array_unique(array_merge(array_keys($incoming), array_keys($existing)));
+
+                foreach ($allItemIds as $itemId) {
+                    $newQty = $incoming[$itemId] ?? 0;
+                    $oldQty = $existing[$itemId] ?? 0;
+                    $delta = $newQty - $oldQty; // positive: increase main stock; negative: reduce main stock
+
+                    // Apply to main inventory (branch_id = 1 or first inventory record)
+                    $inventory = Inventory::where('item_id', $itemId)->first();
+
+                    if ($delta !== 0) {
+                        if ($inventory) {
+                            // If reducing stock, prevent negative inventory
+                            if ($delta < 0) {
+                                $available = $inventory->current_stock;
+                                $reduce = abs($delta);
+                                if ($reduce > $available) {
+                                    $item = Item::find($itemId);
+                                    $itemName = $item ? $item->item_name : "Item ID {$itemId}";
+                                    throw new \Exception("Cannot reduce {$itemName} by {$reduce}; only {$available} in stock.");
+                                }
+                                $inventory->decrement('current_stock', $reduce);
+                            } else {
+                                $inventory->increment('current_stock', $delta);
+                            }
+                        } else {
+                            // If no inventory exists and delta > 0, create one
+                            if ($delta > 0) {
+                                Inventory::create([
+                                    'item_id' => $itemId,
+                                    'branch_id' => 1,
+                                    'current_stock' => $delta,
+                                    'low_stock_alert' => 10,
+                                ]);
+                            } else {
+                                $item = Item::find($itemId);
+                                $itemName = $item ? $item->item_name : "Item ID {$itemId}";
+                                throw new \Exception("Inventory record missing for {$itemName} when trying to reduce stock.");
+                            }
+                        }
+                    }
+                }
+
+                // Sync inventory request items: delete and recreate to match the requested list
+                $inventoryRequest->inventoryRequestItems()->delete();
+                foreach ($incoming as $itemId => $qty) {
+                    InventoryRequestItem::create([
+                        'inventory_request_id' => $inventoryRequest->id,
+                        'item_id' => $itemId,
+                        'quantity' => $qty,
+                    ]);
+                }
+            });
+
+            return redirect()->route('supervisor.productions.show', $inventoryRequest)
+                ->with('success', 'Production updated successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Destroy a production record (and rollback inventory if desired)
+     */
+    public function destroyProduction(InventoryRequest $inventoryRequest)
+    {
+        // Authorization: only owner can delete
+        if ($inventoryRequest->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        DB::transaction(function () use ($inventoryRequest) {
+            // Optionally rollback inventory (reduce main branch stock)
+            foreach ($inventoryRequest->inventoryRequestItems as $iri) {
+                $inventory = Inventory::where('item_id', $iri->item_id)->first();
+                if ($inventory) {
+                    $inventory->decrement('current_stock', $iri->quantity);
+                }
+            }
+
+            $inventoryRequest->inventoryRequestItems()->delete();
+            $inventoryRequest->delete();
+        });
+
+        return redirect()->route('supervisor.productions.index')
+            ->with('success', 'Production deleted and inventory rolled back.');
     }
 }

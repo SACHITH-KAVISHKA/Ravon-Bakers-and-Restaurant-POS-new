@@ -10,11 +10,6 @@
                 <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
                     <i class="bi bi-boxes" style="color: #667eea;"></i> Inventory Stock by Branch
                 </h1>
-                @can('supervisor-access')
-                <a href="{{ route('supervisor.add-inventory') }}" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-                    <i class="bi bi-plus-circle"></i> Add Production
-                </a>
-                @endcan
             </div>
         </div>
     </div>
@@ -43,6 +38,9 @@
                             </button>
                             <a href="{{ route('supervisor.inventory-history') }}" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-circle"></i> Clear
+                            </a>
+                            <a href="{{ route('supervisor.inventory-history.export', ['date' => $filterDate ?? null, 'time' => $filterTime ?? null]) }}" class="btn btn-success ms-2" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none; color: #fff;">
+                                <i class="bi bi-download"></i> Export CSV
                             </a>
                         </div>
                     </form>

@@ -142,10 +142,23 @@
 
 @endsection
 
+@php
+    // Prepare a safe collection/array for JS consumption
+    if (isset($items)) {
+        try {
+            $wastageItems = is_object($items) && method_exists($items, 'values') ? $items->values() : collect($items);
+        } catch (\Throwable $e) {
+            $wastageItems = collect($items);
+        }
+    } else {
+        $wastageItems = collect([]);
+    }
+@endphp
+
 @push('scripts')
 <script>
     // Store items data for JavaScript
-    window.wastageItems = @json($items - > values());
+    window.wastageItems = @json($wastageItems);
     console.log('Window loaded, items:', window.wastageItems);
 </script>
 <script>

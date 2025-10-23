@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/stock-report', [SupervisorController::class, 'inventoryHistory'])->name('stock-report');
             Route::get('/item-sales', [App\Http\Controllers\ItemSalesController::class, 'itemSales'])->name('item-sales');
             Route::post('/item-sales/filter', [App\Http\Controllers\ItemSalesController::class, 'filterItemSales'])->name('item-sales.filter');
+            Route::get('/item-sales/export', [App\Http\Controllers\ItemSalesController::class, 'exportExcel'])->name('item-sales.export');
         });
     });
 
@@ -80,6 +81,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/add-inventory', [SupervisorController::class, 'addInventory'])->name('add-inventory');
         Route::post('/store-inventory', [SupervisorController::class, 'storeInventory'])->name('store-inventory');
         Route::get('/inventory-history', [SupervisorController::class, 'inventoryHistory'])->name('inventory-history');
+    Route::get('/inventory-history/export', [SupervisorController::class, 'exportInventoryHistory'])->name('inventory-history.export');
         Route::get('/create-department', [SupervisorController::class, 'createDepartment'])->name('create-department');
         Route::post('/store-department', [SupervisorController::class, 'storeDepartment'])->name('store-department');
         Route::get('/api/items', [SupervisorController::class, 'getItems'])->name('api.items');
@@ -88,6 +90,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/add-wastage', [SupervisorController::class, 'addWastage'])->name('add-wastage');
         Route::post('/store-wastage', [SupervisorController::class, 'storeWastage'])->name('store-wastage');
         Route::get('/wastage-view', [SupervisorController::class, 'wastageView'])->name('wastage-view');
+
+        // Production (Inventory Requests added by supervisor to main stock)
+        Route::prefix('productions')->name('productions.')->group(function () {
+            Route::get('/', [SupervisorController::class, 'productions'])->name('index');
+            Route::get('/{inventoryRequest}', [SupervisorController::class, 'showProduction'])->name('show');
+            Route::get('/{inventoryRequest}/edit', [SupervisorController::class, 'editProduction'])->name('edit');
+            Route::put('/{inventoryRequest}', [SupervisorController::class, 'updateProduction'])->name('update');
+            Route::delete('/{inventoryRequest}', [SupervisorController::class, 'destroyProduction'])->name('destroy');
+        });
         
         // Stock Transfer routes (Supervisor only)
         Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {

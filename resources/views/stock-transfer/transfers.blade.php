@@ -156,26 +156,6 @@
                                                     </button>
                                                 </form>
                                             @endif
-
-                                            @if($transfer->status === 'pending' && auth()->user()->branch_id === $transfer->to_branch_id)
-                                            <!-- Accept: open confirmation modal -->
-                                            <button type="button"
-                                                class="btn btn-sm btn-success"
-                                                title="Accept Transfer"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#acceptModal{{ $transfer->id }}">
-                                                <i class="bi bi-check"></i>
-                                            </button>
-
-                                            <button type="button"
-                                                class="btn btn-sm btn-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#rejectModal{{ $transfer->id }}"
-                                                title="Reject Transfer">
-                                                <i class="bi bi-x"></i>
-                                            </button>
-                                            @endif
-
                                             @if($transfer->status === 'rejected' && $transfer->rejection_reason)
                                             <button type="button"
                                                 class="btn btn-sm btn-outline-danger"
@@ -223,102 +203,33 @@
 
 <!-- Rejection Modals -->
 @foreach($transfers as $transfer)
-@if($transfer->status === 'pending' && auth()->user()->branch_id === $transfer->to_branch_id)
-<div class="modal fade" id="rejectModal{{ $transfer->id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="bi bi-x-circle text-danger"></i>
-                    Reject Transfer #{{ str_pad($transfer->id, 4, '0', STR_PAD_LEFT) }}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('stock-transfer.reject', $transfer) }}" method="POST">
-                @csrf
-                <div class="modal-body">
-                    <p>You are about to reject this stock transfer from <strong>{{ $transfer->source_name }}</strong>.</p>
-                    <div class="mb-3">
-                        <label for="rejection_reason{{ $transfer->id }}" class="form-label">
-                            <strong>Reason for Rejection *</strong>
-                        </label>
-                        <textarea class="form-control"
-                            id="rejection_reason{{ $transfer->id }}"
-                            name="rejection_reason"
-                            rows="4"
-                            placeholder="Please provide a reason for rejecting this transfer..."
-                            required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-x-circle"></i> Reject Transfer
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
-
-@if($transfer->status === 'pending' && auth()->user()->branch_id === $transfer->to_branch_id)
-<!-- Accept Modal -->
-<div class="modal fade" id="acceptModal{{ $transfer->id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form action="{{ route('stock-transfer.accept', $transfer) }}" method="POST">
-                @csrf
+    @if($transfer->status === 'rejected' && $transfer->rejection_reason)
+    <div class="modal fade" id="rejectionModal{{ $transfer->id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="bi bi-check-circle text-success"></i>
-                        Accept Transfer #{{ str_pad($transfer->id, 4, '0', STR_PAD_LEFT) }}
+                        <i class="bi bi-info-circle text-danger"></i>
+                        Rejection Reason - Transfer #{{ str_pad($transfer->id, 4, '0', STR_PAD_LEFT) }}
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to accept this transfer from <strong>{{ $transfer->source_name }}</strong> to <strong>{{ $transfer->toBranch->name }}</strong>?</p>
-
+                    <div class="alert alert-danger">
+                        <strong>Rejection Reason:</strong><br>
+                        {{ $transfer->rejection_reason }}
+                    </div>
+                    <div class="small text-muted">
+                        Rejected by {{ $transfer->processor->name ?? 'System' }}
+                        on {{ $transfer->processed_at ? $transfer->processed_at->format('F j, Y \a\t g:i A') : 'Unknown' }}
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="bi bi-check-circle"></i> Yes, Accept Transfer
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
-
-@if($transfer->status === 'rejected' && $transfer->rejection_reason)
-<div class="modal fade" id="rejectionModal{{ $transfer->id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="bi bi-info-circle text-danger"></i>
-                    Rejection Reason - Transfer #{{ str_pad($transfer->id, 4, '0', STR_PAD_LEFT) }}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-danger">
-                    <strong>Rejection Reason:</strong><br>
-                    {{ $transfer->rejection_reason }}
-                </div>
-                <div class="small text-muted">
-                    Rejected by {{ $transfer->processor->name ?? 'System' }}
-                    on {{ $transfer->processed_at ? $transfer->processed_at->format('F j, Y \a\t g:i A') : 'Unknown' }}
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
-</div>
-@endif
+    @endif
 @endforeach
 @endsection

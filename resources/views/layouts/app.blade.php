@@ -508,7 +508,7 @@
 
                 <!-- Reports dropdown -->
                 @php
-                $reportsActive = request()->routeIs('supervisor.wastage-view') || request()->routeIs('stock-transfer.transfers') || request()->routeIs('supervisor.inventory-history');
+                $reportsActive = request()->routeIs('supervisor.wastage-view') || request()->routeIs('stock-transfer.transfers') || request()->routeIs('supervisor.inventory-history') || request()->routeIs('supervisor.productions.*');
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link d-flex justify-content-between align-items-center {{ $reportsActive ? 'active' : '' }}"
@@ -537,6 +537,12 @@
                                 <a class="nav-link {{ request()->routeIs('supervisor.inventory-history') ? 'active' : '' }}" href="{{ route('supervisor.inventory-history') }}">
                                     <i class="bi bi-boxes"></i>
                                     <span>Stock Report</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('supervisor.productions.*') ? 'active' : '' }}" href="{{ route('supervisor.productions.index') }}">
+                                    <i class="bi bi-clipboard-data"></i>
+                                    <span>View Production</span>
                                 </a>
                             </li>
                         </ul>

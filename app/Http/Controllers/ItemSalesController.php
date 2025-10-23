@@ -135,4 +135,57 @@ class ItemSalesController extends Controller
 
         return $result;
     }
+
+    /**
+     * Export the item sales data as CSV for the given date range
+     */
+    public function exportExcel(Request $request)
+    {
+        $fromDate = $request->input('from_date', Carbon::today()->format('Y-m-d'));
+        $toDate = $request->input('to_date', Carbon::today()->format('Y-m-d'));
+
+        $branches = Branch::where('status', 1)
+            ->where('name', '!=', 'Main Branch')
+            ->orderBy('name')
+            ->get();
+
+        $salesData = $this->getSalesData($fromDate, $toDate, $branches);
+
+        $fileName = 'item-sales-' . now()->format('Ymd-His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+        ];
+
+        $columns = ['Item Code', 'Item Name', 'Total Quantity'];
+        foreach ($branches as $branch) {
+            $columns[] = $branch->name;
+        }
+
+        $callback = function() use ($salesData, $columns, $branches) {
+            $f = fopen('php://output', 'w');
+            // BOM for Excel
+            fprintf($f, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($f, $columns);
+
+            foreach ($salesData as $item) {
+                $row = [
+                    $item['item_code'] ?? '',
+                    $item['item_name'] ?? '',
+                    $item['total_quantity'] ?? 0,
+                ];
+
+                foreach ($branches as $branch) {
+                    $row[] = $item['branches'][$branch->name] ?? 0;
+                }
+
+                fputcsv($f, $row);
+            }
+
+            fclose($f);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

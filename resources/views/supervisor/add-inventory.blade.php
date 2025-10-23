@@ -73,9 +73,8 @@
                             <table class="table table-bordered" id="itemsTable">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 20%;">Items</th>
-                                        <th style="width: 15%;">Qty</th>
-                                        <th style="width: 15%;">Rate (Selling Price)</th>
+                                        <th style="width: 25%;">Items</th>
+                                        <th style="width: 20%">Qty</th>
                                         <th style="width: 5%;">Action</th>
                                     </tr>
                                 </thead>
@@ -101,12 +100,6 @@
                                                 name="items[0][quantity]"
                                                 min="1"
                                                 required>
-                                        </td>
-                                        <td>
-                                            <input type="text"
-                                                class="form-control price-display"
-                                                readonly
-                                                placeholder="0.00">
                                         </td>
                                         <td>
                                             <button type="button" class="btn btn-danger btn-sm remove-row" disabled>
@@ -167,20 +160,7 @@
             updateRemoveButtons();
         });
 
-        // Handle item selection change
-        itemsTableBody.addEventListener('change', function(e) {
-            if (e.target.classList.contains('item-select')) {
-                const selectedOption = e.target.selectedOptions[0];
-                const priceDisplay = e.target.closest('tr').querySelector('.price-display');
-
-                if (selectedOption.value) {
-                    const price = selectedOption.dataset.price || '0.00';
-                    priceDisplay.value = parseFloat(price).toFixed(2);
-                } else {
-                    priceDisplay.value = '';
-                }
-            }
-        });
+        // (Price display removed) Handle events via delegated listeners below
 
         // Handle remove row
         itemsTableBody.addEventListener('click', function(e) {
@@ -214,12 +194,6 @@
                        name="items[${index}][quantity]" 
                        min="1" 
                        required>
-            </td>
-            <td>
-                <input type="text" 
-                       class="form-control price-display" 
-                       readonly 
-                       placeholder="0.00">
             </td>
             <td>
                 <button type="button" class="btn btn-danger btn-sm remove-row">
@@ -264,11 +238,6 @@
 
     .item-row:hover {
         background-color: #f8f9fa;
-    }
-
-    .price-display {
-        background-color: #e9ecef;
-        color: #6c757d;
     }
 
     .btn-success {

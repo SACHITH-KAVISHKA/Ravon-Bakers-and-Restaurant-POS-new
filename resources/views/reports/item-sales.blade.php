@@ -42,6 +42,9 @@
                             <button type="button" class="btn btn-outline-secondary" id="resetBtn">
                                 <i class="bi bi-arrow-clockwise"></i> Reset
                             </button>
+                            <a href="{{ route('reports.item-sales.export', ['from_date' => $fromDate ?? null, 'to_date' => $toDate ?? null]) }}" class="btn btn-success ms-2" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none; color: #fff;">
+                                <i class="bi bi-download"></i> Export Excel
+                            </a>
                         </div>
                     </form>
                 </div>

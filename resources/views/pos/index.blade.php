@@ -1590,7 +1590,7 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-arrow-left"></i> Back
                     </button>
-                    <button type="button" class="btn btn-success" onclick="processModalPayment()">
+                    <button type="button" id="modal-print-btn" class="btn btn-success" onclick="processModalPayment()" disabled>
                         <i class="bi bi-check-circle"></i> Print Receipt
                     </button>
                 </div>
@@ -1945,6 +1945,9 @@
             // Update modal totals
             updateModalTotals();
 
+            // Ensure print button disabled when modal opens
+            toggleModalPrintButton();
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
             modal.show();
@@ -1986,9 +1989,10 @@
             } else if (method === 'CARD') {
                 cashInputGroup.style.display = 'none';
                 cardInputGroup.style.display = 'flex';
-                // Allow user to enter card amount (don't auto-fill)
-                modalCardPayment = 0;
-                cardInput.value = '';
+                // Default the card amount to the total (editable) so user can accept or adjust
+                const totalForCard = getTotalAmount();
+                modalCardPayment = totalForCard;
+                if (cardInput) cardInput.value = totalForCard.toFixed(2);
                 activeModalInput = 'card';
             } else if (method === 'CARD & CASH') {
                 cashInputGroup.style.display = 'flex';
@@ -2003,6 +2007,9 @@
             }
 
             updateModalTotals();
+
+            // Ensure print button state is correct when method selected
+            toggleModalPrintButton();
         }
 
         // Track which input is active for CASH & CARD mode
@@ -2331,6 +2338,28 @@
             }
         }
 
+        // Toggle modal print button enabled/disabled based on payment amounts
+        function toggleModalPrintButton() {
+            const btn = document.getElementById('modal-print-btn');
+            if (!btn) return;
+
+            // Default to disabled
+            btn.disabled = true;
+
+            if (!modalSelectedPaymentMethod) return;
+
+            if (modalSelectedPaymentMethod === 'CASH') {
+                if (modalCustomerPayment > 0) btn.disabled = false;
+            } else if (modalSelectedPaymentMethod === 'CARD') {
+                if (modalCardPayment > 0) btn.disabled = false;
+            } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
+                if ((modalCustomerPayment > 0) || (modalCardPayment > 0)) btn.disabled = false;
+            } else if (modalSelectedPaymentMethod === 'CREDIT') {
+                // Allow print for credit
+                btn.disabled = false;
+            }
+        }
+
         // Process modal payment
         function processModalPayment() {
             if (!modalSelectedPaymentMethod) {
@@ -2476,6 +2505,28 @@
                     item.style.display = 'none';
                 }
             });
+        });
+
+        // Wire up modal input listeners to update modal amounts and toggle print button
+        document.addEventListener('DOMContentLoaded', function() {
+            const cashInput = document.getElementById('modal-cash-input');
+            const cardInput = document.getElementById('modal-card-input');
+
+            if (cashInput) {
+                cashInput.addEventListener('input', function() {
+                    modalCustomerPayment = parseFloat(this.value) || 0;
+                    updateModalTotals();
+                    toggleModalPrintButton();
+                });
+            }
+
+            if (cardInput) {
+                cardInput.addEventListener('input', function() {
+                    modalCardPayment = parseFloat(this.value) || 0;
+                    updateModalTotals();
+                    toggleModalPrintButton();
+                });
+            }
         });
 
         // Populate receipt with sale data

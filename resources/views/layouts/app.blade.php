@@ -453,6 +453,37 @@
             flex: 1;
             padding-bottom: 20px;
         }
+
+        /* Stock Transfer Notification Badge */
+        .nav-item .nav-link {
+            position: relative;
+        }
+
+        .nav-item .nav-link .badge.bg-warning {
+            animation: pulse 2s infinite;
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 5px rgba(255, 193, 7, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+            }
+        }
+
+        /* When sidebar is collapsed, adjust badge position */
+        .sidebar.collapsed .nav-link .badge.rounded-pill {
+            font-size: 0.55rem;
+            padding: 0.2rem 0.35rem;
+            transform: translate(-50%, -50%) !important;
+            left: 10px;
+            top: 10px;
+        }
     </style>
 
     <!-- Scripts -->
@@ -544,7 +575,15 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" href="{{ route('stock-transfer.transfers') }}">
+                                <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" 
+                                   href="{{ route('stock-transfer.transfers') }}"
+                                   style="position: relative;">
+                                    @if($pendingStockTransfersCount > 0)
+                                    <span class="position-absolute badge rounded-pill bg-warning text-dark"
+                                          style="top: 0; left: 0; font-size: 0.65rem; padding: 0.25rem 0.5rem; transform: translate(-25%, -25%);">
+                                        {{ $pendingStockTransfersCount }}
+                                    </span>
+                                    @endif
                                     <i class="bi bi-list-check"></i>
                                     <span>View Transfer</span>
                                 </a>
@@ -655,24 +694,31 @@
                 <!-- Stock Transfer (For Staff) -->
                 @if(auth()->user()->role === 'staff' && auth()->user()->branch_id)
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}"
-                        href="{{ route('stock-transfer.transfers') }}">
+                    <a class="nav-link {{ request()->routeIs('stock-transfer.*') ? 'active' : '' }}"
+                        href="{{ route('stock-transfer.transfers') }}"
+                        style="position: relative;">
+                        @if($pendingStockTransfersCount > 0)
+                        <span class="position-absolute badge rounded-pill bg-warning text-dark"
+                              style="top: 0; left: 0; font-size: 0.65rem; padding: 0.25rem 0.5rem; transform: translate(-25%, -25%);">
+                            {{ $pendingStockTransfersCount }}
+                            <span class="visually-hidden">pending transfers</span>
+                        </span>
+                        @endif
                         <i class="bi bi-inbox"></i>
                         <span>Stock Transfers</span>
                     </a>
                 </li>
-                @endif
-
-                <!-- Branch Inventory (For Staff) -->
-                @if(auth()->user()->role === 'staff')
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('staff.branch-inventory') ? 'active' : '' }}"
-                        href="{{ route('staff.branch-inventory') }}">
-                        <i class="bi bi-building"></i>
-                        <span>Branch Stock</span>
+                    <a class="nav-link {{ request()->routeIs('staff.stock-transfer.create') ? 'active' : '' }}"
+                        href="{{ route('staff.stock-transfer.create') }}">
+                        <i class="bi bi-plus-circle"></i>
+                        <span>Create Transfer</span>
                     </a>
                 </li>
+                @endif
+
                 <!-- Add Branch Wastage (For Staff) -->
+                @if(auth()->user()->role === 'staff')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('staff.add-branch-wastage') ? 'active' : '' }}"
                         href="{{ route('staff.add-branch-wastage') }}">
@@ -682,7 +728,7 @@
                 </li>
                 <!-- Reports Dropdown (For Staff) -->
                 @php
-                $staffReportsActive = request()->routeIs('staff.branch-wastage-view');
+                $staffReportsActive = request()->routeIs('staff.branch-wastage-view') || request()->routeIs('staff.branch-inventory');
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link d-flex justify-content-between align-items-center {{ $staffReportsActive ? 'active' : '' }}"
@@ -695,6 +741,13 @@
                     </a>
                     <div class="submenu-container {{ $staffReportsActive ? 'show' : '' }}" id="staffReportsSubmenu">
                         <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.branch-inventory') ? 'active' : '' }}"
+                                   href="{{ route('staff.branch-inventory') }}">
+                                    <i class="bi bi-building"></i>
+                                    <span>Branch Stock</span>
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('staff.branch-wastage-view') ? 'active' : '' }}" 
                                    href="{{ route('staff.branch-wastage-view') }}">

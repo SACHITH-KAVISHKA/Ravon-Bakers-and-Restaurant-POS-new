@@ -62,7 +62,9 @@ class StockTransferController extends Controller
 
         DB::transaction(function () use ($request, $user) {
             // Create the stock transfer (from central inventory to branch)
+            // Explicitly set from_branch_id to 1 for supervisor transfers (main/central inventory)
             $transfer = StockTransfer::create([
+                'from_branch_id' => 1, // Main/Central inventory branch
                 'to_branch_id' => $request->to_branch_id,
                 'date_time' => $request->date_time,
                 'status' => 'pending',
@@ -105,7 +107,7 @@ class StockTransferController extends Controller
         }
 
         $user = Auth::user();
-        $transfers = StockTransfer::with(['toBranch', 'transferItems.item'])
+        $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'transferItems.item'])
             ->where('created_by', $user->id)
             ->orderBy('date_time', 'desc')
             ->paginate(10);
@@ -133,7 +135,8 @@ class StockTransferController extends Controller
             abort(403, 'You must be assigned to a branch to view transfers.');
         }
 
-        $pendingTransfers = StockTransfer::with(['creator', 'transferItems.item'])
+        // Load fromBranch relationship to show source of transfer
+        $pendingTransfers = StockTransfer::with(['fromBranch', 'toBranch', 'creator', 'transferItems.item'])
             ->where('to_branch_id', $user->branch_id)
             ->where('status', 'pending')
             ->orderBy('date_time', 'desc')
@@ -159,22 +162,34 @@ class StockTransferController extends Controller
                 'rejected' => StockTransfer::where('status', 'rejected')->count(),
             ];
 
-            $transfers = StockTransfer::with(['toBranch', 'creator', 'processor', 'transferItems.item'])
+            $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'creator', 'processor', 'transferItems.item'])
                 ->where('status', $status)
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
 
             $pageTitle = 'All Stock Transfers';
         } else {
-            // Staff sees only transfers for their branch
+            // Staff sees transfers related to their branch (incoming TO or outgoing FROM their branch)
             $statusCounts = [
-                'pending' => StockTransfer::where('to_branch_id', $user->branch_id)->where('status', 'pending')->count(),
-                'accepted' => StockTransfer::where('to_branch_id', $user->branch_id)->where('status', 'accepted')->count(),
-                'rejected' => StockTransfer::where('to_branch_id', $user->branch_id)->where('status', 'rejected')->count(),
+                'pending' => StockTransfer::where(function($q) use ($user) {
+                    $q->where('to_branch_id', $user->branch_id)
+                      ->orWhere('from_branch_id', $user->branch_id);
+                })->where('status', 'pending')->count(),
+                'accepted' => StockTransfer::where(function($q) use ($user) {
+                    $q->where('to_branch_id', $user->branch_id)
+                      ->orWhere('from_branch_id', $user->branch_id);
+                })->where('status', 'accepted')->count(),
+                'rejected' => StockTransfer::where(function($q) use ($user) {
+                    $q->where('to_branch_id', $user->branch_id)
+                      ->orWhere('from_branch_id', $user->branch_id);
+                })->where('status', 'rejected')->count(),
             ];
 
-            $transfers = StockTransfer::with(['toBranch', 'creator', 'processor', 'transferItems.item'])
-                ->where('to_branch_id', $user->branch_id)
+            $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'creator', 'processor', 'transferItems.item'])
+                ->where(function($q) use ($user) {
+                    $q->where('to_branch_id', $user->branch_id)
+                      ->orWhere('from_branch_id', $user->branch_id);
+                })
                 ->where('status', $status)
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
@@ -192,13 +207,19 @@ class StockTransferController extends Controller
     {
         $user = Auth::user();
 
-        // Cast to int to ensure type consistency across environments
-        if ((int)$stockTransfer->created_by !== (int)$user->id &&
-            (int)$stockTransfer->to_branch_id !== (int)$user->branch_id) {
+        // Allow access if:
+        // 1. User created this transfer, OR
+        // 2. Transfer is sent to user's branch (for accepting/rejecting), OR
+        // 3. Transfer is from user's branch (staff transfer they initiated)
+        $canView = (int)$stockTransfer->created_by === (int)$user->id 
+                || (int)$stockTransfer->to_branch_id === (int)$user->branch_id
+                || (int)$stockTransfer->from_branch_id === (int)$user->branch_id;
+
+        if (!$canView) {
             abort(403, 'Unauthorized access to this transfer.');
         }
 
-        $stockTransfer->load(['toBranch', 'creator', 'processor', 'transferItems.item']);
+        $stockTransfer->load(['fromBranch', 'toBranch', 'creator', 'processor', 'transferItems.item']);
 
         return view('stock-transfer.show', compact('stockTransfer'));
     }
@@ -229,9 +250,12 @@ class StockTransferController extends Controller
 
             // Process each item
             foreach ($stockTransfer->transferItems as $transferItem) {
-                // Deduct from main branch inventory (source)
+                // Determine source branch (1 for central/main, or from_branch_id for staff transfers)
+                $sourceBranchId = $stockTransfer->from_branch_id ?? 1;
+
+                // Deduct from source branch inventory
                 $sourceInventory = Inventory::where('item_id', $transferItem->item_id)
-                    ->where('branch_id', 1) // Main branch inventory
+                    ->where('branch_id', $sourceBranchId)
                     ->first();
 
                 if ($sourceInventory && $sourceInventory->current_stock >= $transferItem->quantity) {

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class StockTransfer extends Model
 {
     protected $fillable = [
+        'from_branch_id',
         'to_branch_id',
         'date_time',
         'status',
@@ -25,11 +26,22 @@ class StockTransfer extends Model
     ];
 
     /**
-     * Get the source name (always "Central Inventory" since we removed branch-to-branch transfers)
+     * Get the source branch for this transfer
+     */
+    public function fromBranch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'from_branch_id');
+    }
+
+    /**
+     * Get the source name (Central Inventory if from_branch_id is null or 1, otherwise branch name)
      */
     public function getSourceNameAttribute(): string
     {
-        return 'Central Inventory';
+        if (!$this->from_branch_id || $this->from_branch_id == 1) {
+            return 'Central Inventory';
+        }
+        return $this->fromBranch ? $this->fromBranch->name : 'Unknown Branch';
     }
 
     /**

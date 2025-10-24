@@ -9,7 +9,11 @@
                     <h1 class="h3 mb-0">{{ $pageTitle }}</h1>
                     <p class="text-muted mb-0">View and manage stock transfers by status</p>
                 </div>
-                
+                @if(auth()->user()->role === 'staff' && auth()->user()->branch_id)
+                <a href="{{ route('staff.stock-transfer.create') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create Transfer
+                </a>
+                @endif
             </div>
 
             <div class="card shadow-sm">
@@ -56,6 +60,9 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Transfer ID</th>
+                                    @if(auth()->user()->role === 'staff')
+                                    <th>Direction</th>
+                                    @endif
                                     <th>Date & Time</th>
                                     <th>Source</th>
                                     <th>Destination</th>
@@ -76,6 +83,19 @@
                                     <td>
                                         <span class="fw-bold text-primary">#{{ str_pad($transfer->id, 4, '0', STR_PAD_LEFT) }}</span>
                                     </td>
+                                    @if(auth()->user()->role === 'staff')
+                                    <td>
+                                        @if($transfer->to_branch_id == auth()->user()->branch_id)
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-down-circle"></i> Incoming
+                                            </span>
+                                        @else
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-arrow-up-circle"></i> Outgoing
+                                            </span>
+                                        @endif
+                                    </td>
+                                    @endif
                                     <td>
                                         <div class="small">
                                             <div class="fw-semibold">{{ $transfer->date_time->format('M d, Y') }}</div>

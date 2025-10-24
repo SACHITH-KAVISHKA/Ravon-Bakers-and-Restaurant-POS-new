@@ -120,6 +120,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/add-branch-wastage', [App\Http\Controllers\StaffController::class, 'addBranchWastage'])->name('add-branch-wastage');
         Route::post('/store-branch-wastage', [App\Http\Controllers\StaffController::class, 'storeBranchWastage'])->name('store-branch-wastage');
         Route::get('/branch-wastage-view', [App\Http\Controllers\StaffController::class, 'branchWastageView'])->name('branch-wastage-view');
+        
+        // Staff Stock Transfer routes
+        Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
+            Route::get('/', [App\Http\Controllers\StaffController::class, 'stockTransferIndex'])->name('index');
+            Route::get('/create', [App\Http\Controllers\StaffController::class, 'createStockTransfer'])->name('create');
+            Route::post('/', [App\Http\Controllers\StaffController::class, 'storeStockTransfer'])->name('store');
+            Route::get('/api/inventory/{item}', [App\Http\Controllers\StaffController::class, 'getStaffInventory'])->name('api.inventory');
+        });
     });
 
     // Stock Transfer routes for all branch staff (to receive transfers)

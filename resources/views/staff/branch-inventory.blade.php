@@ -10,11 +10,6 @@
                 <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
                     <i class="bi bi-building" style="color: #667eea;"></i> {{ auth()->user()->branch->name ?? 'Branch' }} Inventory Status
                 </h1>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('pos.index') }}" class="btn btn-primary">
-                        <i class="bi bi-calculator"></i> Go to POS
-                    </a>
-                </div>
             </div>
         </div>
     </div>

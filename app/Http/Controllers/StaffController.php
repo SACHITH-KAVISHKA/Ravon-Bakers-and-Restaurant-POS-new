@@ -12,6 +12,9 @@ use App\Models\Item;
 use App\Models\User;
 use App\Models\Wastage;
 use App\Models\WastageItem;
+use App\Models\Branch;
+use App\Models\StockTransfer;
+use App\Models\StockTransferItem;
 
 class StaffController extends Controller
 {
@@ -305,5 +308,145 @@ class StaffController extends Controller
         $wastages = $query->paginate(10);
 
         return view('staff.branch-wastage-view', compact('wastages'));
+    }
+
+    /**
+     * Show the form for creating a staff stock transfer
+     */
+    public function createStockTransfer()
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Ensure user has a branch
+        if (!$user || !$user->branch_id) {
+            return redirect()->back()->with('error', 'You must be assigned to a branch to create stock transfers.');
+        }
+
+        // Get all branches except the current user's branch
+        $branches = Branch::active()
+            ->where('id', '!=', $user->branch_id)
+            ->orderBy('name')
+            ->get();
+
+        // Get items available in the staff's branch with stock > 0
+        $items = Item::with(['inventory' => function($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            }])
+            ->where('is_active', true)
+            ->whereHas('inventory', function($query) use ($user) {
+                $query->where('branch_id', $user->branch_id)
+                      ->where('current_stock', '>', 0);
+            })
+            ->orderBy('item_name')
+            ->get();
+
+        return view('staff.stock-transfer.create', compact('branches', 'items'));
+    }
+
+    /**
+     * Store a new staff stock transfer request
+     */
+    public function storeStockTransfer(Request $request)
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Ensure user has a branch
+        if (!$user || !$user->branch_id) {
+            return redirect()->back()->with('error', 'You must be assigned to a branch to create stock transfers.');
+        }
+
+        $request->validate([
+            'to_branch_id' => 'required|exists:branches,id|different:from_branch_id',
+            'date_time' => 'required|date',
+            'notes' => 'nullable|string|max:1000',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.quantity' => 'required|numeric|min:0.01',
+        ]);
+
+        // Validate that the destination branch is not the same as the source
+        if ($request->to_branch_id == $user->branch_id) {
+            return back()->withErrors(['to_branch_id' => 'You cannot transfer to your own branch.'])->withInput();
+        }
+
+        DB::transaction(function () use ($request, $user) {
+            // Create the stock transfer from staff's branch to another branch
+            $transfer = StockTransfer::create([
+                'from_branch_id' => $user->branch_id, // Staff's branch as source
+                'to_branch_id' => $request->to_branch_id,
+                'date_time' => $request->date_time,
+                'status' => 'pending',
+                'created_by' => $user->id,
+                'notes' => $request->notes,
+            ]);
+
+            // Process each item
+            foreach ($request->items as $itemData) {
+                $inventory = Inventory::where('item_id', $itemData['item_id'])
+                    ->where('branch_id', $user->branch_id) // Staff's branch inventory
+                    ->first();
+
+                if (!$inventory || $inventory->current_stock < $itemData['quantity']) {
+                    throw new \Exception("Insufficient stock in your branch inventory for item ID: {$itemData['item_id']}");
+                }
+
+                // Create transfer item
+                StockTransferItem::create([
+                    'transfer_id' => $transfer->id,
+                    'item_id' => $itemData['item_id'],
+                    'quantity' => $itemData['quantity'],
+                    'available_quantity' => $inventory->current_stock,
+                ]);
+            }
+        });
+
+        return redirect()->route('stock-transfer.transfers')
+            ->with('success', 'Stock transfer request has been sent successfully!');
+    }
+
+    /**
+     * Display list of stock transfers created by staff
+     */
+    public function stockTransferIndex()
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Ensure user has a branch
+        if (!$user || !$user->branch_id) {
+            return redirect()->back()->with('error', 'You must be assigned to a branch to view stock transfers.');
+        }
+
+        $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'transferItems.item'])
+            ->where('created_by', $user->id)
+            ->orderBy('date_time', 'desc')
+            ->paginate(10);
+
+        return view('staff.stock-transfer.index', compact('transfers'));
+    }
+
+    /**
+     * Get available inventory for AJAX requests (for staff)
+     */
+    public function getStaffInventory(Item $item)
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Ensure user has a branch
+        if (!$user || !$user->branch_id) {
+            return response()->json(['error' => 'You must be assigned to a branch.'], 403);
+        }
+
+        // Get inventory from staff's branch
+        $inventory = Inventory::where('item_id', $item->id)
+            ->where('branch_id', $user->branch_id)
+            ->first();
+
+        return response()->json([
+            'available_quantity' => $inventory ? $inventory->current_stock : 0,
+        ]);
     }
 }

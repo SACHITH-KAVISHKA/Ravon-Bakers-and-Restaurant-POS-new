@@ -115,6 +115,11 @@ Route::middleware('auth')->group(function () {
     // Staff routes for inventory management
     Route::middleware(['auth'])->prefix('staff')->name('staff.')->group(function () {
         Route::get('/branch-inventory', [App\Http\Controllers\StaffController::class, 'branchInventory'])->name('branch-inventory');
+        
+        // Branch Wastage routes
+        Route::get('/add-branch-wastage', [App\Http\Controllers\StaffController::class, 'addBranchWastage'])->name('add-branch-wastage');
+        Route::post('/store-branch-wastage', [App\Http\Controllers\StaffController::class, 'storeBranchWastage'])->name('store-branch-wastage');
+        Route::get('/branch-wastage-view', [App\Http\Controllers\StaffController::class, 'branchWastageView'])->name('branch-wastage-view');
     });
 
     // Stock Transfer routes for all branch staff (to receive transfers)

@@ -10,6 +10,8 @@ use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
 use App\Models\Item;
 use App\Models\User;
+use App\Models\Wastage;
+use App\Models\WastageItem;
 
 class StaffController extends Controller
 {
@@ -160,5 +162,148 @@ class StaffController extends Controller
         return Item::whereIn('id', $acceptedItemIds)
             ->where('is_active', true)
             ->get();
+    }
+
+    /**
+     * Show the form for adding branch wastage
+     */
+    public function addBranchWastage()
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Ensure user has a branch
+        if (!$user || !$user->branch_id) {
+            return redirect()->back()->with('error', 'You must be assigned to a branch to add wastage.');
+        }
+
+        // Get items available in the staff's branch with stock > 0
+        $items = Item::with(['inventory' => function($query) use ($user) {
+                $query->where('branch_id', $user->branch_id);
+            }])
+            ->where('is_active', true)
+            ->get()
+            ->filter(function ($item) {
+                return $item->inventory->isNotEmpty() && $item->inventory->sum('current_stock') > 0;
+            })
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'item_name' => $item->item_name,
+                    'item_code' => $item->item_code,
+                    'available_stock' => (int) $item->inventory->sum('current_stock')
+                ];
+            });
+
+        return view('staff.add-branch-wastage', compact('items'));
+    }
+
+    /**
+     * Store branch wastage record
+     */
+    public function storeBranchWastage(Request $request)
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Ensure user has a branch
+        if (!$user || !$user->branch_id) {
+            return redirect()->back()->with('error', 'You must be assigned to a branch to add wastage.');
+        }
+
+        $request->validate([
+            'date_time' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.wasted_quantity' => 'required|integer|min:1',
+            'remarks' => 'nullable|string|max:1000',
+        ]);
+
+        // Custom validation to check available stock from branch inventory
+        foreach ($request->items as $index => $itemData) {
+            $inventory = Inventory::where('item_id', $itemData['item_id'])
+                ->where('branch_id', $user->branch_id)
+                ->first();
+            $availableStock = $inventory ? $inventory->current_stock : 0;
+
+            if ($itemData['wasted_quantity'] > $availableStock) {
+                $item = Item::find($itemData['item_id']);
+                return back()->withErrors([
+                    "items.{$index}.wasted_quantity" => "Wasted quantity for '{$item->item_name}' cannot exceed available branch stock ({$availableStock})."
+                ])->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($request, $user) {
+            // Create wastage record
+            $wastage = Wastage::create([
+                'user_id' => $user->id,
+                'branch_id' => $user->branch_id,
+                'date_time' => $request->date_time,
+                'remarks' => $request->remarks,
+            ]);
+
+            // Create wastage items and update branch inventory
+            foreach ($request->items as $itemData) {
+                $inventory = Inventory::where('item_id', $itemData['item_id'])
+                    ->where('branch_id', $user->branch_id)
+                    ->first();
+                $previousStock = $inventory ? $inventory->current_stock : 0;
+
+                // Create wastage item record
+                WastageItem::create([
+                    'wastage_id' => $wastage->id,
+                    'item_id' => $itemData['item_id'],
+                    'wasted_quantity' => $itemData['wasted_quantity'],
+                    'previous_stock' => $previousStock,
+                ]);
+
+                // Reduce branch inventory stock
+                if ($inventory) {
+                    $inventory->decrement('current_stock', $itemData['wasted_quantity']);
+                }
+            }
+        });
+
+        return redirect()->route('staff.branch-inventory')
+            ->with('success', 'Branch wastage has been recorded successfully and inventory has been updated!');
+    }
+
+    /**
+     * Show branch wastage records for staff
+     */
+    public function branchWastageView(Request $request)
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Ensure user has a branch
+        if (!$user || !$user->branch_id) {
+            return redirect()->back()->with('error', 'You must be assigned to a branch to view wastage.');
+        }
+
+        $query = Wastage::with(['wastageItems.item', 'user'])
+            ->where('branch_id', $user->branch_id)
+            ->orderBy('date_time', 'desc');
+
+        // Filter by date if provided
+        if ($request->filled('date_from')) {
+            $query->whereDate('date_time', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('date_time', '<=', $request->date_to);
+        }
+
+        // Filter by item name if provided
+        if ($request->filled('item_name')) {
+            $query->whereHas('wastageItems.item', function ($q) use ($request) {
+                $q->where('item_name', 'LIKE', '%' . $request->item_name . '%');
+            });
+        }
+
+        $wastages = $query->paginate(10);
+
+        return view('staff.branch-wastage-view', compact('wastages'));
     }
 }

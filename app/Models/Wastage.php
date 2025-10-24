@@ -10,6 +10,7 @@ class Wastage extends Model
 {
     protected $fillable = [
         'user_id',
+        'branch_id',
         'date_time',
         'remarks',
     ];
@@ -24,6 +25,14 @@ class Wastage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the branch for this wastage record
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     /**

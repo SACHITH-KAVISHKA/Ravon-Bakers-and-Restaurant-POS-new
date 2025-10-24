@@ -224,6 +224,22 @@
             margin-right: 8px;
         }
 
+        /* Staff Reports submenu styles */
+        .sidebar #staffReportsSubmenu {
+            transition: all 0.3s ease;
+        }
+
+        .sidebar #staffReportsSubmenu .nav-link {
+            padding-left: 45px;
+            font-size: 14px;
+            margin: 1px 0;
+        }
+
+        .sidebar #staffReportsSubmenu .nav-link i {
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
         /* Submenu container for custom toggle */
         .submenu-container {
             overflow: hidden;
@@ -656,6 +672,39 @@
                         <span>Branch Stock</span>
                     </a>
                 </li>
+                <!-- Add Branch Wastage (For Staff) -->
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('staff.add-branch-wastage') ? 'active' : '' }}"
+                        href="{{ route('staff.add-branch-wastage') }}">
+                        <i class="bi bi-trash"></i>
+                        <span>Add Wastage</span>
+                    </a>
+                </li>
+                <!-- Reports Dropdown (For Staff) -->
+                @php
+                $staffReportsActive = request()->routeIs('staff.branch-wastage-view');
+                @endphp
+                <li class="nav-item">
+                    <a class="nav-link d-flex justify-content-between align-items-center {{ $staffReportsActive ? 'active' : '' }}"
+                        href="javascript:void(0);"
+                        onclick="toggleStaffReportsMenu(event)"
+                        id="staffReportsToggle"
+                        aria-expanded="{{ $staffReportsActive ? 'true' : 'false' }}">
+                        <div><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></div>
+                        <i class="bi bi-chevron-down"></i>
+                    </a>
+                    <div class="submenu-container {{ $staffReportsActive ? 'show' : '' }}" id="staffReportsSubmenu">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('staff.branch-wastage-view') ? 'active' : '' }}" 
+                                   href="{{ route('staff.branch-wastage-view') }}">
+                                    <i class="bi bi-trash"></i>
+                                    <span>Branch Wastage</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
                 @endif
                 @endif
             </ul>
@@ -956,6 +1005,29 @@
                 }
             };
 
+            // Staff Reports submenu toggle
+            window.toggleStaffReportsMenu = function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const toggle = document.getElementById('staffReportsToggle');
+                const submenu = document.getElementById('staffReportsSubmenu');
+
+                if (!toggle || !submenu) return;
+
+                const isExpanded = submenu.classList.contains('show');
+
+                if (isExpanded) {
+                    submenu.classList.remove('show');
+                    submenu.style.display = 'none';
+                    toggle.setAttribute('aria-expanded', 'false');
+                } else {
+                    submenu.classList.add('show');
+                    submenu.style.display = 'block';
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            };
+
             // Ensure submenu links don't trigger any parent toggles
             document.addEventListener('DOMContentLoaded', function() {
                 const supervisorSubmenuLinks = document.querySelectorAll('#reportsSubmenu a');
@@ -967,6 +1039,13 @@
 
                 const adminSubmenuLinks = document.querySelectorAll('#adminReportsSubmenu a');
                 adminSubmenuLinks.forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                    });
+                });
+
+                const staffSubmenuLinks = document.querySelectorAll('#staffReportsSubmenu a');
+                staffSubmenuLinks.forEach(link => {
                     link.addEventListener('click', function(e) {
                         e.stopPropagation();
                     });

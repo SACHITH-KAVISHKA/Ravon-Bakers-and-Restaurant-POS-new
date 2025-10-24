@@ -15,6 +15,9 @@ use App\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SupervisorController extends Controller
 {
@@ -280,42 +283,61 @@ class SupervisorController extends Controller
             $itemsCollection = $this->getCurrentStockData($mainBranch, $otherBranches);
         }
 
-        // Prepare CSV headers
-        $fileName = 'inventory-history-' . now()->format('Ymd-His') . '.csv';
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
-        ];
+        // Create spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
 
+        // Set headers
         $columns = ['Item', 'Item Code', 'Main Stock'];
         foreach ($otherBranches as $branch) {
             $columns[] = $branch->name;
         }
 
-        $callback = function () use ($itemsCollection, $columns, $otherBranches) {
-            $file = fopen('php://output', 'w');
-            // Write BOM for Excel compatibility with UTF-8
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($file, $columns);
+        // Write header row
+        $sheet->fromArray([$columns], null, 'A1');
 
-            foreach ($itemsCollection as $item) {
-                $row = [
-                    $item['name'] ?? '',
-                    $item['item_code'] ?? '',
-                    $item['main_stock'] ?? 0,
-                ];
+        // Style header row
+        $headerStyle = $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1');
+        $headerStyle->getFont()->setBold(true);
+        $headerStyle->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('4CAF50');
+        $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
 
-                foreach ($otherBranches as $branch) {
-                    $row[] = $item['branch_stocks'][$branch->name] ?? 0;
-                }
+        // Write data rows
+        $rowIndex = 2;
+        foreach ($itemsCollection as $item) {
+            $row = [
+                $item['name'] ?? '',
+                $item['item_code'] ?? '',
+                $item['main_stock'] ?? 0,
+            ];
 
-                fputcsv($file, $row);
+            foreach ($otherBranches as $branch) {
+                $row[] = $item['branch_stocks'][$branch->name] ?? 0;
             }
 
-            fclose($file);
-        };
+            $sheet->fromArray([$row], null, 'A' . $rowIndex);
+            $rowIndex++;
+        }
 
-        return response()->stream($callback, 200, $headers);
+        // Auto-size columns
+        foreach (range('A', $sheet->getHighestColumn()) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Create filename
+        $fileName = 'inventory-history-' . now()->format('Ymd-His') . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 
     /**

@@ -40,7 +40,7 @@
                                 <i class="bi bi-x-circle"></i> Clear
                             </a>
                             <a href="{{ route('supervisor.inventory-history.export', ['date' => $filterDate ?? null, 'time' => $filterTime ?? null]) }}" class="btn btn-success ms-2" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none; color: #fff;">
-                                <i class="bi bi-download"></i> Export CSV
+                                <i class="bi bi-file-earmark-excel"></i> Export Excel
                             </a>
                         </div>
                     </form>

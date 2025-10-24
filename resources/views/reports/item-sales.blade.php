@@ -42,7 +42,7 @@
                             <button type="button" class="btn btn-outline-secondary" id="resetBtn">
                                 <i class="bi bi-arrow-clockwise"></i> Reset
                             </button>
-                            <a href="{{ route('reports.item-sales.export', ['from_date' => $fromDate ?? null, 'to_date' => $toDate ?? null]) }}" class="btn btn-success ms-2" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none; color: #fff;">
+                            <a href="#" id="exportBtn" class="btn btn-success ms-2" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none; color: #fff;">
                                 <i class="bi bi-download"></i> Export Excel
                             </a>
                         </div>
@@ -140,6 +140,22 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    // Update export link with current dates
+    function updateExportLink() {
+        const fromDate = $('#from_date').val();
+        const toDate = $('#to_date').val();
+        const exportUrl = '{{ route("reports.item-sales.export") }}' + '?from_date=' + fromDate + '&to_date=' + toDate;
+        $('#exportBtn').attr('href', exportUrl);
+    }
+    
+    // Initialize export link
+    updateExportLink();
+    
+    // Update export link when dates change
+    $('#from_date, #to_date').on('change', function() {
+        updateExportLink();
+    });
+    
     // Handle form submission via AJAX
     $('#filterForm').on('submit', function(e) {
         e.preventDefault();

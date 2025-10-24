@@ -9,6 +9,9 @@ use App\Models\Branch;
 use App\Models\Item;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ItemSalesController extends Controller
 {
@@ -73,19 +76,19 @@ class ItemSalesController extends Controller
     private function getSalesData($fromDate, $toDate, $branches)
     {
         // Query to get all sales within date range
-        $sales = Sale::with(['saleItems.item', 'user.branch'])
+        $sales = Sale::with(['saleItems.item', 'branch'])
             ->whereDate('created_at', '>=', $fromDate)
             ->whereDate('created_at', '<=', $toDate)
-            ->where('status', '!=', 'cancelled')
+            ->where('status', 1) // Only active sales
             ->get();
 
         // Group sales by item
         $itemSales = [];
         
         foreach ($sales as $sale) {
-            $branchId = $sale->user->branch_id ?? null;
+            $branchId = $sale->branch_id;
             
-            // Skip if no branch or is Main Branch
+            // Skip if no branch
             if (!$branchId) continue;
             
             $branch = $branches->firstWhere('id', $branchId);
@@ -137,7 +140,7 @@ class ItemSalesController extends Controller
     }
 
     /**
-     * Export the item sales data as CSV for the given date range
+     * Export the item sales data as Excel for the given date range
      */
     public function exportExcel(Request $request)
     {
@@ -151,41 +154,60 @@ class ItemSalesController extends Controller
 
         $salesData = $this->getSalesData($fromDate, $toDate, $branches);
 
-        $fileName = 'item-sales-' . now()->format('Ymd-His') . '.csv';
+        // Create spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
-        ];
-
+        // Set headers
         $columns = ['Item Code', 'Item Name', 'Total Quantity'];
         foreach ($branches as $branch) {
             $columns[] = $branch->name;
         }
 
-        $callback = function() use ($salesData, $columns, $branches) {
-            $f = fopen('php://output', 'w');
-            // BOM for Excel
-            fprintf($f, chr(0xEF).chr(0xBB).chr(0xBF));
-            fputcsv($f, $columns);
+        // Write header row
+        $sheet->fromArray([$columns], null, 'A1');
 
-            foreach ($salesData as $item) {
-                $row = [
-                    $item['item_code'] ?? '',
-                    $item['item_name'] ?? '',
-                    $item['total_quantity'] ?? 0,
-                ];
+        // Style header row
+        $headerStyle = $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1');
+        $headerStyle->getFont()->setBold(true);
+        $headerStyle->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('4CAF50');
+        $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
 
-                foreach ($branches as $branch) {
-                    $row[] = $item['branches'][$branch->name] ?? 0;
-                }
+        // Write data rows
+        $rowIndex = 2;
+        foreach ($salesData as $item) {
+            $row = [
+                $item['item_code'] ?? '',
+                $item['item_name'] ?? '',
+                $item['total_quantity'] ?? 0,
+            ];
 
-                fputcsv($f, $row);
+            foreach ($branches as $branch) {
+                $row[] = $item['branches'][$branch->name] ?? 0;
             }
 
-            fclose($f);
-        };
+            $sheet->fromArray([$row], null, 'A' . $rowIndex);
+            $rowIndex++;
+        }
 
-        return response()->stream($callback, 200, $headers);
+        // Auto-size columns
+        foreach (range('A', $sheet->getHighestColumn()) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Create filename
+        $fileName = 'item-sales-' . now()->format('Ymd-His') . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 }

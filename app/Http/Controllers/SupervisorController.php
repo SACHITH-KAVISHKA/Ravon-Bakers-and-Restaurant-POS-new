@@ -164,9 +164,9 @@ class SupervisorController extends Controller
     {
         $items = Item::with('inventory')
             ->where('is_active', true)
-                ->orderBy('item_name', 'asc')
-                ->get()
-                ->map(function ($item) {
+            ->orderBy('item_name', 'asc')
+            ->get()
+            ->map(function ($item) {
                 $firstBp = $item->branchPrices->first();
                 // inventory is now a collection (multiple branches); sum or use first
                 $available = 0;
@@ -228,12 +228,12 @@ class SupervisorController extends Controller
         // Get all branches
         $branches = Branch::where('status', 1)->orderBy('name')->get();
         $mainBranch = $branches->where('name', 'Main Branch')->first();
-        
+
         // If no main branch found, use the first branch as main
         if (!$mainBranch) {
             $mainBranch = $branches->first();
         }
-        
+
         $otherBranches = $branches->where('id', '!=', $mainBranch->id ?? null);
 
         // If date/time filter is applied, query historical data
@@ -292,10 +292,10 @@ class SupervisorController extends Controller
             $columns[] = $branch->name;
         }
 
-        $callback = function() use ($itemsCollection, $columns, $otherBranches) {
+        $callback = function () use ($itemsCollection, $columns, $otherBranches) {
             $file = fopen('php://output', 'w');
             // Write BOM for Excel compatibility with UTF-8
-            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
             fputcsv($file, $columns);
 
             foreach ($itemsCollection as $item) {
@@ -329,14 +329,14 @@ class SupervisorController extends Controller
             ->map(function ($item) use ($mainBranch, $otherBranches) {
                 // Get main branch stock
                 $mainStock = $item->inventory->where('branch_id', $mainBranch->id)->first();
-                
+
                 // Get other branches stock
                 $branchStocks = [];
                 foreach ($otherBranches as $branch) {
                     $branchInventory = $item->inventory->where('branch_id', $branch->id)->first();
                     $branchStocks[$branch->name] = $branchInventory ? $branchInventory->current_stock : 0;
                 }
-                
+
                 return [
                     'id' => $item->id,
                     'name' => $item->item_name,
@@ -357,7 +357,7 @@ class SupervisorController extends Controller
     private function getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches)
     {
         // Build datetime condition
-        $dateTimeCondition = function($query) use ($filterDate, $filterTime) {
+        $dateTimeCondition = function ($query) use ($filterDate, $filterTime) {
             if ($filterDate && $filterTime) {
                 $dateTime = $filterDate . ' ' . $filterTime;
                 $query->where('date_time', '>=', $dateTime);
@@ -389,8 +389,8 @@ class SupervisorController extends Controller
             $mainStock = $inventoryRequests->flatMap(function ($request) {
                 return $request->inventoryRequestItems;
             })
-            ->where('item_id', $item->id)
-            ->sum('quantity');
+                ->where('item_id', $item->id)
+                ->sum('quantity');
 
             // Calculate branch stocks from stock transfers
             $branchStocks = [];
@@ -402,7 +402,7 @@ class SupervisorController extends Controller
                     })
                     ->where('item_id', $item->id)
                     ->sum('quantity');
-                
+
                 $branchStocks[$branch->name] = (int) $branchStock;
             }
 
@@ -416,8 +416,8 @@ class SupervisorController extends Controller
                 'last_updated' => null
             ];
         })
-        ->sortBy('name')
-        ->values();
+            ->sortBy('name')
+            ->values();
 
         return $result;
     }
@@ -427,11 +427,12 @@ class SupervisorController extends Controller
      */
     public function addWastage()
     {
-        $items = Item::with('inventory')
+        $items = Item::with(['inventory' => function ($query) {
+            $query->where('branch_id', 1);
+        }])
             ->where('is_active', true)
             ->get()
             ->filter(function ($item) {
-                // inventory is collection - check summed stock > 0
                 return $item->inventory && $item->inventory->sum('current_stock') > 0;
             })
             ->map(function ($item) {
@@ -459,15 +460,17 @@ class SupervisorController extends Controller
             'remarks' => 'nullable|string|max:1000',
         ]);
 
-        // Custom validation to check available stock from inventory
+
         foreach ($request->items as $index => $itemData) {
-            $inventory = Inventory::where('item_id', $itemData['item_id'])->first();
+            $inventory = Inventory::where('item_id', $itemData['item_id'])
+                ->where('branch_id', 1)
+                ->first();
             $availableStock = $inventory ? $inventory->current_stock : 0;
 
             if ($itemData['wasted_quantity'] > $availableStock) {
                 $item = Item::find($itemData['item_id']);
                 return back()->withErrors([
-                    "items.{$index}.wasted_quantity" => "Wasted quantity for '{$item->item_name}' cannot exceed available inventory stock ({$availableStock})."
+                    "items.{$index}.wasted_quantity" => "Wasted quantity for '{$item->item_name}' cannot exceed available main stock ({$availableStock})."
                 ])->withInput();
             }
         }
@@ -476,13 +479,16 @@ class SupervisorController extends Controller
             // Create wastage record
             $wastage = Wastage::create([
                 'user_id' => Auth::id(),
+                'branch_id' => 1,
                 'date_time' => $request->date_time,
                 'remarks' => $request->remarks,
             ]);
 
-            // Create wastage items and update inventory
+
             foreach ($request->items as $itemData) {
-                $inventory = Inventory::where('item_id', $itemData['item_id'])->first();
+                $inventory = Inventory::where('item_id', $itemData['item_id'])
+                    ->where('branch_id', 1)
+                    ->first();
                 $previousStock = $inventory ? $inventory->current_stock : 0;
 
                 // Create wastage item record
@@ -493,7 +499,7 @@ class SupervisorController extends Controller
                     'previous_stock' => $previousStock,
                 ]);
 
-                // Reduce inventory stock
+                // Reduce main branch inventory stock
                 if ($inventory) {
                     $inventory->decrement('current_stock', $itemData['wasted_quantity']);
                 }
@@ -501,7 +507,7 @@ class SupervisorController extends Controller
         });
 
         return redirect()->route('supervisor.dashboard')
-            ->with('success', 'Wastage has been recorded successfully and inventory has been updated!');
+            ->with('success', 'Wastage has been recorded successfully and main inventory has been updated!');
     }
 
     /**
@@ -511,6 +517,7 @@ class SupervisorController extends Controller
     {
         $query = Wastage::with(['wastageItems.item'])
             ->where('user_id', Auth::id())
+            ->where('branch_id', 1)
             ->orderBy('date_time', 'desc');
 
         // Filter by date if provided
@@ -566,7 +573,7 @@ class SupervisorController extends Controller
         if ($inventoryRequest->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
-        
+
         $inventoryRequest->load(['department', 'inventoryRequestItems.item']);
         return view('supervisor.productions.show', compact('inventoryRequest'));
     }
@@ -580,7 +587,7 @@ class SupervisorController extends Controller
         if ($inventoryRequest->user_id !== Auth::id()) {
             abort(403, 'Unauthorized action.');
         }
-        
+
         $inventoryRequest->load(['inventoryRequestItems.item']);
         return view('supervisor.productions.edit', compact('inventoryRequest'));
     }

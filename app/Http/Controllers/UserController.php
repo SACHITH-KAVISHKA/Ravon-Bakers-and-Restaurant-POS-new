@@ -22,7 +22,8 @@ class UserController extends Controller
             abort(403, 'Unauthorized access to user management.');
         }
         
-        $users = User::with('branch')->orderBy('created_at', 'desc')->paginate(15);
+        // Only show active users (status = 1)
+        $users = User::with('branch')->where('status', 1)->orderBy('created_at', 'desc')->paginate(15);
         return view('users.index', compact('users'));
     }
 
@@ -165,8 +166,9 @@ class UserController extends Controller
             return redirect()->route('users.index')
                             ->with('error', 'You cannot delete your own account.');
         }
-
-        $user->delete();
+        // Soft-delete by marking status = 0 instead of removing from DB
+        $user->status = 0;
+        $user->save();
 
         return redirect()->route('users.index')
                         ->with('success', 'User deleted successfully.');

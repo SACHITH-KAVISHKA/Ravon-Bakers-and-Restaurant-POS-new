@@ -1951,6 +1951,14 @@
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
             modal.show();
+
+            // Auto-select CASH payment method after modal is shown
+            setTimeout(() => {
+                const cashButton = document.querySelector('.payment-type-btn[data-method="CASH"]');
+                if (cashButton) {
+                    selectModalPaymentMethod('CASH', cashButton);
+                }
+            }, 100);
         }
 
         // Select payment method in modal
@@ -2336,6 +2344,9 @@
                 // Show/hide credit row based on whether there's credit
                 creditRow.style.display = creditAmount > 0 ? 'flex' : 'none';
             }
+
+            // Update print button state after totals are updated
+            toggleModalPrintButton();
         }
 
         // Toggle modal print button enabled/disabled based on payment amounts

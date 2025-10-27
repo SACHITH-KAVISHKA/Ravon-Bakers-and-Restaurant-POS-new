@@ -96,8 +96,29 @@
                             <td class="d-none d-lg-table-cell">
                                 <span class="badge bg-info">{{ $sale->payment_method }}</span>
                             </td>
-                            <td class="d-none d-xl-table-cell">LKR {{ number_format(max(0, ($sale->customer_payment ?? 0) - ($sale->balance ?? 0)), 2) }}</td>
-                            <td class="d-none d-xl-table-cell">LKR {{ number_format($sale->card_payment ?? 0, 2) }}</td>
+                            <td class="d-none d-xl-table-cell">
+                                @php
+                                    $cardPayment = $sale->card_payment ?? 0;
+                                    $total = $sale->subtotal ?? 0;
+                                    
+                                    // If card payment is greater than or equal to total, cash is 0
+                                    // If card payment is less than total, cash is the difference
+                                    if ($cardPayment >= $total) {
+                                        $cashAmount = 0;
+                                    } else {
+                                        $cashAmount = $total - $cardPayment;
+                                    }
+                                @endphp
+                                LKR {{ number_format($cashAmount, 2) }}
+                            </td>
+                            <td class="d-none d-xl-table-cell">
+                                @php
+                                    // If card payment is greater than total, show only the total amount
+                                    // Otherwise show the full card payment
+                                    $displayCardPayment = min($cardPayment, $total);
+                                @endphp
+                                LKR {{ number_format($displayCardPayment, 2) }}
+                            </td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($sale->credit_balance ?? 0, 2) }}</td>
                             <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
                             <td>

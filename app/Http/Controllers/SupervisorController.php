@@ -758,4 +758,204 @@ class SupervisorController extends Controller
         return redirect()->route('supervisor.productions.index')
             ->with('success', 'Production deleted and inventory rolled back.');
     }
+
+    /**
+     * Export productions list to Excel
+     */
+    public function exportProductions(Request $request)
+    {
+        $userId = (int) Auth::id();
+        
+        $query = InventoryRequest::with(['department', 'inventoryRequestItems.item'])
+            ->where('user_id', $userId)
+            ->where('status', 'completed')
+            ->orderBy('date_time', 'desc');
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('date_time', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('date_time', '<=', $request->date_to);
+        }
+
+        $productions = $query->get();
+
+        // Create spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set title
+        $sheet->setCellValue('A1', 'Production Records');
+        $sheet->mergeCells('A1:E1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // Set headers
+        $headers = [
+            'A3' => 'Date & Time',
+            'B3' => 'Department',
+            'C3' => 'Items Count',
+            'D3' => 'Total Quantity',
+            'E3' => 'Notes',
+        ];
+
+        foreach ($headers as $cell => $header) {
+            $sheet->setCellValue($cell, $header);
+            $sheet->getStyle($cell)->getFont()->setBold(true);
+            $sheet->getStyle($cell)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('E3F2FD');
+        }
+
+        // Add data
+        $row = 4;
+        foreach ($productions as $production) {
+            $sheet->setCellValue('A' . $row, $production->date_time->format('M d, Y h:i A'));
+            $sheet->setCellValue('B' . $row, $production->department ? $production->department->name : 'N/A');
+            $sheet->setCellValue('C' . $row, $production->inventoryRequestItems->count());
+            $sheet->setCellValue('D' . $row, $production->inventoryRequestItems->sum('quantity'));
+            $sheet->setCellValue('E' . $row, $production->notes ?? '-');
+            $row++;
+        }
+
+        // Add summary
+        $row++;
+        $sheet->setCellValue('A' . $row, 'TOTAL PRODUCTIONS:');
+        $sheet->setCellValue('B' . $row, $productions->count());
+        $sheet->getStyle('A' . $row . ':B' . $row)->getFont()->setBold(true);
+
+        // Auto-size columns
+        foreach (range('A', 'E') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Create filename
+        $dateFrom = $request->filled('date_from') ? $request->date_from : 'all';
+        $dateTo = $request->filled('date_to') ? $request->date_to : 'all';
+        $filename = 'production_records_' . $dateFrom . '_to_' . $dateTo . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    /**
+     * Export single production details to Excel
+     */
+    public function exportProductionDetails(InventoryRequest $inventoryRequest)
+    {
+        $userId = (int) Auth::id();
+        
+        // Authorization: only owner can export
+        if ($inventoryRequest->user_id !== $userId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $inventoryRequest->load(['department', 'inventoryRequestItems.item']);
+
+        // Create spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set title
+        $sheet->setCellValue('A1', 'Production Details');
+        $sheet->mergeCells('A1:D1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // Production information
+        $row = 3;
+        $sheet->setCellValue('A' . $row, 'Date & Time:');
+        $sheet->setCellValue('B' . $row, $inventoryRequest->date_time->format('M d, Y h:i A'));
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+        
+        $row++;
+        $sheet->setCellValue('A' . $row, 'Department:');
+        $sheet->setCellValue('B' . $row, $inventoryRequest->department ? $inventoryRequest->department->name : 'N/A');
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+        
+        $row++;
+        $sheet->setCellValue('A' . $row, 'Total Items:');
+        $sheet->setCellValue('B' . $row, $inventoryRequest->inventoryRequestItems->count());
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+        
+        $row++;
+        $sheet->setCellValue('A' . $row, 'Total Quantity:');
+        $sheet->setCellValue('B' . $row, $inventoryRequest->inventoryRequestItems->sum('quantity'));
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+
+        if ($inventoryRequest->notes) {
+            $row++;
+            $sheet->setCellValue('A' . $row, 'Notes:');
+            $sheet->setCellValue('B' . $row, $inventoryRequest->notes);
+            $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+        }
+
+        // Items section
+        $row += 2;
+        $sheet->setCellValue('A' . $row, 'Items Added to Main Stock');
+        $sheet->mergeCells('A' . $row . ':D' . $row);
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(14);
+        
+        $row++;
+        $headers = [
+            'A' => '#',
+            'B' => 'Item Name',
+            'C' => 'Item Code',
+            'D' => 'Quantity Added',
+        ];
+
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col . $row, $header);
+            $sheet->getStyle($col . $row)->getFont()->setBold(true);
+            $sheet->getStyle($col . $row)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('E3F2FD');
+        }
+
+        // Add items
+        $row++;
+        $itemNumber = 1;
+        foreach ($inventoryRequest->inventoryRequestItems as $item) {
+            $sheet->setCellValue('A' . $row, $itemNumber++);
+            $sheet->setCellValue('B' . $row, $item->item ? $item->item->item_name : 'Deleted item');
+            $sheet->setCellValue('C' . $row, $item->item ? $item->item->item_code : '-');
+            $sheet->setCellValue('D' . $row, $item->quantity);
+            $row++;
+        }
+
+        // Add total
+        $sheet->setCellValue('C' . $row, 'TOTAL:');
+        $sheet->setCellValue('D' . $row, $inventoryRequest->inventoryRequestItems->sum('quantity'));
+        $sheet->getStyle('C' . $row . ':D' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('C' . $row . ':D' . $row)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('FFF9C4');
+
+        // Auto-size columns
+        foreach (range('A', 'D') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Create filename
+        $filename = 'production_details_' . $inventoryRequest->date_time->format('Y-m-d_His') . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
 }
+

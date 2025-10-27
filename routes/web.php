@@ -94,7 +94,9 @@ Route::middleware('auth')->group(function () {
         // Production (Inventory Requests added by supervisor to main stock)
         Route::prefix('productions')->name('productions.')->group(function () {
             Route::get('/', [SupervisorController::class, 'productions'])->name('index');
+            Route::get('/export', [SupervisorController::class, 'exportProductions'])->name('export');
             Route::get('/{inventoryRequest}', [SupervisorController::class, 'showProduction'])->name('show');
+            Route::get('/{inventoryRequest}/export', [SupervisorController::class, 'exportProductionDetails'])->name('export-details');
             Route::get('/{inventoryRequest}/edit', [SupervisorController::class, 'editProduction'])->name('edit');
             Route::put('/{inventoryRequest}', [SupervisorController::class, 'updateProduction'])->name('update');
             Route::delete('/{inventoryRequest}', [SupervisorController::class, 'destroyProduction'])->name('destroy');

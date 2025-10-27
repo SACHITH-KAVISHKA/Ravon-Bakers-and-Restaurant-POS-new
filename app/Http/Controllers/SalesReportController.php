@@ -55,10 +55,16 @@ class SalesReportController extends Controller
                 COUNT(*) as total_transactions,
                 SUM(subtotal) as total_subtotal,
                 SUM(customer_payment) as total_customer_payment,
-                SUM(card_payment) as total_card_payment,
+                SUM(CASE 
+                    WHEN COALESCE(card_payment, 0) >= subtotal THEN 0 
+                    ELSE subtotal - COALESCE(card_payment, 0) 
+                END) as total_cash,
+                SUM(CASE 
+                    WHEN COALESCE(card_payment, 0) > subtotal THEN subtotal 
+                    ELSE COALESCE(card_payment, 0) 
+                END) as total_card_payment,
                 SUM(credit_balance) as total_credit_balance,
-                SUM(balance) as total_balance,
-                SUM(customer_payment - COALESCE(balance,0)) as total_cash
+                SUM(balance) as total_balance
             ')
             ->first();
 
@@ -138,9 +144,15 @@ class SalesReportController extends Controller
             ->selectRaw('
                 SUM(subtotal) as total_subtotal,
                 SUM(customer_payment) as total_customer_payment,
-                SUM(card_payment) as total_card_payment,
-                SUM(credit_balance) as total_credit_balance,
-                SUM(customer_payment - COALESCE(balance,0)) as total_cash
+                SUM(CASE 
+                    WHEN COALESCE(card_payment, 0) >= subtotal THEN 0 
+                    ELSE subtotal - COALESCE(card_payment, 0) 
+                END) as total_cash,
+                SUM(CASE 
+                    WHEN COALESCE(card_payment, 0) > subtotal THEN subtotal 
+                    ELSE COALESCE(card_payment, 0) 
+                END) as total_card_payment,
+                SUM(credit_balance) as total_credit_balance
             ')
             ->first();
 
@@ -168,12 +180,24 @@ class SalesReportController extends Controller
         // Add data
         $row = 2;
         foreach ($sales as $sale) {
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+            
+            // Calculate cash and card amounts with the correction logic
+            if ($cardPayment >= $total) {
+                $cashAmount = 0;
+                $displayCardPayment = $total;
+            } else {
+                $cashAmount = $total - $cardPayment;
+                $displayCardPayment = $cardPayment;
+            }
+            
             $sheet->setCellValue('A' . $row, $sale->receipt_no);
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
             $sheet->setCellValue('C' . $row, $sale->subtotal);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
-            $sheet->setCellValue('E' . $row, ($sale->customer_payment ?? 0) - ($sale->balance ?? 0));
-            $sheet->setCellValue('F' . $row, $sale->card_payment ?? 0);
+            $sheet->setCellValue('E' . $row, $cashAmount);
+            $sheet->setCellValue('F' . $row, $displayCardPayment);
             $sheet->setCellValue('G' . $row, $sale->credit_balance ?? 0);
             $sheet->setCellValue('H' . $row, $sale->created_at->format('Y-m-d H:i:s'));
             $row++;

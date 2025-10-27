@@ -134,7 +134,7 @@ class StaffController extends Controller
         $inventoryItems = Inventory::with(['item'])
             ->where('branch_id', $user->branch_id)
             ->orderBy('current_stock', 'asc')
-            ->paginate(20);
+            ->paginate(100);
 
         return view('staff.branch-inventory', compact('inventoryItems'));
     }

@@ -38,6 +38,6 @@ class Category extends Model
     // Check if category is active
     public function isActive()
     {
-        return $this->status == 1;
+        return $this->status === 1 || $this->status === true;
     }
 }

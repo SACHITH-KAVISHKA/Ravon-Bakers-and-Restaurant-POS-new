@@ -71,6 +71,6 @@ class Branch extends Model
      */
     public function isActive(): bool
     {
-        return $this->status == 1;
+        return $this->status === 1 || $this->status === true;
     }
 }

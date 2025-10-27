@@ -56,7 +56,7 @@ class POSController extends Controller
                 }
 
                 // fallback to first branch price if none found
-                if ($posPrice == 0) {
+                if ($posPrice === 0 || $posPrice === 0.0) {
                     $firstBp = $item->branchPrices->first();
                     $posPrice = $firstBp ? $firstBp->price : 0;
                 }

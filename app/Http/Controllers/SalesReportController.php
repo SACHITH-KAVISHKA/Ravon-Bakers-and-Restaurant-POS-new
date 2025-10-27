@@ -297,7 +297,7 @@ class SalesReportController extends Controller
                         // Verify the update
                         $inventory->refresh();
 
-                        if ($inventory->current_stock == $newStock) {
+                        if ((float)$inventory->current_stock === (float)$newStock) {
                             $restoredCount++;
                         } else {
                             $error = "Stock mismatch for inventory #{$inventory->id}";

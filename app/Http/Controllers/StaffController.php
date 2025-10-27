@@ -378,7 +378,7 @@ class StaffController extends Controller
         ]);
 
         // Validate that the destination branch is not the same as the source
-        if ($request->to_branch_id == $userBranchId) {
+        if ((int)$request->to_branch_id === $userBranchId) {
             return back()->withErrors(['to_branch_id' => 'You cannot transfer to your own branch.'])->withInput();
         }
 

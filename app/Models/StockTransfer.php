@@ -42,7 +42,7 @@ class StockTransfer extends Model
      */
     public function getSourceNameAttribute(): string
     {
-        if (!$this->from_branch_id || $this->from_branch_id == 1) {
+        if (!$this->from_branch_id || $this->from_branch_id === 1) {
             return 'Central Inventory';
         }
         return $this->fromBranch ? $this->fromBranch->name : 'Unknown Branch';

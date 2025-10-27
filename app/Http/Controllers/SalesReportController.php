@@ -256,14 +256,14 @@ class SalesReportController extends Controller
                     if (!$branchId && !empty($sale->user_id)) {
                         $user = \App\Models\User::find($sale->user_id);
                         if ($user && $user->branch_id) {
-                            $branchId = $user->branch_id;
+                            $branchId = (int) $user->branch_id;
                         }
                     }
 
                     if (!$branchId && !empty($sale->user_name)) {
                         $user = \App\Models\User::where('name', $sale->user_name)->first();
                         if ($user && $user->branch_id) {
-                            $branchId = $user->branch_id;
+                            $branchId = (int) $user->branch_id;
                         }
                     }
 

@@ -869,6 +869,63 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+    <!-- Global AJAX Error Handler -->
+    <script>
+        // Global AJAX error handler for jQuery
+        $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
+            let errorMessage = 'An error occurred. Please try again.';
+            
+            // Try to get error message from JSON response
+            if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                errorMessage = jqXHR.responseJSON.message;
+            } else if (jqXHR.responseText) {
+                try {
+                    const response = JSON.parse(jqXHR.responseText);
+                    if (response.message) {
+                        errorMessage = response.message;
+                    }
+                } catch (e) {
+                    // If not JSON, use status text
+                    errorMessage = jqXHR.statusText || errorMessage;
+                }
+            }
+            
+            // Show error alert
+            alert('Error: ' + errorMessage);
+        });
+
+        // Global error handler for fetch API
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            
+            // If it's a fetch error, try to extract message
+            if (event.reason && event.reason.message) {
+                alert('Error: ' + event.reason.message);
+            }
+        });
+
+        // Helper function for fetch requests with error handling
+        window.fetchWithErrorHandling = async function(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    const errorMessage = data.message || `HTTP error! status: ${response.status}`;
+                    alert('Error: ' + errorMessage);
+                    throw new Error(errorMessage);
+                }
+                
+                return response;
+            } catch (error) {
+                if (!error.message.includes('HTTP error')) {
+                    alert('Network error: ' + error.message);
+                }
+                throw error;
+            }
+        };
+    </script>
+
     <!-- Custom JS -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {

@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'role',
         'branch_id',
+        'status',
     ];
 
     /**
@@ -43,9 +44,34 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'id' => 'integer',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Casts property for Eloquent.
+     */
+    protected $casts = [
+        'status' => 'boolean',
+        'branch_id' => 'integer',
+    ];
+
+    /**
+     * Scope a query to only include active users.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 1);
+    }
+
+    /**
+     * Check if user is active.
+     */
+    public function isActive(): bool
+    {
+        return $this->status == 1;
     }
 
     /**

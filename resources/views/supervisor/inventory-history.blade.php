@@ -116,6 +116,11 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Pagination -->
+        <div class="d-flex justify-content-center mt-4">
+            {{ $allItems->links() }}
+        </div>
     @else
         <div class="row">
             <div class="col-12">

@@ -26,35 +26,37 @@ class SupervisorController extends Controller
      */
     public function dashboard()
     {
+        $userId = (int) Auth::id();
+        
         // Get recent inventory requests by this supervisor
         $recentRequests = InventoryRequest::with(['department', 'inventoryRequestItems.item'])
-            ->where('user_id', Auth::id())
+            ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
         // Get total inventory requests count
-        $totalRequests = InventoryRequest::where('user_id', Auth::id())->count();
+        $totalRequests = InventoryRequest::where('user_id', $userId)->count();
 
         // Get inventory summary
         $inventoryCount = Inventory::count();
         $lowStockItems = Inventory::whereRaw('current_stock <= low_stock_alert')->count();
 
         // Get wastage statistics
-        $totalWastages = Wastage::where('user_id', Auth::id())->count();
+        $totalWastages = Wastage::where('user_id', $userId)->count();
         $recentWastages = Wastage::with(['wastageItems.item'])
-            ->where('user_id', Auth::id())
+            ->where('user_id', $userId)
             ->orderBy('date_time', 'desc')
             ->take(5)
             ->get();
 
         // Get stock transfer statistics
-        $totalTransfers = StockTransfer::where('created_by', Auth::id())->count();
-        $pendingTransfers = StockTransfer::where('created_by', Auth::id())
+        $totalTransfers = StockTransfer::where('created_by', $userId)->count();
+        $pendingTransfers = StockTransfer::where('created_by', $userId)
             ->where('status', 'pending')
             ->count();
         $recentTransfers = StockTransfer::with(['toBranch', 'transferItems.item'])
-            ->where('created_by', Auth::id())
+            ->where('created_by', $userId)
             ->orderBy('date_time', 'desc')
             ->take(5)
             ->get();
@@ -122,9 +124,11 @@ class SupervisorController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
+            $userId = (int) Auth::id();
+            
             // Create inventory request
             $inventoryRequest = InventoryRequest::create([
-                'user_id' => Auth::id(),
+                'user_id' => $userId,
                 'department_id' => $request->department_id,
                 'date_time' => $request->date_time,
                 'status' => 'completed',
@@ -498,9 +502,11 @@ class SupervisorController extends Controller
         }
 
         DB::transaction(function () use ($request) {
+            $userId = (int) Auth::id();
+            
             // Create wastage record
             $wastage = Wastage::create([
-                'user_id' => Auth::id(),
+                'user_id' => $userId,
                 'branch_id' => 1,
                 'date_time' => $request->date_time,
                 'remarks' => $request->remarks,
@@ -537,8 +543,10 @@ class SupervisorController extends Controller
      */
     public function wastageView(Request $request)
     {
+        $userId = (int) Auth::id();
+        
         $query = Wastage::with(['wastageItems.item'])
-            ->where('user_id', Auth::id())
+            ->where('user_id', $userId)
             ->where('branch_id', 1)
             ->orderBy('date_time', 'desc');
 
@@ -568,8 +576,10 @@ class SupervisorController extends Controller
      */
     public function productions(Request $request)
     {
+        $userId = (int) Auth::id();
+        
         $query = InventoryRequest::with(['inventoryRequestItems.item'])
-            ->where('user_id', Auth::id())
+            ->where('user_id', $userId)
             ->where('status', 'completed')
             ->orderBy('date_time', 'desc');
 
@@ -591,8 +601,10 @@ class SupervisorController extends Controller
      */
     public function showProduction(InventoryRequest $inventoryRequest)
     {
+        $userId = (int) Auth::id();
+        
         // Authorization: only owner can view
-        if ($inventoryRequest->user_id !== Auth::id()) {
+        if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -605,8 +617,10 @@ class SupervisorController extends Controller
      */
     public function editProduction(InventoryRequest $inventoryRequest)
     {
+        $userId = (int) Auth::id();
+        
         // Authorization: only owner can edit
-        if ($inventoryRequest->user_id !== Auth::id()) {
+        if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -619,8 +633,10 @@ class SupervisorController extends Controller
      */
     public function updateProduction(Request $request, InventoryRequest $inventoryRequest)
     {
+        $userId = (int) Auth::id();
+        
         // Authorization: only owner can update
-        if ($inventoryRequest->user_id !== Auth::id()) {
+        if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -719,8 +735,10 @@ class SupervisorController extends Controller
      */
     public function destroyProduction(InventoryRequest $inventoryRequest)
     {
+        $userId = (int) Auth::id();
+        
         // Authorization: only owner can delete
-        if ($inventoryRequest->user_id !== Auth::id()) {
+        if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
         }
 

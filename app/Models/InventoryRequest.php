@@ -17,6 +17,8 @@ class InventoryRequest extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
+        'department_id' => 'integer',
         'date_time' => 'datetime',
     ];
 

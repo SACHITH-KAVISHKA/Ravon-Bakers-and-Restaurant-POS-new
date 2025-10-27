@@ -108,6 +108,38 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Global Error Handler -->
+    <script>
+        // Global error handler for any JavaScript errors
+        window.addEventListener('error', function(event) {
+            console.error('JavaScript error:', event.error);
+            if (event.error && event.error.message) {
+                alert('Error: ' + event.error.message);
+            }
+        });
+
+        // Global AJAX error handler for jQuery (if used)
+        $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
+            let errorMessage = 'An error occurred. Please try again.';
+            
+            if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                errorMessage = jqXHR.responseJSON.message;
+            } else if (jqXHR.responseText) {
+                try {
+                    const response = JSON.parse(jqXHR.responseText);
+                    if (response.message) {
+                        errorMessage = response.message;
+                    }
+                } catch (e) {
+                    errorMessage = jqXHR.statusText || errorMessage;
+                }
+            }
+            
+            alert('Error: ' + errorMessage);
+        });
+    </script>
 </body>
 
 </html>

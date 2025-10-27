@@ -21,6 +21,10 @@ class StockTransfer extends Model
     ];
 
     protected $casts = [
+        'from_branch_id' => 'integer',
+        'to_branch_id' => 'integer',
+        'created_by' => 'integer',
+        'processed_by' => 'integer',
         'date_time' => 'datetime',
         'processed_at' => 'datetime',
     ];

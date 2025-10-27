@@ -26,14 +26,16 @@ class POSController extends Controller
         // Show all active items regardless of stock availability
         // Staff can sell items even without stock in their branch
         // Always eager load branchPrices (and branch) and inventory for efficiency
+        $userBranchId = (int) $user->branch_id;
+        
         $query = Item::where('is_active', true)
             ->with(['branchPrices.branch'])
             ->orderBy('category');
 
-        if ($user && $user->role === 'staff' && $user->branch_id) {
+        if ($user && $user->role === 'staff' && $userBranchId) {
             // For staff, also eager-load inventory for their branch
-            $query = $query->with(['inventory' => function($q) use ($user) {
-                $q->where('branch_id', $user->branch_id);
+            $query = $query->with(['inventory' => function($q) use ($userBranchId) {
+                $q->where('branch_id', $userBranchId);
             }]);
         } else {
             $query = $query->with('inventory');
@@ -42,12 +44,12 @@ class POSController extends Controller
         $items = $query->get()->groupBy('category');
 
         // Attach a branch-aware pos_price attribute to each item so views can use it
-        $items = $items->map(function ($categoryItems) use ($user) {
-            return $categoryItems->map(function ($item) use ($user) {
+        $items = $items->map(function ($categoryItems) use ($user, $userBranchId) {
+            return $categoryItems->map(function ($item) use ($user, $userBranchId) {
                 $posPrice = 0;
                 // If staff with branch, prefer that branch's price
-                if ($user && $user->role === 'staff' && $user->branch_id) {
-                    $bp = $item->branchPrices->firstWhere('branch_id', $user->branch_id);
+                if ($user && $user->role === 'staff' && $userBranchId) {
+                    $bp = $item->branchPrices->firstWhere('branch_id', $userBranchId);
                     if ($bp) {
                         $posPrice = $bp->price;
                     }
@@ -113,8 +115,11 @@ class POSController extends Controller
             
             // Prefer branch price for the staff user's branch when processing a sale
             $user = Auth::user();
-            if ($user && $user->role === 'staff' && $user->branch_id) {
-                $unitPrice = $item->branchPrices()->where('branch_id', $user->branch_id)->first()?->price ?? ($item->branchPrices()->first()?->price ?? 0);
+            $userId = (int) $user->id;
+            $userBranchId = (int) $user->branch_id;
+            
+            if ($user && $user->role === 'staff' && $userBranchId) {
+                $unitPrice = $item->branchPrices()->where('branch_id', $userBranchId)->first()?->price ?? ($item->branchPrices()->first()?->price ?? 0);
             } else {
                 $unitPrice = $item->branchPrices()->first()?->price ?? 0;
             }
@@ -194,13 +199,15 @@ class POSController extends Controller
 
         DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $cardPayment, $balance, $creditBalance, &$saleId) {
             $user = Auth::user();
+            $userId = (int) ($user->id ?? null);
+            $userBranchId = (int) ($user->branch_id ?? null);
 
             // Create sale record, now storing user_id and branch_id for robustness
             $sale = Sale::create([
                 'receipt_no' => $receiptNo,
                 'terminal' => '01',
-                'user_id' => $user->id ?? null,
-                'branch_id' => $user->branch_id ?? null,
+                'user_id' => $userId ?: null,
+                'branch_id' => $userBranchId ?: null,
                 'user_name' => $user->name ?? null,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
@@ -229,9 +236,9 @@ class POSController extends Controller
                 SaleItem::create($saleItem);
                 
                 // Handle inventory for branch staff
-                if ($user->role === 'staff' && $user->branch_id) {
+                if ($user->role === 'staff' && $userBranchId) {
                     $inventory = Inventory::where('item_id', $saleItem['item_id'])
-                        ->where('branch_id', $user->branch_id)
+                        ->where('branch_id', $userBranchId)
                         ->first();
                     
                     if ($inventory) {
@@ -248,7 +255,7 @@ class POSController extends Controller
                         
                         Inventory::create([
                             'item_id' => $saleItem['item_id'],
-                            'branch_id' => $user->branch_id,
+                            'branch_id' => $userBranchId,
                             'current_stock' => -$saleItem['quantity'], // Negative to indicate deficit
                             'low_stock_alert' => $defaultLowAlert,
                         ]);

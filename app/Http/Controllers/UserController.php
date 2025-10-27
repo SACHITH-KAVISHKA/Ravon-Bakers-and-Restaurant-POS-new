@@ -161,8 +161,10 @@ class UserController extends Controller
             abort(403, 'Unauthorized access to user management.');
         }
         
+        $currentUserId = (int) Auth::id();
+        
         // Prevent admin from deleting themselves
-        if ($user->id === Auth::id()) {
+        if ($user->id === $currentUserId) {
             return redirect()->route('users.index')
                             ->with('error', 'You cannot delete your own account.');
         }

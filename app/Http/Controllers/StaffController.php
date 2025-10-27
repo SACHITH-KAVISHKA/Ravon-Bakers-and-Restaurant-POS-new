@@ -56,13 +56,15 @@ class StaffController extends Controller
 
         /** @var User|null $user */
         $user = Auth::user();
+        $userId = (int) $user->id;
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user exists and has a branch_id (staff should have branch assignment)
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to accept inventory items.');
         }
 
-        DB::transaction(function () use ($request, $inventoryRequest, $user) {
+        DB::transaction(function () use ($request, $inventoryRequest, $userId, $userBranchId) {
             $itemIds = $request->items;
             
             // Get the inventory request items to be accepted
@@ -75,13 +77,13 @@ class StaffController extends Controller
             foreach ($itemsToAccept as $requestItem) {
                 // Update the inventory request item with acceptance details
                 $requestItem->update([
-                    'received_by' => $user->id,
+                    'received_by' => $userId,
                     'received_at' => now(),
                 ]);
 
                 // Add or update inventory for the staff member's branch
                 $inventory = Inventory::where('item_id', $requestItem->item_id)
-                    ->where('branch_id', $user->branch_id)
+                    ->where('branch_id', $userBranchId)
                     ->first();
 
                 if ($inventory) {
@@ -91,7 +93,7 @@ class StaffController extends Controller
                     // Create new inventory record for this branch
                     Inventory::create([
                         'item_id' => $requestItem->item_id,
-                        'branch_id' => $user->branch_id,
+                        'branch_id' => $userBranchId,
                         'current_stock' => $requestItem->quantity,
                         'low_stock_alert' => 10, // Default low stock alert
                     ]);
@@ -125,14 +127,15 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user exists and has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to view inventory.');
         }
 
         $inventoryItems = Inventory::with(['item'])
-            ->where('branch_id', $user->branch_id)
+            ->where('branch_id', $userBranchId)
             ->orderBy('current_stock', 'asc')
             ->paginate(100);
 
@@ -146,6 +149,7 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userId = (int) $user->id;
 
         // If there's no authenticated user, or user is not staff, return all items
         if (!$user) {
@@ -157,7 +161,7 @@ class StaffController extends Controller
         }
 
         // For staff, only return items they have accepted
-        $acceptedItemIds = InventoryRequestItem::where('received_by', $user->id)
+        $acceptedItemIds = InventoryRequestItem::where('received_by', $userId)
             ->pluck('item_id')
             ->unique()
             ->toArray();
@@ -174,15 +178,16 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to add wastage.');
         }
 
         // Get items available in the staff's branch with stock > 0
-        $items = Item::with(['inventory' => function($query) use ($user) {
-                $query->where('branch_id', $user->branch_id);
+        $items = Item::with(['inventory' => function($query) use ($userBranchId) {
+                $query->where('branch_id', $userBranchId);
             }])
             ->where('is_active', true)
             ->get()
@@ -208,9 +213,11 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userId = (int) $user->id;
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to add wastage.');
         }
 
@@ -225,7 +232,7 @@ class StaffController extends Controller
         // Custom validation to check available stock from branch inventory
         foreach ($request->items as $index => $itemData) {
             $inventory = Inventory::where('item_id', $itemData['item_id'])
-                ->where('branch_id', $user->branch_id)
+                ->where('branch_id', $userBranchId)
                 ->first();
             $availableStock = $inventory ? $inventory->current_stock : 0;
 
@@ -237,11 +244,11 @@ class StaffController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $user) {
+        DB::transaction(function () use ($request, $userId, $userBranchId) {
             // Create wastage record
             $wastage = Wastage::create([
-                'user_id' => $user->id,
-                'branch_id' => $user->branch_id,
+                'user_id' => $userId,
+                'branch_id' => $userBranchId,
                 'date_time' => $request->date_time,
                 'remarks' => $request->remarks,
             ]);
@@ -249,7 +256,7 @@ class StaffController extends Controller
             // Create wastage items and update branch inventory
             foreach ($request->items as $itemData) {
                 $inventory = Inventory::where('item_id', $itemData['item_id'])
-                    ->where('branch_id', $user->branch_id)
+                    ->where('branch_id', $userBranchId)
                     ->first();
                 $previousStock = $inventory ? $inventory->current_stock : 0;
 
@@ -279,14 +286,15 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to view wastage.');
         }
 
         $query = Wastage::with(['wastageItems.item', 'user'])
-            ->where('branch_id', $user->branch_id)
+            ->where('branch_id', $userBranchId)
             ->orderBy('date_time', 'desc');
 
         // Filter by date if provided
@@ -317,25 +325,26 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to create stock transfers.');
         }
 
         // Get all branches except the current user's branch
         $branches = Branch::active()
-            ->where('id', '!=', $user->branch_id)
+            ->where('id', '!=', $userBranchId)
             ->orderBy('name')
             ->get();
 
         // Get items available in the staff's branch with stock > 0
-        $items = Item::with(['inventory' => function($query) use ($user) {
-                $query->where('branch_id', $user->branch_id);
+        $items = Item::with(['inventory' => function($query) use ($userBranchId) {
+                $query->where('branch_id', $userBranchId);
             }])
             ->where('is_active', true)
-            ->whereHas('inventory', function($query) use ($user) {
-                $query->where('branch_id', $user->branch_id)
+            ->whereHas('inventory', function($query) use ($userBranchId) {
+                $query->where('branch_id', $userBranchId)
                       ->where('current_stock', '>', 0);
             })
             ->orderBy('item_name')
@@ -351,9 +360,11 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userId = (int) $user->id;
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to create stock transfers.');
         }
 
@@ -367,25 +378,25 @@ class StaffController extends Controller
         ]);
 
         // Validate that the destination branch is not the same as the source
-        if ($request->to_branch_id == $user->branch_id) {
+        if ($request->to_branch_id == $userBranchId) {
             return back()->withErrors(['to_branch_id' => 'You cannot transfer to your own branch.'])->withInput();
         }
 
-        DB::transaction(function () use ($request, $user) {
+        DB::transaction(function () use ($request, $userId, $userBranchId) {
             // Create the stock transfer from staff's branch to another branch
             $transfer = StockTransfer::create([
-                'from_branch_id' => $user->branch_id, // Staff's branch as source
+                'from_branch_id' => $userBranchId, // Staff's branch as source
                 'to_branch_id' => $request->to_branch_id,
                 'date_time' => $request->date_time,
                 'status' => 'pending',
-                'created_by' => $user->id,
+                'created_by' => $userId,
                 'notes' => $request->notes,
             ]);
 
             // Process each item
             foreach ($request->items as $itemData) {
                 $inventory = Inventory::where('item_id', $itemData['item_id'])
-                    ->where('branch_id', $user->branch_id) // Staff's branch inventory
+                    ->where('branch_id', $userBranchId) // Staff's branch inventory
                     ->first();
 
                 if (!$inventory || $inventory->current_stock < $itemData['quantity']) {
@@ -413,14 +424,16 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userId = (int) $user->id;
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return redirect()->back()->with('error', 'You must be assigned to a branch to view stock transfers.');
         }
 
         $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'transferItems.item'])
-            ->where('created_by', $user->id)
+            ->where('created_by', $userId)
             ->orderBy('date_time', 'desc')
             ->paginate(10);
 
@@ -434,15 +447,16 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+        $userBranchId = (int) $user->branch_id;
 
         // Ensure user has a branch
-        if (!$user || !$user->branch_id) {
+        if (!$user || !$userBranchId) {
             return response()->json(['error' => 'You must be assigned to a branch.'], 403);
         }
 
         // Get inventory from staff's branch
         $inventory = Inventory::where('item_id', $item->id)
-            ->where('branch_id', $user->branch_id)
+            ->where('branch_id', $userBranchId)
             ->first();
 
         return response()->json([

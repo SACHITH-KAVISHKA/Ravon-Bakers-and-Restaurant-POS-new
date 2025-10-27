@@ -16,6 +16,8 @@ class Wastage extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
+        'branch_id' => 'integer',
         'date_time' => 'datetime',
     ];
 

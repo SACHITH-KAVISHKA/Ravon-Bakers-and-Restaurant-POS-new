@@ -98,26 +98,42 @@
                             </td>
                             <td class="d-none d-xl-table-cell">
                                 @php
+                                    $paymentMethod = strtolower($sale->payment_method);
+                                    $customerPayment = $sale->customer_payment ?? 0;
                                     $cardPayment = $sale->card_payment ?? 0;
                                     $total = $sale->subtotal ?? 0;
                                     
-                                    // If card payment is greater than or equal to total, cash is 0
-                                    // If card payment is less than total, cash is the difference
-                                    if ($cardPayment >= $total) {
+                                    // Handle payments - PRIORITY: Card first, then Cash
+                                    if ($paymentMethod === 'cash') {
+                                        // Pure cash payment
+                                        $cashAmount = min($customerPayment, $total);
+                                        $cardAmount = 0;
+                                    } elseif ($paymentMethod === 'card') {
+                                        // Pure card payment - trim card to total if overpaid
                                         $cashAmount = 0;
+                                        $cardAmount = min($cardPayment, $total);
+                                    } elseif ($paymentMethod === 'card_and_cash') {
+                                        // Combined payment - PRIORITY: Card gets full amount first
+                                        if ($cardPayment >= $total) {
+                                            // Card covers everything (or overpaid)
+                                            $cardAmount = $total;
+                                            $cashAmount = 0;
+                                        } else {
+                                            // Card takes what it can, cash fills the rest
+                                            $cardAmount = $cardPayment;
+                                            $remaining = $total - $cardPayment;
+                                            $cashAmount = min($customerPayment, $remaining);
+                                        }
                                     } else {
-                                        $cashAmount = $total - $cardPayment;
+                                        // Credit, complimentary, etc.
+                                        $cashAmount = 0;
+                                        $cardAmount = 0;
                                     }
                                 @endphp
                                 LKR {{ number_format($cashAmount, 2) }}
                             </td>
                             <td class="d-none d-xl-table-cell">
-                                @php
-                                    // If card payment is greater than total, show only the total amount
-                                    // Otherwise show the full card payment
-                                    $displayCardPayment = min($cardPayment, $total);
-                                @endphp
-                                LKR {{ number_format($displayCardPayment, 2) }}
+                                LKR {{ number_format($cardAmount, 2) }}
                             </td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($sale->credit_balance ?? 0, 2) }}</td>
                             <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>

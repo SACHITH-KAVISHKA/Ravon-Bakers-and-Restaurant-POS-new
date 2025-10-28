@@ -45,28 +45,55 @@ class SalesReportController extends Controller
         // Get sales with pagination
         $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
 
-        // Calculate totals for the filtered data
-        $totals = Sale::query()
+        // Calculate totals - get all sales for filtering, then calculate in PHP
+        $allSales = Sale::query()
             ->where('status', 1)
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->selectRaw('
-                COUNT(*) as total_transactions,
-                SUM(subtotal) as total_subtotal,
-                SUM(customer_payment) as total_customer_payment,
-                SUM(CASE 
-                    WHEN COALESCE(card_payment, 0) >= subtotal THEN 0 
-                    ELSE subtotal - COALESCE(card_payment, 0) 
-                END) as total_cash,
-                SUM(CASE 
-                    WHEN COALESCE(card_payment, 0) > subtotal THEN subtotal 
-                    ELSE COALESCE(card_payment, 0) 
-                END) as total_card_payment,
-                SUM(credit_balance) as total_credit_balance,
-                SUM(balance) as total_balance
-            ')
-            ->first();
+            ->get();
+
+        // Calculate totals with overpayment trimming
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($allSales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+            
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+            
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        // Create totals object
+        $totals = (object) [
+            'total_transactions' => $allSales->count(),
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
 
         // Get available branches for the dropdown
         $branches = Branch::active()->orderBy('name')->get();
@@ -135,26 +162,46 @@ class SalesReportController extends Controller
 
         $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
 
-        // Calculate totals for export
-        $totals = Sale::query()
-            ->where('status', 1)
-            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->selectRaw('
-                SUM(subtotal) as total_subtotal,
-                SUM(customer_payment) as total_customer_payment,
-                SUM(CASE 
-                    WHEN COALESCE(card_payment, 0) >= subtotal THEN 0 
-                    ELSE subtotal - COALESCE(card_payment, 0) 
-                END) as total_cash,
-                SUM(CASE 
-                    WHEN COALESCE(card_payment, 0) > subtotal THEN subtotal 
-                    ELSE COALESCE(card_payment, 0) 
-                END) as total_card_payment,
-                SUM(credit_balance) as total_credit_balance
-            ')
-            ->first();
+        // Calculate totals with overpayment trimming
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+            
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+            
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        // Create totals object
+        $totals = (object) [
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
 
         // Create spreadsheet
         $spreadsheet = new Spreadsheet();
@@ -180,16 +227,31 @@ class SalesReportController extends Controller
         // Add data
         $row = 2;
         foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
             $total = $sale->subtotal ?? 0;
             
-            // Calculate cash and card amounts with the correction logic
-            if ($cardPayment >= $total) {
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $cashAmount = min($customerPayment, $total);
+                $cardAmount = 0;
+            } elseif ($paymentMethod === 'card') {
                 $cashAmount = 0;
-                $displayCardPayment = $total;
+                $cardAmount = min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $cardAmount = $total;
+                    $cashAmount = 0;
+                } else {
+                    $cardAmount = $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $cashAmount = min($customerPayment, $remaining);
+                }
             } else {
-                $cashAmount = $total - $cardPayment;
-                $displayCardPayment = $cardPayment;
+                $cashAmount = 0;
+                $cardAmount = 0;
             }
             
             $sheet->setCellValue('A' . $row, $sale->receipt_no);
@@ -197,7 +259,7 @@ class SalesReportController extends Controller
             $sheet->setCellValue('C' . $row, $sale->subtotal);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
             $sheet->setCellValue('E' . $row, $cashAmount);
-            $sheet->setCellValue('F' . $row, $displayCardPayment);
+            $sheet->setCellValue('F' . $row, $cardAmount);
             $sheet->setCellValue('G' . $row, $sale->credit_balance ?? 0);
             $sheet->setCellValue('H' . $row, $sale->created_at->format('Y-m-d H:i:s'));
             $row++;

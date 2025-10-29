@@ -1602,6 +1602,13 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // Branch information for receipts
+        const branchInfo = {
+            name: '{{ Auth::user()->branch->name ?? "RAVON BAKERS" }}',
+            address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
+            telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
+        };
+
         let cart = []; // Initialize empty cart
         let selectedPaymentMethod = null; // No payment method selected by default
         let customerPayment = 0;
@@ -2773,7 +2780,7 @@
 
                         pdf.setFontSize(12);
                         pdf.setFont('courier', 'bold');
-                        pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
+                        pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                             align: 'center'
                         });
                         yPosition += 6;
@@ -2806,7 +2813,7 @@
 
                 pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
-                pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
+                pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 6;
@@ -2819,11 +2826,11 @@
                 yPosition += 5;
 
                 pdf.setFontSize(8);
-                pdf.text('Address: 282/A 2, Kaduwela', pageWidth / 2, yPosition, {
+                pdf.text('Address: ' + branchInfo.address, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 4;
-                pdf.text('Phone: 076 200 6007', pageWidth / 2, yPosition, {
+                pdf.text('Phone: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 8;
@@ -3045,7 +3052,7 @@
                 });
                 yPosition += 4;
                 pdf.setFont('courier', 'bold');
-                pdf.text('RAVON RESTAURANT', pageWidth / 2, yPosition, {
+                pdf.text(branchInfo.name.toUpperCase(), pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 4;

@@ -282,7 +282,7 @@ class POSController extends Controller
 
     public function receipt(Sale $sale)
     {
-        $sale->load('saleItems');
+        $sale->load(['saleItems', 'branch']);
         return view('pos.receipt', compact('sale'));
     }
 

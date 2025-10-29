@@ -37,8 +37,9 @@
         <table class="table table-hover">
             <thead>
                 <tr>
-
                     <th>Branch Name</th>
+                    <th>Address</th>
+                    <th>Telephone</th>
                     <th>Status</th>
                     <th>Users Count</th>
                     <th>Created Date</th>
@@ -53,6 +54,16 @@
                         <div class="d-flex align-items-center fw-bold">
                             {{ $branch->name }}
                         </div>
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            {{ $branch->address ?? 'N/A' }}
+                        </small>
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            {{ $branch->telephone ?? 'N/A' }}
+                        </small>
                     </td>
                     <td>
                         @if($branch->status)
@@ -74,7 +85,7 @@
                     <td>
                         <div class="btn-group" role="group">
                             <button class="btn btn-sm btn-outline-warning"
-                                onclick="editBranch({{ $branch->id }}, '{{ $branch->name }}', {{ $branch->status }})"
+                                onclick="editBranch({{ $branch->id }}, '{{ addslashes($branch->name) }}', {{ $branch->status }}, '{{ addslashes($branch->address ?? '') }}', '{{ addslashes($branch->telephone ?? '') }}')"
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -128,10 +139,24 @@
 
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="branch_name" class="form-label">Branch Name</label>
+                        <label for="branch_name" class="form-label">Branch Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="branch_name" name="name" required
                             placeholder="Enter branch name">
                         <div class="invalid-feedback" id="branch_name_error"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="branch_address" class="form-label">Address</label>
+                        <textarea class="form-control" id="branch_address" name="address" rows="2"
+                            placeholder="Enter branch address"></textarea>
+                        <div class="invalid-feedback" id="branch_address_error"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="branch_telephone" class="form-label">Telephone</label>
+                        <input type="text" class="form-control" id="branch_telephone" name="telephone"
+                            placeholder="Enter telephone number">
+                        <div class="invalid-feedback" id="branch_telephone_error"></div>
                     </div>
 
                     <div class="mb-3" id="statusField" style="display: none;">
@@ -155,7 +180,7 @@
 </div>
 
 <script>
-    function editBranch(id, name, status) {
+    function editBranch(id, name, status, address = '', telephone = '') {
         const modal = document.getElementById('addBranchModal');
         const form = document.getElementById('branchForm');
         const title = document.getElementById('addBranchModalLabel');
@@ -173,6 +198,8 @@
 
         // Fill form fields
         document.getElementById('branch_name').value = name;
+        document.getElementById('branch_address').value = address || '';
+        document.getElementById('branch_telephone').value = telephone || '';
         document.getElementById('branch_status').value = status;
 
         // Show status field for edit
@@ -204,6 +231,10 @@
         // Clear errors
         document.getElementById('branch_name').classList.remove('is-invalid');
         document.getElementById('branch_name_error').textContent = '';
+        document.getElementById('branch_address').classList.remove('is-invalid');
+        document.getElementById('branch_address_error').textContent = '';
+        document.getElementById('branch_telephone').classList.remove('is-invalid');
+        document.getElementById('branch_telephone_error').textContent = '';
     });
 </script>
 

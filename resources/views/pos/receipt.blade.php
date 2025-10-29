@@ -139,11 +139,25 @@
 <body>
     <div class="receipt">
         <div class="header">
-            <div class="restaurant-name">RAVON BAKERS</div>
+            <div class="restaurant-name">
+                @if($sale->branch)
+                    {{ $sale->branch->name }}
+                @else
+                    RAVON BAKERS
+                @endif
+            </div>
             <div style="font-size: 12px;">Restaurant & Bakery</div>
             <div style="font-size: 10px; margin-top: 5px;">
-                <div>Address: 282/A 2, Kaduwela</div>
-                <div>Phone: 076 200 6007</div>
+                @if($sale->branch && $sale->branch->address)
+                    <div>{{ $sale->branch->address }}</div>
+                @else
+                    <div>Address: 282/A 2, Kaduwela</div>
+                @endif
+                @if($sale->branch && $sale->branch->telephone)
+                    <div>Phone: {{ $sale->branch->telephone }}</div>
+                @else
+                    <div>Phone: 076 200 6007</div>
+                @endif
             </div>
         </div>
 
@@ -278,7 +292,15 @@
 
         <div class="footer">
             <div>Thank you for visiting</div>
-            <div><strong>RAVON RESTAURANT</strong></div>
+            <div>
+                <strong>
+                    @if($sale->branch)
+                        {{ strtoupper($sale->branch->name) }}
+                    @else
+                        RAVON RESTAURANT
+                    @endif
+                </strong>
+            </div>
             <div>Come again!</div>
             <div style="margin-top: 10px; font-size: 8px; color: #666;">
                 <div>System by SKM Labs</div>

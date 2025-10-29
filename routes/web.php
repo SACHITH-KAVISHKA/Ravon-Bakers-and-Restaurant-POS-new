@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/stock-report', [SupervisorController::class, 'inventoryHistory'])->name('stock-report');
             Route::get('/item-sales', [App\Http\Controllers\ItemSalesController::class, 'itemSales'])->name('item-sales');
             Route::post('/item-sales/filter', [App\Http\Controllers\ItemSalesController::class, 'filterItemSales'])->name('item-sales.filter');
+            Route::post('/item-sales/details', [App\Http\Controllers\ItemSalesController::class, 'getItemDetails'])->name('item-sales.details');
             Route::get('/item-sales/export', [App\Http\Controllers\ItemSalesController::class, 'exportExcel'])->name('item-sales.export');
         });
     });

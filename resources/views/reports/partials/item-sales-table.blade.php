@@ -22,12 +22,15 @@
                                         {{ $branch->name }}
                                     </th>
                                 @endforeach
+                                <th class="border-0 px-3 py-3 text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff;">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             @if(count($salesData) === 0)
                                 <tr>
-                                    <td colspan="{{ 3 + count($branches) }}" class="text-center py-5">
+                                    <td colspan="{{ 4 + count($branches) }}" class="text-center py-5">
                                         <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
                                         <p class="text-muted mt-3">No sales data available for the selected date range.</p>
                                     </td>
@@ -62,6 +65,15 @@
                                                 @endif
                                             </td>
                                         @endforeach
+                                        <td class="px-3 py-3 text-center" style="background-color: #f8f9fa;">
+                                            <button class="btn btn-sm btn-outline-primary view-details-btn" 
+                                                    data-item-id="{{ $item['item_id'] }}"
+                                                    data-item-code="{{ $item['item_code'] }}"
+                                                    data-item-name="{{ $item['item_name'] }}"
+                                                    title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
                                     </tr>
                                 @endforeach
                             @endif

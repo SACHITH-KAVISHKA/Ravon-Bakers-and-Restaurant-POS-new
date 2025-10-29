@@ -98,6 +98,7 @@ class ItemSalesController extends Controller
                 $itemId = $saleItem->item_id;
                 $itemCode = $saleItem->item->item_code ?? 'N/A';
                 $itemName = $saleItem->item->item_name ?? 'Unknown';
+                $category = $saleItem->item->category->name ?? 'Uncategorized';
 
                 // Initialize item if not exists
                 if (!isset($itemSales[$itemId])) {
@@ -105,6 +106,7 @@ class ItemSalesController extends Controller
                         'item_id' => $itemId,
                         'item_code' => $itemCode,
                         'item_name' => $itemName,
+                        'category' => $category,
                         'total_quantity' => 0,
                         'branches' => []
                     ];
@@ -137,6 +139,74 @@ class ItemSalesController extends Controller
         });
 
         return $result;
+    }
+
+    /**
+     * Get detailed transaction data for a specific item
+     */
+    public function getItemDetails(Request $request)
+    {
+        $request->validate([
+            'item_id' => 'required|integer',
+            'from_date' => 'required|date',
+            'to_date' => 'required|date',
+        ]);
+
+        $itemId = $request->input('item_id');
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
+
+        // Get all sale items for this item within date range
+        $saleItems = SaleItem::with(['sale.branch'])
+            ->where('item_id', $itemId)
+            ->whereHas('sale', function($query) use ($fromDate, $toDate) {
+                $query->where('status', 1)
+                      ->whereDate('created_at', '>=', $fromDate)
+                      ->whereDate('created_at', '<=', $toDate);
+            })
+            ->get();
+
+        // Group by branch
+        $branchData = [];
+        $totalQuantity = 0;
+
+        foreach ($saleItems as $saleItem) {
+            $sale = $saleItem->sale;
+            if (!$sale || !$sale->branch) continue;
+
+            $branchName = $sale->branch->name;
+            
+            // Skip Main Branch
+            if ($branchName === 'Main Branch') continue;
+
+            if (!isset($branchData[$branchName])) {
+                $branchData[$branchName] = [
+                    'branch_name' => $branchName,
+                    'transactions' => [],
+                    'total_quantity' => 0,
+                ];
+            }
+
+            $branchData[$branchName]['transactions'][] = [
+                'receipt_no' => $sale->receipt_no,
+                'quantity' => $saleItem->quantity,
+                'unit_price' => $saleItem->unit_price,
+                'total_price' => $saleItem->total_price,
+                'date' => $sale->created_at->format('M d, Y H:i'),
+            ];
+
+            $branchData[$branchName]['total_quantity'] += $saleItem->quantity;
+            $totalQuantity += $saleItem->quantity;
+        }
+
+        // Sort branches by name
+        ksort($branchData);
+
+        return response()->json([
+            'success' => true,
+            'branches' => array_values($branchData),
+            'total_quantity' => $totalQuantity,
+        ]);
     }
 
     /**

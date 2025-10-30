@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/item-sales/filter', [App\Http\Controllers\ItemSalesController::class, 'filterItemSales'])->name('item-sales.filter');
             Route::post('/item-sales/details', [App\Http\Controllers\ItemSalesController::class, 'getItemDetails'])->name('item-sales.details');
             Route::get('/item-sales/export', [App\Http\Controllers\ItemSalesController::class, 'exportExcel'])->name('item-sales.export');
+            Route::get('/item-sales/export-item-details', [App\Http\Controllers\ItemSalesController::class, 'exportItemDetails'])->name('item-sales.export-item-details');
         });
     });
 

@@ -105,6 +105,9 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="exportItemDetailsBtn" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none;">
+                    <i class="bi bi-file-earmark-excel"></i> Export to Excel
+                </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="bi bi-x-circle"></i> Close
                 </button>
@@ -239,6 +242,15 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+        // Store current item details for export
+        let currentItemDetails = {
+            itemId: null,
+            itemCode: null,
+            itemName: null,
+            fromDate: null,
+            toDate: null
+        };
+
         // Update export link with current dates
         function updateExportLink() {
             const fromDate = $('#from_date').val();
@@ -262,6 +274,15 @@
             const itemName = $(this).data('item-name');
             const fromDate = $('#from_date').val();
             const toDate = $('#to_date').val();
+
+            // Store current item details for export
+            currentItemDetails = {
+                itemId: itemId,
+                itemCode: itemCode,
+                itemName: itemName,
+                fromDate: fromDate,
+                toDate: toDate
+            };
 
             // Update modal title
             $('#itemDetailsModalLabel').html(`
@@ -569,6 +590,23 @@
 
             $('#salesTableContainer').html(tableHtml);
         }
+
+        // Handle Export Item Details button click
+        $('#exportItemDetailsBtn').on('click', function() {
+            if (!currentItemDetails.itemId) {
+                alert('No item data available to export');
+                return;
+            }
+
+            // Create export URL with item details
+            const exportUrl = '{{ route("reports.item-sales.export-item-details") }}' + 
+                '?item_id=' + currentItemDetails.itemId +
+                '&from_date=' + currentItemDetails.fromDate +
+                '&to_date=' + currentItemDetails.toDate;
+
+            // Trigger download
+            window.location.href = exportUrl;
+        });
     });
 </script>
 @endpush

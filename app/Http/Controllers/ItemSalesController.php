@@ -280,4 +280,173 @@ class ItemSalesController extends Controller
             'Cache-Control' => 'max-age=0',
         ]);
     }
+
+    /**
+     * Export item details (individual transactions) as Excel
+     */
+    public function exportItemDetails(Request $request)
+    {
+        $request->validate([
+            'item_id' => 'required|exists:items,id',
+            'from_date' => 'required|date',
+            'to_date' => 'required|date|after_or_equal:from_date',
+        ]);
+
+        $itemId = $request->input('item_id');
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
+
+        // Get item details
+        $item = Item::find($itemId);
+
+        // Get all branches
+        $branches = Branch::where('status', 1)
+            ->where('name', '!=', 'Main Branch')
+            ->orderBy('name')
+            ->get();
+
+        // Get all sales for this item within date range
+        $salesItems = SaleItem::with(['sale.branch'])
+            ->where('item_id', $itemId)
+            ->whereHas('sale', function ($query) use ($fromDate, $toDate) {
+                $query->whereDate('created_at', '>=', $fromDate)
+                    ->whereDate('created_at', '<=', $toDate)
+                    ->where('status', 1);
+            })
+            ->get();
+
+        // Group by branch
+        $branchData = [];
+        $grandTotal = 0;
+
+        foreach ($salesItems as $saleItem) {
+            $sale = $saleItem->sale;
+            $branchId = $sale->branch_id;
+
+            if (!$branchId) continue;
+
+            $branch = $branches->firstWhere('id', $branchId);
+            if (!$branch) continue;
+
+            if (!isset($branchData[$branch->name])) {
+                $branchData[$branch->name] = [
+                    'branch_name' => $branch->name,
+                    'transactions' => [],
+                    'total_quantity' => 0,
+                ];
+            }
+
+            $branchData[$branch->name]['transactions'][] = [
+                'receipt_no' => $sale->receipt_no,
+                'quantity' => $saleItem->quantity,
+                'unit_price' => $saleItem->unit_price,
+                'total_price' => $saleItem->total_price,
+                'date' => $sale->created_at->format('Y-m-d H:i:s'),
+            ];
+
+            $branchData[$branch->name]['total_quantity'] += $saleItem->quantity;
+            $grandTotal += $saleItem->quantity;
+        }
+
+        // Create spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set title
+        $sheet->setCellValue('A1', 'Item Transaction Details');
+        $sheet->mergeCells('A1:E1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // Item information
+        $sheet->setCellValue('A2', 'Item Code:');
+        $sheet->setCellValue('B2', $item->item_code ?? 'N/A');
+        $sheet->setCellValue('A3', 'Item Name:');
+        $sheet->setCellValue('B3', $item->item_name ?? 'Unknown');
+        $sheet->setCellValue('A4', 'Date Range:');
+        $sheet->setCellValue('B4', $fromDate . ' to ' . $toDate);
+        
+        $sheet->getStyle('A2:A4')->getFont()->setBold(true);
+
+        $currentRow = 6;
+
+        // Add data for each branch
+        foreach ($branchData as $data) {
+            // Branch header
+            $sheet->setCellValue('A' . $currentRow, $data['branch_name']);
+            $sheet->mergeCells('A' . $currentRow . ':E' . $currentRow);
+            $sheet->getStyle('A' . $currentRow)->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A' . $currentRow)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('E3F2FD');
+            $currentRow++;
+
+            // Column headers
+            $headers = ['Receipt No', 'Quantity', 'Unit Price', 'Total Price', 'Date'];
+            $sheet->fromArray([$headers], null, 'A' . $currentRow);
+            $sheet->getStyle('A' . $currentRow . ':E' . $currentRow)->getFont()->setBold(true);
+            $sheet->getStyle('A' . $currentRow . ':E' . $currentRow)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('BBDEFB');
+            $currentRow++;
+
+            // Transaction rows
+            foreach ($data['transactions'] as $transaction) {
+                $row = [
+                    $transaction['receipt_no'],
+                    $transaction['quantity'],
+                    'LKR ' . number_format($transaction['unit_price'], 2),
+                    'LKR ' . number_format($transaction['total_price'], 2),
+                    $transaction['date'],
+                ];
+                $sheet->fromArray([$row], null, 'A' . $currentRow);
+                $currentRow++;
+            }
+
+            // Branch total
+            $sheet->setCellValue('A' . $currentRow, 'Branch Total:');
+            $sheet->setCellValue('B' . $currentRow, $data['total_quantity']);
+            $sheet->getStyle('A' . $currentRow . ':B' . $currentRow)->getFont()->setBold(true);
+            $sheet->getStyle('A' . $currentRow . ':E' . $currentRow)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('FFF9C4');
+            $currentRow += 2; // Add spacing
+        }
+
+        // Grand total
+        $sheet->setCellValue('A' . $currentRow, 'GRAND TOTAL QUANTITY:');
+        $sheet->setCellValue('B' . $currentRow, $grandTotal);
+        $sheet->mergeCells('A' . $currentRow . ':A' . $currentRow);
+        $sheet->getStyle('A' . $currentRow . ':B' . $currentRow)->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A' . $currentRow . ':B' . $currentRow)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('4CAF50');
+        $sheet->getStyle('A' . $currentRow . ':B' . $currentRow)->getFont()->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A' . $currentRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle('B' . $currentRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        // Add border to remaining cells for visual consistency
+        $sheet->getStyle('C' . $currentRow . ':E' . $currentRow)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('4CAF50');
+
+        // Auto-size columns
+        foreach (range('A', 'E') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Create filename
+        $itemCode = $item->item_code ?? 'item';
+        $fileName = 'item-details-' . $itemCode . '-' . now()->format('Ymd-His') . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
 }

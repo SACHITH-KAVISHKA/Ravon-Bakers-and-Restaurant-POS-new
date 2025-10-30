@@ -1604,7 +1604,7 @@
     <script>
         // Branch information for receipts
         const branchInfo = {
-            name: '{{ Auth::user()->branch->name ?? "RAVON BAKERS" }}',
+            name: '{{ "RAVON BAKERS" }}',
             address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
             telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
         };

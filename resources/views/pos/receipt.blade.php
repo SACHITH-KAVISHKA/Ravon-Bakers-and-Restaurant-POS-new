@@ -140,23 +140,21 @@
     <div class="receipt">
         <div class="header">
             <div class="restaurant-name">
-                @if($sale->branch)
-                    {{ $sale->branch->name }}
-                @else
-                    RAVON BAKERS
-                @endif
+
+                RAVON BAKERS
+
             </div>
             <div style="font-size: 12px;">Restaurant & Bakery</div>
             <div style="font-size: 10px; margin-top: 5px;">
                 @if($sale->branch && $sale->branch->address)
-                    <div>{{ $sale->branch->address }}</div>
+                <div>{{ $sale->branch->address }}</div>
                 @else
-                    <div>Address: 282/A 2, Kaduwela</div>
+                <div>Address: 282/A 2, Kaduwela</div>
                 @endif
                 @if($sale->branch && $sale->branch->telephone)
-                    <div>Phone: {{ $sale->branch->telephone }}</div>
+                <div>Phone: {{ $sale->branch->telephone }}</div>
                 @else
-                    <div>Phone: 076 200 6007</div>
+                <div>Phone: 076 200 6007</div>
                 @endif
             </div>
         </div>
@@ -295,9 +293,9 @@
             <div>
                 <strong>
                     @if($sale->branch)
-                        {{ strtoupper($sale->branch->name) }}
+                    {{ strtoupper($sale->branch->name) }}
                     @else
-                        RAVON RESTAURANT
+                    RAVON RESTAURANT
                     @endif
                 </strong>
             </div>

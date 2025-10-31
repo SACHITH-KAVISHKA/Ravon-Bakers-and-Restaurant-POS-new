@@ -139,22 +139,23 @@
 <body>
     <div class="receipt">
         <div class="header">
-            <div class="restaurant-name">
-
-                RAVON BAKERS
-
+            <!-- Logo -->
+            <div style="margin-bottom: 10px;">
+                <img src="{{ asset('images/Bird.jpg') }}" alt="Logo" style="width: 60px; height: 60px; border-radius: 50%; display: block; margin: 0 auto;">
             </div>
+            
+            <div class="restaurant-name">RAVON BAKERS</div>
             <div style="font-size: 12px;">Restaurant & Bakery</div>
             <div style="font-size: 10px; margin-top: 5px;">
                 @if($sale->branch && $sale->branch->address)
-                <div>{{ $sale->branch->address }}</div>
+                    <div>{{ $sale->branch->address }}</div>
                 @else
-                <div>Address: 282/A 2, Kaduwela</div>
+                    <div>Address: 282/A 2, Kaduwela</div>
                 @endif
                 @if($sale->branch && $sale->branch->telephone)
-                <div>Phone: {{ $sale->branch->telephone }}</div>
+                    <div>Phone: {{ $sale->branch->telephone }}</div>
                 @else
-                <div>Phone: 076 200 6007</div>
+                    <div>Phone: 076 200 6007</div>
                 @endif
             </div>
         </div>
@@ -395,6 +396,9 @@
         {
             "receiptNo": "{{ $sale->receipt_no }}",
             "userName": "{{ $sale->user_name }}",
+            "branchName": "RAVON BAKERS",
+            "branchAddress": "{{ $sale->branch && $sale->branch->address ? $sale->branch->address : '282/A 2, Kaduwela' }}",
+            "branchPhone": "{{ $sale->branch && $sale->branch->telephone ? $sale->branch->telephone : '076 200 6007' }}",
             "date": "{{ $sale->created_at->format('d/m/Y') }}",
             "time": "{{ $sale->created_at->format('H:i:s') }}",
             "subtotal": "{{ number_format($sale->subtotal, 2) }}",
@@ -443,8 +447,107 @@
     </script>
 
     <script>
+        // Logo URL for PDF - encode logo image as base64 on server side
+        @php
+            $logoPath = public_path('images/logo.jpg');
+            $logoBase64Data = '';
+            if (file_exists($logoPath)) {
+                $imageData = file_get_contents($logoPath);
+                $logoBase64Data = 'data:image/jpeg;base64,' . base64_encode($imageData);
+            }
+        @endphp
+        const logoUrl = "{!! asset('images/logo.jpg') !!}";
+        let logoBase64 = @json($logoBase64Data); // Pre-loaded from server
+        let circularLogoBase64 = null; // Will hold the circular version
+        
+        // Function to create circular logo from square image
+        function createCircularLogo(base64Image, size) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Create circular clipping path
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.clip();
+                    
+                    // Draw image
+                    ctx.drawImage(img, 0, 0, size, size);
+                    
+                    // Convert to base64
+                    resolve(canvas.toDataURL('image/jpeg', 0.95));
+                };
+                img.onerror = reject;
+                img.src = base64Image;
+            });
+        }
+        
+        console.log('Logo pre-loaded from server:', logoBase64 ? 'YES (length: ' + logoBase64.length + ')' : 'NO');
+        
+        // Function to convert image URL to base64
+        function convertImageToBase64(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                // Remove crossOrigin for same-domain images
+                
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = this.width;
+                    canvas.height = this.height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(this, 0, 0);
+                    
+                    try {
+                        const base64 = canvas.toDataURL('image/jpeg', 0.95);
+                        resolve(base64);
+                    } catch (e) {
+                        console.error('❌ Canvas to base64 failed:', e);
+                        reject(e);
+                    }
+                };
+                
+                img.onerror = function(e) {
+                    console.error('❌ Image load failed:', e);
+                    reject(e);
+                };
+                
+                // Load image without timestamp first
+                img.src = url;
+            });
+        }
+        
+        // Load logo on page load
+        window.addEventListener('load', function() {
+            convertImageToBase64(logoUrl)
+                .then(base64 => {
+                    logoBase64 = base64;
+                })
+                .catch(err => {
+                    console.error('❌ Logo conversion failed:', err);
+                });
+        });
+
         // Function to download receipt as PDF
-        function downloadReceiptPDF() {
+        async function downloadReceiptPDF() {
+            // Create circular logo first
+            if (logoBase64 && !circularLogoBase64) {
+                try {
+                    circularLogoBase64 = await createCircularLogo(logoBase64, 200);
+                    console.log('Circular logo created for PDF');
+                } catch (err) {
+                    console.error('Error creating circular logo:', err);
+                }
+            }
+            
+            // Logo is already pre-loaded from server as base64
+            console.log('PDF Generation - Logo status:', circularLogoBase64 ? 'Ready!' : 'Not available');
+            
             const {
                 jsPDF
             } = window.jspdf;
@@ -470,19 +573,31 @@
             // PDF generation code
             let yPosition = 10;
 
-            // Add RB logo circle
-            pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'bold');
-            pdf.circle(pageWidth / 2, yPosition + 5, 8);
-            pdf.text('RB', pageWidth / 2, yPosition + 7, {
-                align: 'center'
-            });
-            yPosition += 18;
+            // Add circular logo if available
+            console.log('Logo status for PDF:', circularLogoBase64 ? 'Available' : 'Not available');
+            if (circularLogoBase64) {
+                try {
+                    console.log('Adding circular logo to PDF...');
+                    const logoSize = 16;
+                    const logoX = pageWidth / 2 - logoSize / 2;
+                    const logoY = yPosition;
+                    
+                    pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
+                    yPosition += 20;
+                    console.log('Circular logo added successfully!');
+                } catch (e) {
+                    console.error('Error adding logo to PDF:', e);
+                    yPosition += 20;
+                }
+            } else {
+                console.warn('No logo available - skipping logo');
+                yPosition += 20;
+            }
 
-            // Header - Company Name
+            // Header - Company Name (use branch name from data)
             pdf.setFontSize(14);
             pdf.setFont('courier', 'bold');
-            pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
+            pdf.text(receiptData.branchName, pageWidth / 2, yPosition, {
                 align: 'center'
             });
             yPosition += 6;
@@ -495,11 +610,11 @@
             yPosition += 5;
 
             pdf.setFontSize(8);
-            pdf.text('Address: 282/A 2, Kaduwela', pageWidth / 2, yPosition, {
+            pdf.text('Address: ' + receiptData.branchAddress, pageWidth / 2, yPosition, {
                 align: 'center'
             });
             yPosition += 4;
-            pdf.text('Phone: 076 200 6007', pageWidth / 2, yPosition, {
+            pdf.text('Phone: ' + receiptData.branchPhone, pageWidth / 2, yPosition, {
                 align: 'center'
             });
             yPosition += 8;
@@ -550,17 +665,25 @@
                 if (pageIndex > 0) {
                     pdf.addPage();
                     yPosition = 10;
-                    // compact header for continuation pages
-                    pdf.setFontSize(10);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.circle(pageWidth / 2, yPosition + 5, 8);
-                    pdf.text('RB', pageWidth / 2, yPosition + 7, {
-                        align: 'center'
-                    });
-                    yPosition += 14;
+                    // compact header for continuation pages (circular logo)
+                    if (circularLogoBase64) {
+                        try {
+                            const logoSize = 12;
+                            const logoX = pageWidth / 2 - logoSize / 2;
+                            const logoY = yPosition;
+                            
+                            pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
+                            yPosition += 16;
+                        } catch (e) {
+                            console.error('Error adding logo on continuation page:', e);
+                            yPosition += 16;
+                        }
+                    } else {
+                        yPosition += 16;
+                    }
                     pdf.setFontSize(12);
                     pdf.setFont('courier', 'bold');
-                    pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
+                    pdf.text(receiptData.branchName, pageWidth / 2, yPosition, {
                         align: 'center'
                     });
                     yPosition += 6;
@@ -731,7 +854,7 @@
                     });
                     yPosition += 4;
                     pdf.setFont('courier', 'bold');
-                    pdf.text('RAVON RESTAURANT', pageWidth / 2, yPosition, {
+                    pdf.text(receiptData.branchName.toUpperCase(), pageWidth / 2, yPosition, {
                         align: 'center'
                     });
                     yPosition += 4;
@@ -783,7 +906,7 @@
                     // Navigate to clean POS dashboard with clear parameter
                     window.location.href = '{{ route("pos.index") }}?clear=1';
                 }).catch((error) => {
-                    console.log('Error clearing session:', error);
+                    console.error('Error clearing session:', error);
                     // Still navigate even if there's an error
                     window.location.href = '{{ route("pos.index") }}?clear=1';
                 });

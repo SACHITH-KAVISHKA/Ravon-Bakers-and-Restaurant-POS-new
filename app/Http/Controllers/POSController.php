@@ -7,6 +7,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +22,7 @@ class POSController extends Controller
             session()->put('pos_initialized', true);
         }
         
-        $user = Auth::user();
+        $user = User::with('branch')->find(Auth::id());
         
         // Show all active items regardless of stock availability
         // Staff can sell items even without stock in their branch

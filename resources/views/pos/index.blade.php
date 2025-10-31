@@ -1603,12 +1603,61 @@
 
     <script>
         // Branch information for receipts
-        const branchInfo = {
-            name: '{{ "RAVON BAKERS" }}',
-            address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
-            telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
-        };
-
+            const branchInfo = {
+                name: 'RAVON BAKERS',
+                address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
+                telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
+            };
+        
+        // Logo URL for PDF - encode logo image as base64 on server side
+        @php
+            $logoPath = public_path('images/logo.jpg');
+            $logoBase64Data = '';
+            if (file_exists($logoPath)) {
+                $imageData = file_get_contents($logoPath);
+                $logoBase64Data = 'data:image/jpeg;base64,' . base64_encode($imageData);
+            }
+        @endphp
+        let logoBase64 = @json($logoBase64Data); // Pre-loaded from server
+        let circularLogoBase64 = null; // Will hold the circular version
+        
+        // Function to create circular logo from square image
+        function createCircularLogo(base64Image, size) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Create circular clipping path
+                    ctx.beginPath();
+                    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.clip();
+                    
+                    // Draw image
+                    ctx.drawImage(img, 0, 0, size, size);
+                    
+                    // Convert to base64
+                    resolve(canvas.toDataURL('image/jpeg', 0.95));
+                };
+                img.onerror = reject;
+                img.src = base64Image;
+            });
+        }
+        
+        // Create circular logo on page load
+        if (logoBase64) {
+            createCircularLogo(logoBase64, 200).then(circularLogo => {
+                circularLogoBase64 = circularLogo;
+                console.log('Circular logo created successfully');
+            }).catch(err => {
+                console.error('Error creating circular logo:', err);
+            });
+        }
+        
         let cart = []; // Initialize empty cart
         let selectedPaymentMethod = null; // No payment method selected by default
         let customerPayment = 0;
@@ -2770,14 +2819,23 @@
                         yPosition = 10;
 
                         // Add simplified header for continuation pages
-                        pdf.setFontSize(10);
-                        pdf.setFont('helvetica', 'bold');
-                        pdf.circle(pageWidth / 2, yPosition + 5, 6);
-                        pdf.text('RB', pageWidth / 2, yPosition + 6, {
-                            align: 'center'
-                        });
-                        yPosition += 14;
-
+                        // Add circular logo if available
+                        if (circularLogoBase64) {
+                            try {
+                                const logoSize = 16;
+                                const logoX = pageWidth / 2 - logoSize / 2;
+                                const logoY = yPosition;
+                                
+                                pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
+                                yPosition += 20;
+                            } catch (e) {
+                                console.error('Error adding logo to continuation page:', e);
+                                yPosition += 20;
+                            }
+                        } else {
+                            yPosition += 20;
+                        }
+                        
                         pdf.setFontSize(12);
                         pdf.setFont('courier', 'bold');
                         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
@@ -2803,14 +2861,23 @@
                 }
 
                 // Header section - only on first page
-                pdf.setFontSize(10);
-                pdf.setFont('helvetica', 'bold');
-                pdf.circle(pageWidth / 2, yPosition + 5, 8);
-                pdf.text('RB', pageWidth / 2, yPosition + 7, {
-                    align: 'center'
-                });
-                yPosition += 18;
-
+                // Add circular logo if available
+                if (circularLogoBase64) {
+                    try {
+                        const logoSize = 16;
+                        const logoX = pageWidth / 2 - logoSize / 2;
+                        const logoY = yPosition;
+                        
+                        pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
+                        yPosition += 20;
+                    } catch (e) {
+                        console.error('Error adding logo to PDF:', e);
+                        yPosition += 20;
+                    }
+                } else {
+                    yPosition += 20;
+                }
+                
                 pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {

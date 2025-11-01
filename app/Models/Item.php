@@ -11,6 +11,7 @@ class Item extends Model
         'item_name',
         'item_code',
         'category',
+        'item_type',
         'description',
         'is_active',
     ];

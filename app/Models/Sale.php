@@ -58,4 +58,12 @@ class Sale extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get KOTs/BOTs associated with this sale
+     */
+    public function kots()
+    {
+        return $this->hasMany(Kot::class);
+    }
 }

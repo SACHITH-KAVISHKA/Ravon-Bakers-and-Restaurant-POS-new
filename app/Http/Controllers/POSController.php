@@ -8,6 +8,9 @@ use App\Models\SaleItem;
 use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
 use App\Models\User;
+use App\Models\Kot;
+use App\Models\KotItem;
+use App\Services\PrinterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -231,10 +234,39 @@ class POSController extends Controller
 
             $saleId = $sale->id;
 
+            // Separate items by type for KOT/BOT
+            $kitchenItems = [];
+            $barItems = [];
+
             // Create sale items and update inventory
             foreach ($saleItems as $saleItem) {
                 $saleItem['sale_id'] = $sale->id;
                 SaleItem::create($saleItem);
+                
+                // Get item details to determine type
+                $item = Item::find($saleItem['item_id']);
+                
+                // Categorize items for KOT/BOT
+                if ($item && $item->item_type) {
+                    if ($item->item_type === 'Kitchen' || $item->item_type === 'Both') {
+                        $kitchenItems[] = [
+                            'item' => $item,
+                            'quantity' => $saleItem['quantity'],
+                            'unit_price' => $saleItem['unit_price'],
+                            'total_price' => $saleItem['total_price'],
+                            'item_name' => $saleItem['item_name']
+                        ];
+                    }
+                    if ($item->item_type === 'Bar' || $item->item_type === 'Both') {
+                        $barItems[] = [
+                            'item' => $item,
+                            'quantity' => $saleItem['quantity'],
+                            'unit_price' => $saleItem['unit_price'],
+                            'total_price' => $saleItem['total_price'],
+                            'item_name' => $saleItem['item_name']
+                        ];
+                    }
+                }
                 
                 // Handle inventory for branch staff
                 if ($user->role === 'staff' && $userBranchId) {
@@ -264,9 +296,30 @@ class POSController extends Controller
                 }
             }
 
+            // Create KOT if there are kitchen items AND auto-print to thermal printer
+            if (count($kitchenItems) > 0) {
+                $kot = $this->createKot('KOT', $kitchenItems, $sale, $user, $userBranchId);
+                
+                // Auto-print to thermal printer (NO browser window)
+                if (config('printers.auto_print.kot')) {
+                    app(PrinterService::class)->printKOT($kot);
+                }
+            }
+
+            // Create BOT if there are bar items AND auto-print to thermal printer
+            if (count($barItems) > 0) {
+                $bot = $this->createKot('BOT', $barItems, $sale, $user, $userBranchId);
+                
+                // Auto-print to thermal printer (NO browser window)
+                if (config('printers.auto_print.bot')) {
+                    app(PrinterService::class)->printBOT($bot);
+                }
+            }
+
             session(['sale_id' => $sale->id]);
         });
 
+        // Return success response (NO print URLs for pop-ups)
         return response()->json([
             'success' => true,
             'receipt_no' => $receiptNo,
@@ -277,7 +330,8 @@ class POSController extends Controller
             'card_payment' => number_format($cardPayment, 2),
             'balance' => number_format($balance, 2),
             'payment_method' => $request->payment_method,
-            'redirect_url' => route('pos.receipt', $saleId)
+            'redirect_url' => route('pos.receipt', $saleId),
+            // Removed print_urls - thermal printers handle automatically
         ]);
     }
 
@@ -288,17 +342,103 @@ class POSController extends Controller
     }
 
     /**
+     * Print receipt to thermal printer
+     */
+    public function printReceipt(Sale $sale, PrinterService $printerService)
+    {
+        try {
+            $sale->load(['saleItems', 'branch', 'user']);
+            
+            $result = $printerService->printReceipt($sale);
+
+            if ($result) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Receipt sent to printer successfully"
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Failed to print receipt. Check printer connection."
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Print error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Clear POS session data for new order
      */
     public function clearSession()
     {
-        // Clear all POS related session data
-        session()->forget(['sale_id', 'pos_cart', 'pos_customer_payment', 'pos_payment_method']);
+        // Clear all POS related session data including KOT/BOT IDs
+        session()->forget(['sale_id', 'pos_cart', 'pos_customer_payment', 'pos_payment_method', 'kot_id', 'bot_id']);
         session()->flush(); // Clear all session data
         
         return response()->json([
             'success' => true,
             'message' => 'Session cleared successfully'
         ]);
+    }
+
+    /**
+     * Create KOT or BOT for sale items
+     * 
+     * @param string $type 'KOT' or 'BOT'
+     * @param array $items Items to add to the ticket
+     * @param Sale $sale Related sale
+     * @param User $user User creating the ticket
+     * @param int|null $branchId Branch ID
+     * @return Kot
+     */
+    private function createKot($type, $items, $sale, $user, $branchId)
+    {
+        // Generate KOT/BOT number
+        $prefix = $type === 'KOT' ? 'KOT' : 'BOT';
+        $lastKot = Kot::where('type', $type)
+            ->whereDate('created_at', today())
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        $number = 1;
+        if ($lastKot) {
+            $lastNumber = intval(substr($lastKot->kot_no, -4));
+            $number = $lastNumber + 1;
+        }
+        
+        $kotNo = $prefix . '-' . date('Ymd') . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+        
+        // Create KOT/BOT
+        $kot = Kot::create([
+            'kot_no' => $kotNo,
+            'type' => $type,
+            'sale_id' => $sale->id,
+            'branch_id' => $branchId,
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'notes' => 'Auto-generated from POS sale #' . $sale->receipt_no,
+        ]);
+        
+        // Add items to KOT/BOT
+        foreach ($items as $itemData) {
+            KotItem::create([
+                'kot_id' => $kot->id,
+                'item_id' => $itemData['item']->id,
+                'item_name' => $itemData['item_name'],
+                'quantity' => $itemData['quantity'],
+                'unit_price' => $itemData['unit_price'],
+                'total_price' => $itemData['total_price'],
+                'notes' => null
+            ]);
+        }
+        
+        // Load relationships for printing
+        $kot->load(['kotItems', 'branch', 'user', 'sale']);
+        
+        return $kot;
     }
 }

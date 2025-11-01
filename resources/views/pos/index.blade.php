@@ -2509,7 +2509,7 @@
                 .then(data => {
                     if (data.success) {
                         // Show success modal briefly
-                        showSuccess('Payment Successful!');
+                        showSuccess('Payment Successful! KOT/BOT sent to printers.');
 
                         // Store cart data before clearing for PDF generation
                         window.lastSaleData = {
@@ -2521,6 +2521,9 @@
                             backendData: data
                         };
 
+                        // KOT/BOT now print automatically to thermal printers
+                        // No need to open browser windows
+                        
                         // Hide payment modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                         modal.hide();

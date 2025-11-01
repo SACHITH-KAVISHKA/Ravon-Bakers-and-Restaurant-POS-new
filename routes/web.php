@@ -11,6 +11,7 @@ use App\Http\Controllers\POSController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\KotController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -66,6 +67,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [POSController::class, 'index'])->name('index');
         Route::post('/process-sale', [POSController::class, 'processSale'])->name('process-sale');
         Route::get('/receipt/{sale}', [POSController::class, 'receipt'])->name('receipt');
+        Route::post('/receipt/{sale}/print', [POSController::class, 'printReceipt'])->name('print-receipt');
         Route::post('/clear-session', [POSController::class, 'clearSession'])->name('clear-session');
     });
 
@@ -75,6 +77,36 @@ Route::middleware('auth')->group(function () {
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
         Route::get('/export', [SalesReportController::class, 'exportExcel'])->name('export');
         Route::post('/sale/{sale}/status', [SalesReportController::class, 'updateStatus'])->name('sale.update-status');
+    });
+
+    // KOT/BOT System - Auto-print enabled (manual order creation disabled)
+    Route::prefix('kot')->name('kot.')->group(function () {
+        // KOT/BOT listing and details (for tracking orders created from POS)
+        Route::get('/', [KotController::class, 'index'])->name('index');
+        Route::get('/{kot}', [KotController::class, 'show'])->name('show');
+        
+        // Status updates for kitchen/bar staff
+        Route::post('/{kot}/status', [KotController::class, 'updateStatus'])->name('update-status');
+        Route::post('/item/{kotItem}/status', [KotController::class, 'updateItemStatus'])->name('update-item-status');
+        
+        // Print routes (used by auto-print from POS and manual reprints)
+        Route::get('/{kot}/print', [KotController::class, 'print'])->name('print');
+        Route::post('/{kot}/print-thermal', [KotController::class, 'printThermal'])->name('print-thermal');
+        
+        // Printer test route
+        Route::post('/test-printer', [KotController::class, 'testPrinter'])->name('test-printer');
+        
+        // Printer test page (for admins)
+        // DISABLED: Manual order creation (orders auto-created from POS now)
+        // Route::get('/create', [KotController::class, 'create'])->name('create');
+        // Route::post('/store', [KotController::class, 'store'])->name('store');
+        
+        // DISABLED: Kitchen/Bar display screens (not needed with auto-print)
+        // Route::get('/display/kitchen', [KotController::class, 'kitchen'])->name('kitchen');
+        // Route::get('/pending', [KotController::class, 'getPending'])->name('get-pending');
+        
+        // DISABLED: Convert to sale (orders are already linked to sales from POS)
+        // Route::post('/{kot}/convert-to-sale', [KotController::class, 'convertToSale'])->name('convert-to-sale');
     });
 
     // Supervisor routes - Only supervisors can access

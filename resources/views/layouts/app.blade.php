@@ -726,6 +726,16 @@
                         <span>Add Wastage</span>
                     </a>
                 </li>
+
+                <!-- KOT/BOT Management (For Staff) -->
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('kot.*') ? 'active' : '' }}"
+                       href="{{ route('kot.index') }}">
+                        <i class="bi bi-receipt"></i>
+                        <span>KOT/BOT Orders</span>
+                    </a>
+                </li>
+
                 <!-- Reports Dropdown (For Staff) -->
                 @php
                 $staffReportsActive = request()->routeIs('staff.branch-wastage-view') || request()->routeIs('staff.branch-inventory');

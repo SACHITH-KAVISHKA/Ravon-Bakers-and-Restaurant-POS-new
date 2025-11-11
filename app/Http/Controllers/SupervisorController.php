@@ -266,7 +266,7 @@ class SupervisorController extends Controller
     }
 
     /**
-     * Export inventory history/current stock as CSV (Excel-friendly)
+     * Export inventory history/current stock as Excel
      */
     public function exportInventoryHistory(Request $request)
     {
@@ -291,6 +291,43 @@ class SupervisorController extends Controller
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
+        // Set title with date/time filter info
+        $titleRow = 1;
+        if ($filterDate || $filterTime) {
+            $title = 'Inventory History Report';
+            $filterInfo = 'As of: ';
+            if ($filterDate) {
+                $filterInfo .= date('M d, Y', strtotime($filterDate));
+            }
+            if ($filterTime) {
+                $filterInfo .= ' ' . date('h:i A', strtotime($filterTime));
+            }
+            
+            $sheet->setCellValue('A1', $title);
+            $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+            $sheet->setCellValue('A2', $filterInfo);
+            $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
+            $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+            $titleRow = 4;
+        } else {
+            $sheet->setCellValue('A1', 'Current Inventory Report');
+            $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+            $sheet->setCellValue('A2', 'Generated on: ' . now()->format('M d, Y h:i A'));
+            $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
+            $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+            $titleRow = 4;
+        }
+
         // Set headers
         $columns = ['Item', 'Item Code', 'Main Stock'];
         foreach ($otherBranches as $branch) {
@@ -298,10 +335,10 @@ class SupervisorController extends Controller
         }
 
         // Write header row
-        $sheet->fromArray([$columns], null, 'A1');
+        $sheet->fromArray([$columns], null, 'A' . $titleRow);
 
         // Style header row
-        $headerStyle = $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1');
+        $headerStyle = $sheet->getStyle('A' . $titleRow . ':' . $sheet->getHighestColumn() . $titleRow);
         $headerStyle->getFont()->setBold(true);
         $headerStyle->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
@@ -309,21 +346,46 @@ class SupervisorController extends Controller
         $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
 
         // Write data rows
-        $rowIndex = 2;
+        $rowIndex = $titleRow + 1;
+        $totalMainStock = 0;
+        $totalBranchStocks = [];
+        
         foreach ($itemsCollection as $item) {
             $row = [
                 $item['name'] ?? '',
                 $item['item_code'] ?? '',
                 $item['main_stock'] ?? 0,
             ];
+            
+            $totalMainStock += $item['main_stock'] ?? 0;
 
             foreach ($otherBranches as $branch) {
-                $row[] = $item['branch_stocks'][$branch->name] ?? 0;
+                $branchStock = $item['branch_stocks'][$branch->name] ?? 0;
+                $row[] = $branchStock;
+                
+                if (!isset($totalBranchStocks[$branch->name])) {
+                    $totalBranchStocks[$branch->name] = 0;
+                }
+                $totalBranchStocks[$branch->name] += $branchStock;
             }
 
             $sheet->fromArray([$row], null, 'A' . $rowIndex);
             $rowIndex++;
         }
+
+        // Add totals row
+        $totalRow = ['TOTAL', '', $totalMainStock];
+        foreach ($otherBranches as $branch) {
+            $totalRow[] = $totalBranchStocks[$branch->name] ?? 0;
+        }
+        $sheet->fromArray([$totalRow], null, 'A' . $rowIndex);
+        
+        // Style totals row
+        $totalStyle = $sheet->getStyle('A' . $rowIndex . ':' . $sheet->getHighestColumn() . $rowIndex);
+        $totalStyle->getFont()->setBold(true);
+        $totalStyle->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('FFF9C4');
 
         // Auto-size columns
         foreach (range('A', $sheet->getHighestColumn()) as $col) {
@@ -331,7 +393,11 @@ class SupervisorController extends Controller
         }
 
         // Create filename
-        $fileName = 'inventory-history-' . now()->format('Ymd-His') . '.xlsx';
+        if ($filterDate || $filterTime) {
+            $fileName = 'inventory-history-' . ($filterDate ?: 'time-filter') . '-' . now()->format('Ymd-His') . '.xlsx';
+        } else {
+            $fileName = 'current-inventory-' . now()->format('Ymd-His') . '.xlsx';
+        }
 
         // Create response
         return new StreamedResponse(function () use ($spreadsheet) {
@@ -346,6 +412,7 @@ class SupervisorController extends Controller
 
     /**
      * Get current stock data from inventory table
+     * This shows the actual current stock levels stored in the database
      */
     private function getCurrentStockData($mainBranch, $otherBranches)
     {
@@ -358,9 +425,18 @@ class SupervisorController extends Controller
 
                 // Get other branches stock
                 $branchStocks = [];
+                $latestUpdate = $mainStock ? $mainStock->updated_at : null;
+                
                 foreach ($otherBranches as $branch) {
                     $branchInventory = $item->inventory->where('branch_id', $branch->id)->first();
-                    $branchStocks[$branch->name] = $branchInventory ? $branchInventory->current_stock : 0;
+                    $branchStocks[$branch->name] = $branchInventory ? (int) $branchInventory->current_stock : 0;
+                    
+                    // Track the latest update across all branches
+                    if ($branchInventory && $branchInventory->updated_at) {
+                        if (!$latestUpdate || $branchInventory->updated_at > $latestUpdate) {
+                            $latestUpdate = $branchInventory->updated_at;
+                        }
+                    }
                 }
 
                 return [
@@ -368,84 +444,168 @@ class SupervisorController extends Controller
                     'name' => $item->item_name,
                     'item_code' => $item->item_code,
                     'category' => $item->category,
-                    'main_stock' => $mainStock ? $mainStock->current_stock : 0,
+                    'main_stock' => $mainStock ? (int) $mainStock->current_stock : 0,
                     'branch_stocks' => $branchStocks,
-                    'last_updated' => $mainStock ? $mainStock->updated_at : null
+                    'last_updated' => $latestUpdate
                 ];
             })
             ->sortBy('name')
             ->values();
     }
 
-    /**
-     * Get historical stock data based on date/time filters
-     */
     private function getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches)
     {
-        // Build datetime condition
-        $dateTimeCondition = function ($query) use ($filterDate, $filterTime) {
-            if ($filterDate && $filterTime) {
-                $dateTime = $filterDate . ' ' . $filterTime;
-                $query->where('date_time', '>=', $dateTime);
-            } elseif ($filterDate) {
-                $query->whereDate('date_time', $filterDate);
-            } elseif ($filterTime) {
-                $query->whereTime('date_time', '>=', $filterTime);
-            }
-        };
-
-        // Get inventory requests (main stock additions) with date/time filter
-        $inventoryRequests = InventoryRequest::with(['inventoryRequestItems.item'])
-            ->where($dateTimeCondition)
-            ->where('status', 'completed')
-            ->get();
-
-        // Get stock transfers (branch distributions) with date/time filter
-        $stockTransfers = StockTransfer::with(['transferItems.item', 'toBranch'])
-            ->where($dateTimeCondition)
-            ->where('status', 'accepted')
-            ->get();
+        // Build the target datetime from filters
+        $targetDateTime = null;
+        if ($filterDate && $filterTime) {
+            $targetDateTime = $filterDate . ' ' . $filterTime;
+        } elseif ($filterDate) {
+            // If only date provided, use end of day
+            $targetDateTime = $filterDate . ' 23:59:59';
+        }
 
         // Get all active items
         $allItems = Item::where('is_active', true)->get();
 
-        // Build result array
-        $result = $allItems->map(function ($item) use ($inventoryRequests, $stockTransfers, $mainBranch, $otherBranches) {
-            // Calculate main stock from inventory requests
-            $mainStock = $inventoryRequests->flatMap(function ($request) {
-                return $request->inventoryRequestItems;
-            })
-                ->where('item_id', $item->id)
-                ->sum('quantity');
-
-            // Calculate branch stocks from stock transfers
-            $branchStocks = [];
-            foreach ($otherBranches as $branch) {
-                $branchStock = $stockTransfers
-                    ->where('to_branch_id', $branch->id)
-                    ->flatMap(function ($transfer) {
-                        return $transfer->transferItems;
-                    })
-                    ->where('item_id', $item->id)
-                    ->sum('quantity');
-
-                $branchStocks[$branch->name] = (int) $branchStock;
-            }
+        // Build result array by calculating stock for each item at the target date/time
+        $result = $allItems->map(function ($item) use ($targetDateTime, $mainBranch, $otherBranches) {
+            // Calculate stock for this item considering all transactions up to target date/time
+            $stockData = $this->calculateStockAtDateTime($item->id, $targetDateTime, $mainBranch, $otherBranches);
 
             return [
                 'id' => $item->id,
                 'name' => $item->item_name,
                 'item_code' => $item->item_code,
                 'category' => $item->category,
-                'main_stock' => (int) $mainStock,
-                'branch_stocks' => $branchStocks,
-                'last_updated' => null
+                'main_stock' => $stockData['main_stock'],
+                'branch_stocks' => $stockData['branch_stocks'],
+                'last_updated' => $stockData['last_updated']
             ];
         })
             ->sortBy('name')
             ->values();
 
         return $result;
+    }
+
+    /**
+     * Calculate stock levels for a specific item at a given date/time
+     * Considers: Productions, Stock Transfers (main->branch & branch->branch), and Wastages
+     */
+    private function calculateStockAtDateTime($itemId, $targetDateTime, $mainBranch, $otherBranches)
+    {
+        $mainBranchId = $mainBranch->id;
+        
+        // Initialize stocks
+        $mainStock = 0;
+        $branchStocks = [];
+        foreach ($otherBranches as $branch) {
+            $branchStocks[$branch->name] = 0;
+        }
+        $lastUpdated = null;
+
+        // 1. PRODUCTIONS (Inventory Requests) - Add to main branch
+        $productions = InventoryRequest::with(['inventoryRequestItems'])
+            ->where('status', 'completed')
+            ->where('date_time', '<=', $targetDateTime)
+            ->get();
+
+        foreach ($productions as $production) {
+            $item = $production->inventoryRequestItems->where('item_id', $itemId)->first();
+            if ($item) {
+                $mainStock += $item->quantity;
+                if (!$lastUpdated || $production->date_time > $lastUpdated) {
+                    $lastUpdated = $production->date_time;
+                }
+            }
+        }
+
+        // 2. STOCK TRANSFERS - Handle all transfer scenarios
+        $transfers = StockTransfer::with(['transferItems', 'fromBranch', 'toBranch'])
+            ->where('status', 'accepted')
+            ->where('date_time', '<=', $targetDateTime)
+            ->get();
+
+        foreach ($transfers as $transfer) {
+            $transferItem = $transfer->transferItems->where('item_id', $itemId)->first();
+            if (!$transferItem) {
+                continue;
+            }
+
+            $quantity = $transferItem->quantity;
+            $fromBranchId = $transfer->from_branch_id;
+            $toBranchId = $transfer->to_branch_id;
+
+            // Scenario 1: Transfer from Main Branch (from_branch_id is null or 1) to Other Branch
+            if (!$fromBranchId || $fromBranchId == $mainBranchId) {
+                $mainStock -= $quantity; // Reduce from main
+                
+                $toBranch = $otherBranches->where('id', $toBranchId)->first();
+                if ($toBranch) {
+                    $branchStocks[$toBranch->name] += $quantity; // Add to target branch
+                }
+            }
+            // Scenario 2: Transfer between two non-main branches
+            else {
+                $fromBranch = $otherBranches->where('id', $fromBranchId)->first();
+                $toBranch = $otherBranches->where('id', $toBranchId)->first();
+
+                if ($fromBranch && isset($branchStocks[$fromBranch->name])) {
+                    $branchStocks[$fromBranch->name] -= $quantity; // Reduce from source branch
+                }
+
+                if ($toBranch && isset($branchStocks[$toBranch->name])) {
+                    $branchStocks[$toBranch->name] += $quantity; // Add to target branch
+                }
+            }
+
+            if (!$lastUpdated || $transfer->date_time > $lastUpdated) {
+                $lastUpdated = $transfer->date_time;
+            }
+        }
+
+        // 3. WASTAGES - Reduce from respective branches
+        $wastages = Wastage::with(['wastageItems'])
+            ->where('date_time', '<=', $targetDateTime)
+            ->get();
+
+        foreach ($wastages as $wastage) {
+            $wastageItem = $wastage->wastageItems->where('item_id', $itemId)->first();
+            if (!$wastageItem) {
+                continue;
+            }
+
+            $quantity = $wastageItem->wasted_quantity;
+            $wasteBranchId = $wastage->branch_id;
+
+            // Wastage from Main Branch
+            if ($wasteBranchId == $mainBranchId) {
+                $mainStock -= $quantity;
+            }
+            // Wastage from Other Branches
+            else {
+                $wasteBranch = $otherBranches->where('id', $wasteBranchId)->first();
+                if ($wasteBranch && isset($branchStocks[$wasteBranch->name])) {
+                    $branchStocks[$wasteBranch->name] -= $quantity;
+                }
+            }
+
+            if (!$lastUpdated || $wastage->date_time > $lastUpdated) {
+                $lastUpdated = $wastage->date_time;
+            }
+        }
+
+        // Ensure no negative stocks (data validation)
+        $mainStock = max(0, $mainStock);
+        foreach ($branchStocks as $branchName => $stock) {
+            $branchStocks[$branchName] = max(0, $stock);
+        }
+
+        return [
+            'main_stock' => (int) $mainStock,
+            'branch_stocks' => $branchStocks,
+            'last_updated' => $lastUpdated
+        ];
     }
 
     /**

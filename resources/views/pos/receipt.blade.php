@@ -144,14 +144,9 @@
                 <img src="{{ asset('images/Bird.jpg') }}" alt="Logo" style="width: 60px; height: 60px; border-radius: 50%; display: block; margin: 0 auto;">
             </div>
             
-            <div class="restaurant-name">RAVON BAKERS</div>
-            <div style="font-size: 12px;">Restaurant & Bakery</div>
-            
             @if($sale->branch)
                 <!-- Branch Name -->
-                <div style="font-size: 11px; font-weight: bold; margin-top: 5px;">
-                    {{ $sale->branch->display_name ?? $sale->branch->name }}
-                </div>
+                <div class="restaurant-name">{{ $sale->branch->display_name ?? $sale->branch->name }}</div>
                 
                 <!-- Branch Address and Phone -->
                 <div style="font-size: 10px; margin-top: 3px;">

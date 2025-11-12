@@ -2879,22 +2879,8 @@
                     yPosition += 20;
                 }
                 
-                pdf.setFontSize(14);
-                pdf.setFont('courier', 'bold');
-                pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 6;
-
-                pdf.setFontSize(10);
-                pdf.setFont('courier', 'normal');
-                pdf.text('Restaurant & Bakery', pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 5;
-
                 // Branch name
-                pdf.setFontSize(9);
+                pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                     align: 'center'

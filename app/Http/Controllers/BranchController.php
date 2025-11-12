@@ -39,12 +39,14 @@ class BranchController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255|unique:branches,name',
+                'display_name' => 'nullable|string|max:255',
                 'address' => 'nullable|string|max:500',
                 'telephone' => 'nullable|string|max:20',
             ]);
 
             $branch = Branch::create([
                 'name' => $request->name,
+                'display_name' => $request->display_name,
                 'address' => $request->address,
                 'telephone' => $request->telephone,
                 'status' => 1,
@@ -103,12 +105,13 @@ class BranchController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255|unique:branches,name,' . $branch->id,
+            'display_name' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:500',
             'telephone' => 'nullable|string|max:20',
             'status' => 'required|boolean',
         ]);
 
-        $branch->update($request->only(['name', 'address', 'telephone', 'status']));
+        $branch->update($request->only(['name', 'display_name', 'address', 'telephone', 'status']));
 
         return redirect()->back()->with('success', 'Branch updated successfully!');
     }

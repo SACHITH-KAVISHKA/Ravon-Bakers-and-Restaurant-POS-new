@@ -1604,7 +1604,7 @@
     <script>
         // Branch information for receipts
             const branchInfo = {
-                name: 'RAVON BAKERS',
+                name: '{{ Auth::user()->branch->display_name ?? Auth::user()->branch->name ?? "RAVON BAKERS" }}',
                 address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
                 telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
             };
@@ -2838,6 +2838,7 @@
                         
                         pdf.setFontSize(12);
                         pdf.setFont('courier', 'bold');
+                        // Use branch display name for continuation pages
                         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                             align: 'center'
                         });
@@ -2880,6 +2881,7 @@
                 
                 pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
+                // Print branch display name in header
                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
@@ -2890,17 +2892,8 @@
                 pdf.text('Restaurant & Bakery', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 5;
-
-                pdf.setFontSize(8);
-                pdf.text('Address: ' + branchInfo.address, pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 4;
-                pdf.text('Phone: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 8;
+                // Keep spacing similar to previous layout but omit branch-specific address/phone
+                yPosition += 17;
 
                 // Separator line
                 pdf.setLineWidth(0.5);
@@ -3119,7 +3112,8 @@
                 });
                 yPosition += 4;
                 pdf.setFont('courier', 'bold');
-                pdf.text(branchInfo.name.toUpperCase(), pageWidth / 2, yPosition, {
+                // Footer prints the branch display name
+                pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 4;

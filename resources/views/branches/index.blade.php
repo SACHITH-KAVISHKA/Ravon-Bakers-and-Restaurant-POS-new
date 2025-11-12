@@ -85,7 +85,7 @@
                     <td>
                         <div class="btn-group" role="group">
                             <button class="btn btn-sm btn-outline-warning"
-                                onclick="editBranch({{ $branch->id }}, '{{ addslashes($branch->name) }}', {{ $branch->status }}, '{{ addslashes($branch->address ?? '') }}', '{{ addslashes($branch->telephone ?? '') }}')"
+                                onclick="editBranch({{ $branch->id }}, '{{ addslashes($branch->name) }}', {{ $branch->status }}, '{{ addslashes($branch->address ?? '') }}', '{{ addslashes($branch->telephone ?? '') }}', '{{ addslashes($branch->display_name ?? '') }}')"
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -146,6 +146,13 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="branch_display_name" class="form-label">Display Name</label>
+                        <input type="text" class="form-control" id="branch_display_name" name="display_name"
+                            placeholder="Enter display name">
+                        <div class="invalid-feedback" id="branch_display_name_error"></div>
+                    </div>
+
+                    <div class="mb-3">
                         <label for="branch_address" class="form-label">Address</label>
                         <textarea class="form-control" id="branch_address" name="address" rows="2"
                             placeholder="Enter branch address"></textarea>
@@ -180,7 +187,7 @@
 </div>
 
 <script>
-    function editBranch(id, name, status, address = '', telephone = '') {
+    function editBranch(id, name, status, address = '', telephone = '', displayName = '') {
         const modal = document.getElementById('addBranchModal');
         const form = document.getElementById('branchForm');
         const title = document.getElementById('addBranchModalLabel');
@@ -198,6 +205,7 @@
 
         // Fill form fields
         document.getElementById('branch_name').value = name;
+        document.getElementById('branch_display_name').value = displayName || '';
         document.getElementById('branch_address').value = address || '';
         document.getElementById('branch_telephone').value = telephone || '';
         document.getElementById('branch_status').value = status;

@@ -293,10 +293,13 @@
             <div>Thank you for visiting</div>
             <div>
                 <strong>
-                    @if($sale->branch)
-                    {{ strtoupper($sale->branch->name) }}
+                    {{-- Use display_name if available, otherwise use branch name --}}
+                    @if($sale->branch && $sale->branch->display_name)
+                        {{ strtoupper($sale->branch->display_name) }}
+                    @elseif($sale->branch)
+                        {{ strtoupper($sale->branch->name) }}
                     @else
-                    RAVON RESTAURANT
+                        REVON BAKER
                     @endif
                 </strong>
             </div>
@@ -396,7 +399,7 @@
         {
             "receiptNo": "{{ $sale->receipt_no }}",
             "userName": "{{ $sale->user_name }}",
-            "branchName": "RAVON BAKERS",
+            "branchName": "{{ $sale->branch && $sale->branch->display_name ? strtoupper($sale->branch->display_name) : ($sale->branch ? strtoupper($sale->branch->name) : 'REVON BAKER') }}",
             "branchAddress": "{{ $sale->branch && $sale->branch->address ? $sale->branch->address : '282/A 2, Kaduwela' }}",
             "branchPhone": "{{ $sale->branch && $sale->branch->telephone ? $sale->branch->telephone : '076 200 6007' }}",
             "date": "{{ $sale->created_at->format('d/m/Y') }}",
@@ -597,7 +600,8 @@
             // Header - Company Name (use branch name from data)
             pdf.setFontSize(14);
             pdf.setFont('courier', 'bold');
-            pdf.text(receiptData.branchName, pageWidth / 2, yPosition, {
+            // Print fixed business name in PDF header
+            pdf.text('REVON BAKER', pageWidth / 2, yPosition, {
                 align: 'center'
             });
             yPosition += 6;
@@ -683,7 +687,8 @@
                     }
                     pdf.setFontSize(12);
                     pdf.setFont('courier', 'bold');
-                    pdf.text(receiptData.branchName, pageWidth / 2, yPosition, {
+                    // Continuation pages use fixed business name
+                    pdf.text('REVON BAKER', pageWidth / 2, yPosition, {
                         align: 'center'
                     });
                     yPosition += 6;
@@ -854,7 +859,8 @@
                     });
                     yPosition += 4;
                     pdf.setFont('courier', 'bold');
-                    pdf.text(receiptData.branchName.toUpperCase(), pageWidth / 2, yPosition, {
+                    // Footer prints fixed business name
+                    pdf.text('REVON BAKER', pageWidth / 2, yPosition, {
                         align: 'center'
                     });
                     yPosition += 4;

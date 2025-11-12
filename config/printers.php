@@ -19,21 +19,21 @@ return [
         'kot' => [
             'enabled' => env('KOT_PRINTER_ENABLED', true),
             'type' => env('KOT_PRINTER_TYPE', 'network'), // network, usb, bluetooth
-            'connector' => env('KOT_PRINTER_CONNECTOR', '192.168.1.100:9100'), // IP:PORT for network
+            'connector' => env('KOT_PRINTER_CONNECTOR', '192.168.1.99:9100'), // IP:PORT for network
             'name' => 'Kitchen Printer',
         ],
 
         'bot' => [
             'enabled' => env('BOT_PRINTER_ENABLED', true),
             'type' => env('BOT_PRINTER_TYPE', 'network'), // network, usb, bluetooth
-            'connector' => env('BOT_PRINTER_CONNECTOR', '192.168.1.101:9100'), // IP:PORT for network
+            'connector' => env('BOT_PRINTER_CONNECTOR', '192.168.1.99:9100'), // IP:PORT for network
             'name' => 'Bar Printer',
         ],
 
         'pos' => [
             'enabled' => env('POS_PRINTER_ENABLED', true),
             'type' => env('POS_PRINTER_TYPE', 'network'), // network, usb, bluetooth
-            'connector' => env('POS_PRINTER_CONNECTOR', '192.168.1.102:9100'), // IP:PORT for network
+            'connector' => env('POS_PRINTER_CONNECTOR', '192.168.1.99:9100'), // IP:PORT for network
             'name' => 'POS Printer',
         ],
     ],

@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use Mike42\Escpos\Printer;
-use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector; // <-- ADDED THIS LINE
 use Mike42\Escpos\PrintConnectors\FilePrintConnector;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 use Mike42\Escpos\EscposImage;
@@ -90,6 +90,7 @@ class PrinterService
 
     /**
      * Get printer connector based on type
+     * * THIS IS THE UPDATED METHOD
      */
     protected function getConnector($printerType)
     {
@@ -98,10 +99,13 @@ class PrinterService
         $connector = $printerConfig['connector'];
 
         switch ($type) {
-            case 'usb':
-            case 'windows':
-                // For Windows USB printers (e.g., "POS-80" printer name)
-                $connection = new WindowsPrintConnector($connector);
+            case 'network':
+                // Split the connector string "IP:PORT"
+                $parts = explode(':', $connector);
+                $ip = $parts[0];
+                $port = $parts[1] ?? 9100; // Default to port 9100 if not specified
+
+                $connection = new NetworkPrintConnector($ip, $port);
                 break;
 
             case 'usb':

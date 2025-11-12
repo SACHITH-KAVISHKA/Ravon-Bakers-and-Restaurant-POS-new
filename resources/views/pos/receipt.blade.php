@@ -146,18 +146,29 @@
             
             <div class="restaurant-name">RAVON BAKERS</div>
             <div style="font-size: 12px;">Restaurant & Bakery</div>
-            <div style="font-size: 10px; margin-top: 5px;">
-                @if($sale->branch && $sale->branch->address)
-                    <div>{{ $sale->branch->address }}</div>
-                @else
-                    <div>Address: 282/A 2, Kaduwela</div>
-                @endif
-                @if($sale->branch && $sale->branch->telephone)
-                    <div>Phone: {{ $sale->branch->telephone }}</div>
-                @else
-                    <div>Phone: 076 200 6007</div>
-                @endif
-            </div>
+            
+            @if($sale->branch)
+                <!-- Branch Name -->
+                <div style="font-size: 11px; font-weight: bold; margin-top: 5px;">
+                    {{ $sale->branch->display_name ?? $sale->branch->name }}
+                </div>
+                
+                <!-- Branch Address and Phone -->
+                <div style="font-size: 10px; margin-top: 3px;">
+                    @if($sale->branch->address)
+                        <div>{{ $sale->branch->address }}</div>
+                    @endif
+                    @if($sale->branch->telephone)
+                        <div>Tel: {{ $sale->branch->telephone }}</div>
+                    @endif
+                </div>
+            @else
+                <!-- Fallback if no branch data -->
+                <div style="font-size: 10px; margin-top: 5px;">
+                    <div>282/A 2, Kaduwela</div>
+                    <div>Tel: 076 200 6007</div>
+                </div>
+            @endif
         </div>
 
         <div class="receipt-info">

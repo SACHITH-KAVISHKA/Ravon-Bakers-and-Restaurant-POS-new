@@ -2881,8 +2881,7 @@
                 
                 pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
-                // Print branch display name in header
-                pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
+                pdf.text('RAVON BAKERS', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 6;
@@ -2892,8 +2891,27 @@
                 pdf.text('Restaurant & Bakery', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                // Keep spacing similar to previous layout but omit branch-specific address/phone
-                yPosition += 17;
+                yPosition += 5;
+
+                // Branch name
+                pdf.setFontSize(9);
+                pdf.setFont('courier', 'bold');
+                pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 5;
+
+                // Branch address and phone
+                pdf.setFontSize(8);
+                pdf.setFont('courier', 'normal');
+                pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 4;
+                pdf.text('Tel: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 6;
 
                 // Separator line
                 pdf.setLineWidth(0.5);

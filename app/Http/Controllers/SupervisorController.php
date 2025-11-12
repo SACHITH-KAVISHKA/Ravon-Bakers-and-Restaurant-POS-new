@@ -12,6 +12,8 @@ use App\Models\Wastage;
 use App\Models\WastageItem;
 use App\Models\StockTransfer;
 use App\Models\Branch;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -225,31 +227,170 @@ class SupervisorController extends Controller
 
     /**
      * Show available stock items organized by category
+     * Refactored to use unified SQL query for both current and historical stock
      */
     public function inventoryHistory(Request $request)
     {
-        // Get date and time filters
+        // STEP 1: Determine the Target Date
         $filterDate = $request->input('date');
         $filterTime = $request->input('time');
 
-        // Get all branches
+        // Create targetDateTime variable
+        if (empty($filterDate)) {
+            // No filter = Current Stock Report (use NOW)
+            $targetDateTime = date('Y-m-d H:i:s');
+        } else {
+            // Historical Stock Report
+            if (empty($filterTime)) {
+                // Default to end of day if no time specified
+                $targetDateTime = $filterDate . ' 23:59:59';
+            } else {
+                $targetDateTime = $filterDate . ' ' . $filterTime;
+            }
+        }
+
+        // Get all branches for display
         $branches = Branch::where('status', 1)->orderBy('name')->get();
         $mainBranch = $branches->where('name', 'Main Branch')->first();
-
+        
         // If no main branch found, use the first branch as main
         if (!$mainBranch) {
             $mainBranch = $branches->first();
         }
+        
+        $mainBranchId = $mainBranch ? $mainBranch->id : null;
+        $otherBranches = $branches->where('id', '!=', $mainBranchId);
 
-        $otherBranches = $branches->where('id', '!=', $mainBranch->id ?? null);
+        // STEP 2: Run the Single Unified SQL Query
+        $results = DB::select("
+            SELECT
+                items.id as item_id,
+                items.item_name as item_name,
+                items.item_code as item_code,
+                branches.id as branch_id,
+                branches.name as branch_name,
+                COALESCE(SUM(transactions.quantity_change), 0) as calculated_stock
+            FROM
+                items
+            CROSS JOIN
+                branches
+            LEFT JOIN (
+                /* 1. PRODUCTIONS */
+                SELECT
+                    inventory_request_items.item_id,
+                    ? as branch_id,
+                    inventory_request_items.quantity as quantity_change,
+                    inventory_requests.date_time as transaction_date
+                FROM
+                    inventory_requests
+                JOIN
+                    inventory_request_items ON inventory_requests.id = inventory_request_items.inventory_request_id
+                WHERE
+                    inventory_requests.status = 'completed'
 
-        // If date/time filter is applied, query historical data
-        if ($filterDate || $filterTime) {
-            $itemsCollection = $this->getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
-        } else {
-            // Show current inventory if no filter
-            $itemsCollection = $this->getCurrentStockData($mainBranch, $otherBranches);
-        }
+                UNION ALL
+
+                /* 2. TRANSFERS (SUBTRACT FROM SOURCE) */
+                SELECT
+                    stock_transfer_items.item_id,
+                    COALESCE(stock_transfers.from_branch_id, ?) as branch_id,
+                    -stock_transfer_items.quantity as quantity_change,
+                    stock_transfers.date_time as transaction_date
+                FROM
+                    stock_transfers
+                JOIN
+                    stock_transfer_items ON stock_transfers.id = stock_transfer_items.transfer_id
+                WHERE
+                    stock_transfers.status = 'accepted'
+
+                UNION ALL
+
+                /* 2. TRANSFERS (ADD TO DESTINATION) */
+                SELECT
+                    stock_transfer_items.item_id,
+                    stock_transfers.to_branch_id as branch_id,
+                    stock_transfer_items.quantity as quantity_change,
+                    stock_transfers.date_time as transaction_date
+                FROM
+                    stock_transfers
+                JOIN
+                    stock_transfer_items ON stock_transfers.id = stock_transfer_items.transfer_id
+                WHERE
+                    stock_transfers.status = 'accepted'
+
+                UNION ALL
+
+                /* 3. WASTAGES (SUBTRACT) */
+                SELECT
+                    wastage_items.item_id,
+                    wastages.branch_id,
+                    -wastage_items.wasted_quantity as quantity_change,
+                    wastages.date_time as transaction_date
+                FROM
+                    wastages
+                JOIN
+                    wastage_items ON wastages.id = wastage_items.wastage_id
+
+                UNION ALL
+
+                /* 4. SALES (SUBTRACT) */
+                SELECT
+                    sale_items.item_id,
+                    sales.branch_id,
+                    -sale_items.quantity as quantity_change,
+                    sales.created_at as transaction_date
+                FROM
+                    sales
+                JOIN
+                    sale_items ON sales.id = sale_items.sale_id
+                WHERE
+                    sales.status = 1
+
+            ) AS transactions
+                ON items.id = transactions.item_id
+                AND branches.id = transactions.branch_id
+                AND transactions.transaction_date <= ?
+
+            WHERE
+                items.is_active = 1
+                AND items.created_at <= ?
+                AND branches.status = 1
+
+            GROUP BY
+                items.id, items.item_name, items.item_code, branches.id, branches.name
+            ORDER BY
+                items.item_name, branches.id
+        ", [
+            $mainBranchId,      // For productions (main branch)
+            $mainBranchId,      // For transfers from_branch_id COALESCE
+            $targetDateTime,    // Transaction filter
+            $targetDateTime     // Item creation filter
+        ]);
+
+        // STEP 3: Format the Results
+        // Transform flat SQL results into grouped structure for the view
+        $itemsCollection = collect($results)->groupBy('item_id')->map(function ($rows) use ($mainBranch, $otherBranches) {
+            $firstRow = $rows->first();
+            
+            // Build branch stock array (by branch name for easier access in view)
+            $branchStocks = [];
+            foreach ($rows as $row) {
+                $branchStocks[$row->branch_name] = max(0, (int)$row->calculated_stock); // Ensure no negative stock
+            }
+            
+            // Get main branch stock
+            $mainStock = $mainBranch && isset($branchStocks[$mainBranch->name]) 
+                ? $branchStocks[$mainBranch->name] 
+                : 0;
+            
+            return [
+                'id' => $firstRow->item_id,
+                'name' => $firstRow->item_name,  // Changed from 'item_name' to 'name' to match view
+                'item_code' => $firstRow->item_code ?? '',  // Add item_code for view
+                'main_stock' => $mainStock,
+                'branch_stocks' => $branchStocks  // Keyed by branch name
+            ];
+        })->values();
 
         // Paginate the collection to show 100 rows per page
         $perPage = 100;
@@ -267,6 +408,7 @@ class SupervisorController extends Controller
 
     /**
      * Export inventory history/current stock as Excel
+     * Refactored to use unified SQL query
      */
     public function exportInventoryHistory(Request $request)
     {
@@ -281,11 +423,8 @@ class SupervisorController extends Controller
         }
         $otherBranches = $branches->where('id', '!=', $mainBranch->id ?? null);
 
-        if ($filterDate || $filterTime) {
-            $itemsCollection = $this->getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
-        } else {
-            $itemsCollection = $this->getCurrentStockData($mainBranch, $otherBranches);
-        }
+        // Use the unified query to get stock data
+        $itemsCollection = $this->getUnifiedStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
 
         // Create spreadsheet
         $spreadsheet = new Spreadsheet();
@@ -411,201 +550,158 @@ class SupervisorController extends Controller
     }
 
     /**
-     * Get current stock data from inventory table
-     * This shows the actual current stock levels stored in the database
+     * NEW UNIFIED METHOD: Get stock data using single SQL query
+     * Replaces getCurrentStockData(), getHistoricalStockData(), and calculateStockAtDateTime()
+     * This eliminates the N+1 query problem and dual-logic bug
      */
-    private function getCurrentStockData($mainBranch, $otherBranches)
+    private function getUnifiedStockData($filterDate, $filterTime, $mainBranch, $otherBranches)
     {
-        return Item::with('inventory.branch')
-            ->where('is_active', true)
-            ->get()
-            ->map(function ($item) use ($mainBranch, $otherBranches) {
-                // Get main branch stock
-                $mainStock = $item->inventory->where('branch_id', $mainBranch->id)->first();
-
-                // Get other branches stock
-                $branchStocks = [];
-                $latestUpdate = $mainStock ? $mainStock->updated_at : null;
-                
-                foreach ($otherBranches as $branch) {
-                    $branchInventory = $item->inventory->where('branch_id', $branch->id)->first();
-                    $branchStocks[$branch->name] = $branchInventory ? (int) $branchInventory->current_stock : 0;
-                    
-                    // Track the latest update across all branches
-                    if ($branchInventory && $branchInventory->updated_at) {
-                        if (!$latestUpdate || $branchInventory->updated_at > $latestUpdate) {
-                            $latestUpdate = $branchInventory->updated_at;
-                        }
-                    }
-                }
-
-                return [
-                    'id' => $item->id,
-                    'name' => $item->item_name,
-                    'item_code' => $item->item_code,
-                    'category' => $item->category,
-                    'main_stock' => $mainStock ? (int) $mainStock->current_stock : 0,
-                    'branch_stocks' => $branchStocks,
-                    'last_updated' => $latestUpdate
-                ];
-            })
-            ->sortBy('name')
-            ->values();
-    }
-
-    private function getHistoricalStockData($filterDate, $filterTime, $mainBranch, $otherBranches)
-    {
-        // Build the target datetime from filters
-        $targetDateTime = null;
-        if ($filterDate && $filterTime) {
-            $targetDateTime = $filterDate . ' ' . $filterTime;
-        } elseif ($filterDate) {
-            // If only date provided, use end of day
-            $targetDateTime = $filterDate . ' 23:59:59';
+        // Determine the target datetime
+        if (empty($filterDate)) {
+            // No filter = Current Stock Report (use NOW)
+            $targetDateTime = date('Y-m-d H:i:s');
+        } else {
+            // Historical Stock Report
+            if (empty($filterTime)) {
+                // Default to end of day if no time specified
+                $targetDateTime = $filterDate . ' 23:59:59';
+            } else {
+                $targetDateTime = $filterDate . ' ' . $filterTime;
+            }
         }
 
-        // Get all active items
-        $allItems = Item::where('is_active', true)->get();
+        $mainBranchId = $mainBranch ? $mainBranch->id : null;
 
-        // Build result array by calculating stock for each item at the target date/time
-        $result = $allItems->map(function ($item) use ($targetDateTime, $mainBranch, $otherBranches) {
-            // Calculate stock for this item considering all transactions up to target date/time
-            $stockData = $this->calculateStockAtDateTime($item->id, $targetDateTime, $mainBranch, $otherBranches);
+        // Execute the unified SQL query
+        $results = DB::select("
+            SELECT
+                items.id as item_id,
+                items.item_name as item_name,
+                items.item_code as item_code,
+                branches.id as branch_id,
+                branches.name as branch_name,
+                COALESCE(SUM(transactions.quantity_change), 0) as calculated_stock
+            FROM
+                items
+            CROSS JOIN
+                branches
+            LEFT JOIN (
+                /* 1. PRODUCTIONS */
+                SELECT
+                    inventory_request_items.item_id,
+                    ? as branch_id,
+                    inventory_request_items.quantity as quantity_change,
+                    inventory_requests.date_time as transaction_date
+                FROM
+                    inventory_requests
+                JOIN
+                    inventory_request_items ON inventory_requests.id = inventory_request_items.inventory_request_id
+                WHERE
+                    inventory_requests.status = 'completed'
 
+                UNION ALL
+
+                /* 2. TRANSFERS (SUBTRACT FROM SOURCE) */
+                SELECT
+                    stock_transfer_items.item_id,
+                    COALESCE(stock_transfers.from_branch_id, ?) as branch_id,
+                    -stock_transfer_items.quantity as quantity_change,
+                    stock_transfers.date_time as transaction_date
+                FROM
+                    stock_transfers
+                JOIN
+                    stock_transfer_items ON stock_transfers.id = stock_transfer_items.transfer_id
+                WHERE
+                    stock_transfers.status = 'accepted'
+
+                UNION ALL
+
+                /* 2. TRANSFERS (ADD TO DESTINATION) */
+                SELECT
+                    stock_transfer_items.item_id,
+                    stock_transfers.to_branch_id as branch_id,
+                    stock_transfer_items.quantity as quantity_change,
+                    stock_transfers.date_time as transaction_date
+                FROM
+                    stock_transfers
+                JOIN
+                    stock_transfer_items ON stock_transfers.id = stock_transfer_items.transfer_id
+                WHERE
+                    stock_transfers.status = 'accepted'
+
+                UNION ALL
+
+                /* 3. WASTAGES (SUBTRACT) */
+                SELECT
+                    wastage_items.item_id,
+                    wastages.branch_id,
+                    -wastage_items.wasted_quantity as quantity_change,
+                    wastages.date_time as transaction_date
+                FROM
+                    wastages
+                JOIN
+                    wastage_items ON wastages.id = wastage_items.wastage_id
+
+                UNION ALL
+
+                /* 4. SALES (SUBTRACT) */
+                SELECT
+                    sale_items.item_id,
+                    sales.branch_id,
+                    -sale_items.quantity as quantity_change,
+                    sales.created_at as transaction_date
+                FROM
+                    sales
+                JOIN
+                    sale_items ON sales.id = sale_items.sale_id
+                WHERE
+                    sales.status = 1
+
+            ) AS transactions
+                ON items.id = transactions.item_id
+                AND branches.id = transactions.branch_id
+                AND transactions.transaction_date <= ?
+
+            WHERE
+                items.is_active = 1
+                AND items.created_at <= ?
+                AND branches.status = 1
+
+            GROUP BY
+                items.id, items.item_name, items.item_code, branches.id, branches.name
+            ORDER BY
+                items.item_name, branches.id
+        ", [
+            $mainBranchId,      // For productions (main branch)
+            $mainBranchId,      // For transfers from_branch_id COALESCE
+            $targetDateTime,    // Transaction filter
+            $targetDateTime     // Item creation filter
+        ]);
+
+        // Transform flat SQL results into grouped structure
+        return collect($results)->groupBy('item_id')->map(function ($rows) use ($mainBranch, $otherBranches) {
+            $firstRow = $rows->first();
+            
+            // Build branch stock array
+            $branchStocks = [];
+            foreach ($rows as $row) {
+                $branchStocks[$row->branch_name] = max(0, (int)$row->calculated_stock); // Ensure no negative stock
+            }
+            
+            // Get main branch stock
+            $mainStock = $mainBranch && isset($branchStocks[$mainBranch->name]) 
+                ? $branchStocks[$mainBranch->name] 
+                : 0;
+            
             return [
-                'id' => $item->id,
-                'name' => $item->item_name,
-                'item_code' => $item->item_code,
-                'category' => $item->category,
-                'main_stock' => $stockData['main_stock'],
-                'branch_stocks' => $stockData['branch_stocks'],
-                'last_updated' => $stockData['last_updated']
+                'id' => $firstRow->item_id,
+                'name' => $firstRow->item_name,
+                'item_code' => $firstRow->item_code,
+                'main_stock' => $mainStock,
+                'branch_stocks' => $branchStocks,
+                'last_updated' => null // Not tracked in this version, but can be added if needed
             ];
-        })
-            ->sortBy('name')
-            ->values();
-
-        return $result;
-    }
-
-    /**
-     * Calculate stock levels for a specific item at a given date/time
-     * Considers: Productions, Stock Transfers (main->branch & branch->branch), and Wastages
-     */
-    private function calculateStockAtDateTime($itemId, $targetDateTime, $mainBranch, $otherBranches)
-    {
-        $mainBranchId = $mainBranch->id;
-        
-        // Initialize stocks
-        $mainStock = 0;
-        $branchStocks = [];
-        foreach ($otherBranches as $branch) {
-            $branchStocks[$branch->name] = 0;
-        }
-        $lastUpdated = null;
-
-        // 1. PRODUCTIONS (Inventory Requests) - Add to main branch
-        $productions = InventoryRequest::with(['inventoryRequestItems'])
-            ->where('status', 'completed')
-            ->where('date_time', '<=', $targetDateTime)
-            ->get();
-
-        foreach ($productions as $production) {
-            $item = $production->inventoryRequestItems->where('item_id', $itemId)->first();
-            if ($item) {
-                $mainStock += $item->quantity;
-                if (!$lastUpdated || $production->date_time > $lastUpdated) {
-                    $lastUpdated = $production->date_time;
-                }
-            }
-        }
-
-        // 2. STOCK TRANSFERS - Handle all transfer scenarios
-        $transfers = StockTransfer::with(['transferItems', 'fromBranch', 'toBranch'])
-            ->where('status', 'accepted')
-            ->where('date_time', '<=', $targetDateTime)
-            ->get();
-
-        foreach ($transfers as $transfer) {
-            $transferItem = $transfer->transferItems->where('item_id', $itemId)->first();
-            if (!$transferItem) {
-                continue;
-            }
-
-            $quantity = $transferItem->quantity;
-            $fromBranchId = $transfer->from_branch_id;
-            $toBranchId = $transfer->to_branch_id;
-
-            // Scenario 1: Transfer from Main Branch (from_branch_id is null or 1) to Other Branch
-            if (!$fromBranchId || $fromBranchId == $mainBranchId) {
-                $mainStock -= $quantity; // Reduce from main
-                
-                $toBranch = $otherBranches->where('id', $toBranchId)->first();
-                if ($toBranch) {
-                    $branchStocks[$toBranch->name] += $quantity; // Add to target branch
-                }
-            }
-            // Scenario 2: Transfer between two non-main branches
-            else {
-                $fromBranch = $otherBranches->where('id', $fromBranchId)->first();
-                $toBranch = $otherBranches->where('id', $toBranchId)->first();
-
-                if ($fromBranch && isset($branchStocks[$fromBranch->name])) {
-                    $branchStocks[$fromBranch->name] -= $quantity; // Reduce from source branch
-                }
-
-                if ($toBranch && isset($branchStocks[$toBranch->name])) {
-                    $branchStocks[$toBranch->name] += $quantity; // Add to target branch
-                }
-            }
-
-            if (!$lastUpdated || $transfer->date_time > $lastUpdated) {
-                $lastUpdated = $transfer->date_time;
-            }
-        }
-
-        // 3. WASTAGES - Reduce from respective branches
-        $wastages = Wastage::with(['wastageItems'])
-            ->where('date_time', '<=', $targetDateTime)
-            ->get();
-
-        foreach ($wastages as $wastage) {
-            $wastageItem = $wastage->wastageItems->where('item_id', $itemId)->first();
-            if (!$wastageItem) {
-                continue;
-            }
-
-            $quantity = $wastageItem->wasted_quantity;
-            $wasteBranchId = $wastage->branch_id;
-
-            // Wastage from Main Branch
-            if ($wasteBranchId == $mainBranchId) {
-                $mainStock -= $quantity;
-            }
-            // Wastage from Other Branches
-            else {
-                $wasteBranch = $otherBranches->where('id', $wasteBranchId)->first();
-                if ($wasteBranch && isset($branchStocks[$wasteBranch->name])) {
-                    $branchStocks[$wasteBranch->name] -= $quantity;
-                }
-            }
-
-            if (!$lastUpdated || $wastage->date_time > $lastUpdated) {
-                $lastUpdated = $wastage->date_time;
-            }
-        }
-
-        // Ensure no negative stocks (data validation)
-        $mainStock = max(0, $mainStock);
-        foreach ($branchStocks as $branchName => $stock) {
-            $branchStocks[$branchName] = max(0, $stock);
-        }
-
-        return [
-            'main_stock' => (int) $mainStock,
-            'branch_stocks' => $branchStocks,
-            'last_updated' => $lastUpdated
-        ];
+        })->sortBy('name')->values();
     }
 
     /**

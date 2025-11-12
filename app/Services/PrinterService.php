@@ -36,7 +36,7 @@ class PrinterService
             $printer = $this->getConnector('kot');
             $this->formatKOT($printer, $kot);
             $printer->close();
-            
+
             Log::info("KOT printed successfully: {$kot->kot_no}");
             return true;
         } catch (Exception $e) {
@@ -58,7 +58,7 @@ class PrinterService
             $printer = $this->getConnector('bot');
             $this->formatBOT($printer, $bot);
             $printer->close();
-            
+
             Log::info("BOT printed successfully: {$bot->kot_no}");
             return true;
         } catch (Exception $e) {
@@ -80,7 +80,7 @@ class PrinterService
             $printer = $this->getConnector('pos');
             $this->formatReceipt($printer, $sale);
             $printer->close();
-            
+
             Log::info("Receipt printed successfully: {$sale->receipt_no}");
             return true;
         } catch (Exception $e) {
@@ -98,9 +98,10 @@ class PrinterService
         $connector = $printerConfig['connector'];
 
         switch ($type) {
-            case 'network':
-                [$host, $port] = explode(':', $connector);
-                $connection = new NetworkPrintConnector($host, $port, $this->config['default_timeout']);
+            case 'usb':
+            case 'windows':
+                // For Windows USB printers (e.g., "POS-80" printer name)
+                $connection = new WindowsPrintConnector($connector);
                 break;
 
             case 'usb':
@@ -142,15 +143,15 @@ class PrinterService
         $printer->setEmphasis(true);
         $printer->text("KOT NO: {$kot->kot_no}\n");
         $printer->setEmphasis(false);
-        
+
         $printer->text("Branch: {$kot->branch->name}\n");
         $printer->text("Waiter: {$kot->user_name}\n");
         $printer->text("Date: " . $kot->created_at->format('d/m/Y H:i') . "\n");
-        
+
         if ($kot->sale) {
             $printer->text("Sale: {$kot->sale->receipt_no}\n");
         }
-        
+
         $printer->text(str_repeat("-", $width) . "\n");
 
         // Items
@@ -166,17 +167,17 @@ class PrinterService
             $printer->text(wordwrap($item->item_name, $width - 8, "\n", false) . "\n");
             $printer->setTextSize(1, 1);
             $printer->setEmphasis(false);
-            
+
             // Quantity
             $printer->text("    x {$item->quantity}\n");
-            
+
             // Special instructions
             if ($item->special_instructions) {
                 $printer->setEmphasis(true);
                 $printer->text("    NOTE: " . wordwrap($item->special_instructions, $width - 10, "\n          ", false) . "\n");
                 $printer->setEmphasis(false);
             }
-            
+
             $printer->text("\n");
         }
 
@@ -228,15 +229,15 @@ class PrinterService
         $printer->setEmphasis(true);
         $printer->text("BOT NO: {$bot->kot_no}\n");
         $printer->setEmphasis(false);
-        
+
         $printer->text("Branch: {$bot->branch->name}\n");
         $printer->text("Waiter: {$bot->user_name}\n");
         $printer->text("Date: " . $bot->created_at->format('d/m/Y H:i') . "\n");
-        
+
         if ($bot->sale) {
             $printer->text("Sale: {$bot->sale->receipt_no}\n");
         }
-        
+
         $printer->text(str_repeat("-", $width) . "\n");
 
         // Items
@@ -252,17 +253,17 @@ class PrinterService
             $printer->text(wordwrap($item->item_name, $width - 8, "\n", false) . "\n");
             $printer->setTextSize(1, 1);
             $printer->setEmphasis(false);
-            
+
             // Quantity
             $printer->text("    x {$item->quantity}\n");
-            
+
             // Special instructions
             if ($item->special_instructions) {
                 $printer->setEmphasis(true);
                 $printer->text("    NOTE: " . wordwrap($item->special_instructions, $width - 10, "\n          ", false) . "\n");
                 $printer->setEmphasis(false);
             }
-            
+
             $printer->text("\n");
         }
 
@@ -329,15 +330,15 @@ class PrinterService
         $printer->text(str_repeat("-", $width) . "\n");
 
         foreach ($sale->saleItems as $item) {
-            $itemName = strlen($item->item_name) > $width - 12 ? 
-                        substr($item->item_name, 0, $width - 15) . "..." : 
+            $itemName = strlen($item->item_name) > $width - 12 ?
+                        substr($item->item_name, 0, $width - 15) . "..." :
                         $item->item_name;
-            
+
             $printer->text($itemName . "\n");
-            
+
             $qtyPrice = "{$item->quantity} x " . number_format($item->unit_price, 2);
             $total = number_format($item->total_price, 2);
-            
+
             $printer->text("  " . $this->padText($qtyPrice, "", $width - 14) . $this->rightAlign($total, 12) . "\n");
         }
 
@@ -346,25 +347,25 @@ class PrinterService
         // Totals
         $printer->setEmphasis(true);
         $printer->text($this->padText("SUBTOTAL:", "", $width - 12) . $this->rightAlign(number_format($sale->subtotal, 2), 12) . "\n");
-        
+
         if ($sale->discount > 0) {
             $printer->text($this->padText("DISCOUNT:", "", $width - 12) . $this->rightAlign("-" . number_format($sale->discount, 2), 12) . "\n");
         }
-        
+
         if ($sale->tax > 0) {
             $printer->text($this->padText("TAX:", "", $width - 12) . $this->rightAlign(number_format($sale->tax, 2), 12) . "\n");
         }
-        
+
         $printer->setTextSize(2, 2);
         $printer->text($this->padText("TOTAL:", "", ($width - 24) / 2) . $this->rightAlign(number_format($sale->total, 2), 24) . "\n");
         $printer->setTextSize(1, 1);
         $printer->setEmphasis(false);
-        
+
         $printer->text(str_repeat("=", $width) . "\n");
 
         // Payment
         $printer->text($this->padText("Payment Method:", $sale->payment_method, $width) . "\n");
-        
+
         if ($sale->payment_method === 'CASH' && $sale->customer_payment > 0) {
             $printer->text($this->padText("Cash Received:", "", $width - 12) . $this->rightAlign(number_format($sale->customer_payment, 2), 12) . "\n");
             $change = $sale->customer_payment - $sale->total;
@@ -384,10 +385,10 @@ class PrinterService
         $printer->setJustification(Printer::JUSTIFY_CENTER);
         $printer->text("\nThank you for dining with us!\n");
         $printer->text("Please visit again\n\n");
-        
+
         // QR Code or Barcode (optional)
         // $printer->qrCode($sale->receipt_no, Printer::QR_ECLEVEL_L, 6);
-        
+
         $printer->text("\n");
 
         // Cut paper
@@ -406,11 +407,11 @@ class PrinterService
         $rightLen = strlen($right);
         $leftLen = strlen($left);
         $spaces = $width - $rightLen - $leftLen;
-        
+
         if ($spaces < 1) {
             return $left . " " . $right;
         }
-        
+
         return $left . str_repeat(" ", $spaces) . $right;
     }
 
@@ -453,7 +454,7 @@ class PrinterService
     {
         try {
             $directory = $this->config['fallback']['file_path'];
-            
+
             if (!is_dir($directory)) {
                 mkdir($directory, 0755, true);
             }
@@ -486,7 +487,7 @@ class PrinterService
             $content .= "Branch: {$document->branch->name}\n";
             $content .= "Waiter: {$document->user_name}\n";
             $content .= "Date: " . $document->created_at->format('d/m/Y H:i') . "\n\n";
-            
+
             $content .= "ITEMS:\n";
             $content .= "-------------------------------------------------\n";
             foreach ($document->kotItems as $item) {
@@ -500,13 +501,13 @@ class PrinterService
             $content .= "Customer: {$document->customer_name}\n";
             $content .= "Cashier: {$document->user->name}\n";
             $content .= "Date: " . $document->created_at->format('d/m/Y H:i:s') . "\n\n";
-            
+
             $content .= "ITEMS:\n";
             $content .= "-------------------------------------------------\n";
             foreach ($document->saleItems as $item) {
                 $content .= "- {$item->item_name} x {$item->quantity} @ {$item->unit_price} = {$item->total_price}\n";
             }
-            
+
             $content .= "\n-------------------------------------------------\n";
             $content .= "TOTAL: LKR " . number_format($document->total, 2) . "\n";
             $content .= "Payment: {$document->payment_method}\n";
@@ -522,7 +523,7 @@ class PrinterService
     {
         try {
             $printer = $this->getConnector($printerType);
-            
+
             $printer->setJustification(Printer::JUSTIFY_CENTER);
             $printer->setEmphasis(true);
             $printer->text("PRINTER TEST\n");
@@ -533,13 +534,13 @@ class PrinterService
             $printer->text("Date: " . now()->format('Y-m-d H:i:s') . "\n");
             $printer->text(str_repeat("=", 48) . "\n");
             $printer->text("\nTest successful!\n\n");
-            
+
             if ($this->config['settings']['cut_paper']) {
                 $printer->cut();
             }
-            
+
             $printer->close();
-            
+
             return true;
         } catch (Exception $e) {
             Log::error("Printer test failed for {$printerType}: " . $e->getMessage());

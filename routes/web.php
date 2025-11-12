@@ -13,6 +13,9 @@ use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\KotController;
 use Illuminate\Support\Facades\Route;
+use Mike42\Escpos\Printer;
+use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Mike42\Escpos\Exception\Exception as EscposException;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -50,7 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:manage-users')->group(function () {
         Route::resource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('/api/branches/active', [BranchController::class, 'getActiveBranches'])->name('branches.active');
-        
+
         // Admin Reports
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/stock-report', [SupervisorController::class, 'inventoryHistory'])->name('stock-report');
@@ -84,27 +87,27 @@ Route::middleware('auth')->group(function () {
         // KOT/BOT listing and details (for tracking orders created from POS)
         Route::get('/', [KotController::class, 'index'])->name('index');
         Route::get('/{kot}', [KotController::class, 'show'])->name('show');
-        
+
         // Status updates for kitchen/bar staff
         Route::post('/{kot}/status', [KotController::class, 'updateStatus'])->name('update-status');
         Route::post('/item/{kotItem}/status', [KotController::class, 'updateItemStatus'])->name('update-item-status');
-        
+
         // Print routes (used by auto-print from POS and manual reprints)
         Route::get('/{kot}/print', [KotController::class, 'print'])->name('print');
         Route::post('/{kot}/print-thermal', [KotController::class, 'printThermal'])->name('print-thermal');
-        
+
         // Printer test route
         Route::post('/test-printer', [KotController::class, 'testPrinter'])->name('test-printer');
-        
+
         // Printer test page (for admins)
         // DISABLED: Manual order creation (orders auto-created from POS now)
         // Route::get('/create', [KotController::class, 'create'])->name('create');
         // Route::post('/store', [KotController::class, 'store'])->name('store');
-        
+
         // DISABLED: Kitchen/Bar display screens (not needed with auto-print)
         // Route::get('/display/kitchen', [KotController::class, 'kitchen'])->name('kitchen');
         // Route::get('/pending', [KotController::class, 'getPending'])->name('get-pending');
-        
+
         // DISABLED: Convert to sale (orders are already linked to sales from POS)
         // Route::post('/{kot}/convert-to-sale', [KotController::class, 'convertToSale'])->name('convert-to-sale');
     });
@@ -119,7 +122,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/create-department', [SupervisorController::class, 'createDepartment'])->name('create-department');
         Route::post('/store-department', [SupervisorController::class, 'storeDepartment'])->name('store-department');
         Route::get('/api/items', [SupervisorController::class, 'getItems'])->name('api.items');
-        
+
         // Wastage routes
         Route::get('/add-wastage', [SupervisorController::class, 'addWastage'])->name('add-wastage');
         Route::post('/store-wastage', [SupervisorController::class, 'storeWastage'])->name('store-wastage');
@@ -135,7 +138,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/{inventoryRequest}', [SupervisorController::class, 'updateProduction'])->name('update');
             Route::delete('/{inventoryRequest}', [SupervisorController::class, 'destroyProduction'])->name('destroy');
         });
-        
+
         // Stock Transfer routes (Supervisor only)
         Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
             Route::get('/', [StockTransferController::class, 'index'])->name('index');
@@ -151,12 +154,12 @@ Route::middleware('auth')->group(function () {
     // Staff routes for inventory management
     Route::middleware(['auth'])->prefix('staff')->name('staff.')->group(function () {
         Route::get('/branch-inventory', [App\Http\Controllers\StaffController::class, 'branchInventory'])->name('branch-inventory');
-        
+
         // Branch Wastage routes
         Route::get('/add-branch-wastage', [App\Http\Controllers\StaffController::class, 'addBranchWastage'])->name('add-branch-wastage');
         Route::post('/store-branch-wastage', [App\Http\Controllers\StaffController::class, 'storeBranchWastage'])->name('store-branch-wastage');
         Route::get('/branch-wastage-view', [App\Http\Controllers\StaffController::class, 'branchWastageView'])->name('branch-wastage-view');
-        
+
         // Staff Stock Transfer routes
         Route::prefix('stock-transfer')->name('stock-transfer.')->group(function () {
             Route::get('/', [App\Http\Controllers\StaffController::class, 'stockTransferIndex'])->name('index');
@@ -175,5 +178,51 @@ Route::middleware('auth')->group(function () {
         Route::post('/{stockTransfer}/reject', [StockTransferController::class, 'reject'])->name('reject');
     });
 });
+
+// Route::get('/test-print', function () {
+//     echo "<pre>";
+//     echo "Attempting to connect to printer 'XP80C'...\n";
+//     echo "Using connector: WindowsPrintConnector\n";
+
+//     try {
+//         // Use the SHARE NAME you created
+//         $connector = new WindowsPrintConnector("XP-80C");
+
+//         echo "Connector created. Sending print job...\n";
+
+//         $printer = new Printer($connector);
+
+//         $printer->setJustification(Printer::JUSTIFY_CENTER);
+//         $printer->text("Laravel Test Print\n");
+//         $printer->text("------------------\n");
+//         $printer->text("If you see this, your Laravel app\n");
+//         $printer->text("can successfully access the printer!\n");
+//         $printer->feed(3);
+//         $printer->cut();
+
+//         $printer->close();
+
+//         echo "\nSUCCESS: Print job sent to 'XP80C'!\n";
+//         echo "Check your printer.";
+
+//     } catch (EscposException $e) {
+//         echo "\n*** PRINTER ERROR ***\n";
+//         echo "Message: " . $e->getMessage() . "\n";
+//         echo "File: " . $e->getFile() . "\n";
+//         echo "Line: " . $e->getLine() . "\n";
+//         echo "\nFull Error:\n" . $e;
+
+//     } catch (\Exception $e) {
+//         echo "\n*** PHP/LARAVEL ERROR ***\n";
+//         echo "Could not connect to printer.\n";
+//         echo "Make sure the 'XP80C' printer is shared and Apache/PHP has permission.\n";
+//         echo "Message: " . $e->getMessage() . "\n";
+//         echo "File: " . $e->getFile() . "\n";
+//         echo "Line: " . $e->getLine() . "\n";
+//         echo "\nFull Error:\n" . $e;
+//     }
+
+//     echo "</pre>";
+// });
 
 require __DIR__ . '/auth.php';

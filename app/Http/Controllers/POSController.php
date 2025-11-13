@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Item;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Kot;
 use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
 use App\Models\User;
@@ -203,6 +204,38 @@ class POSController extends Controller
             $userId = (int) ($user->id ?? null);
             $userBranchId = (int) ($user->branch_id ?? null);
 
+            // Determine order type based on items
+            $hasKitchenItems = false;
+            $hasBarItems = false;
+            
+            foreach ($request->items as $requestItem) {
+                $item = Item::find($requestItem['id']);
+                
+                if (!$item) {
+                    continue; // Skip if item not found
+                }
+                
+                $itemType = $item->item_type ?? 'Kitchen';
+                $category = $item->category ?? '';
+                
+                // Check if item is a beverage (Bar item)
+                if ($itemType === 'Bar' || $itemType === 'Both' || $category === 'Beverages') {
+                    $hasBarItems = true;
+                }
+                // Check if item is a kitchen item
+                if ($itemType === 'Kitchen' || $itemType === 'Both' || ($itemType !== 'Bar' && $category !== 'Beverages')) {
+                    $hasKitchenItems = true;
+                }
+            }
+            
+            // Determine order type
+            $orderType = 'KOT'; // Default
+            if ($hasBarItems && !$hasKitchenItems) {
+                $orderType = 'BOT'; // Only bar items
+            } elseif ($hasBarItems && $hasKitchenItems) {
+                $orderType = 'MIXED'; // Both kitchen and bar items
+            }
+
             // Create sale record, now storing user_id and branch_id for robustness
             $sale = Sale::create([
                 'receipt_no' => $receiptNo,
@@ -227,6 +260,7 @@ class POSController extends Controller
                 'card_payment' => $cardPayment,
                 'balance' => $balance,
                 'credit_balance' => $creditBalance,
+                'order_type' => $orderType,
             ]);
 
             $saleId = $sale->id;
@@ -261,6 +295,131 @@ class POSController extends Controller
                             'low_stock_alert' => $defaultLowAlert,
                         ]);
                     }
+                }
+            }
+
+            // Create KOT/BOT records based on order type
+            if ($orderType === 'BOT') {
+                // Create single BOT for all bar items
+                $botItems = [];
+                foreach ($request->items as $requestItem) {
+                    $item = Item::find($requestItem['id']);
+                    
+                    if (!$item) continue;
+                    
+                    $itemType = $item->item_type ?? 'Kitchen';
+                    $category = $item->category ?? '';
+                    
+                    if ($itemType === 'Bar' || $itemType === 'Both' || $category === 'Beverages') {
+                        $botItems[] = [
+                            'item_id' => $item->id,
+                            'item_name' => $item->item_name,
+                            'quantity' => $requestItem['quantity'],
+                        ];
+                    }
+                }
+                
+                if (!empty($botItems)) {
+                    $botNo = 'BOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'BOT')->count() + 1, 4, '0', STR_PAD_LEFT);
+                    
+                    Kot::create([
+                        'kot_no' => $botNo,
+                        'sale_id' => $sale->id,
+                        'branch_id' => $userBranchId,
+                        'user_id' => $userId,
+                        'user_name' => $user->name ?? null,
+                        'type' => 'BOT',
+                        'items' => $botItems,
+                        'status' => 'pending',
+                    ]);
+                }
+            } elseif ($orderType === 'KOT') {
+                // Create single KOT for all kitchen items
+                $kotItems = [];
+                foreach ($request->items as $requestItem) {
+                    $item = Item::find($requestItem['id']);
+                    
+                    if (!$item) continue;
+                    
+                    $kotItems[] = [
+                        'item_id' => $item->id,
+                        'item_name' => $item->item_name,
+                        'quantity' => $requestItem['quantity'],
+                    ];
+                }
+                
+                if (!empty($kotItems)) {
+                    $kotNo = 'KOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'KOT')->count() + 1, 4, '0', STR_PAD_LEFT);
+                    
+                    Kot::create([
+                        'kot_no' => $kotNo,
+                        'sale_id' => $sale->id,
+                        'branch_id' => $userBranchId,
+                        'user_id' => $userId,
+                        'user_name' => $user->name ?? null,
+                        'type' => 'KOT',
+                        'items' => $kotItems,
+                        'status' => 'pending',
+                    ]);
+                }
+            } elseif ($orderType === 'MIXED') {
+                // Create separate KOT and BOT
+                $kotItems = [];
+                $botItems = [];
+                
+                foreach ($request->items as $requestItem) {
+                    $item = Item::find($requestItem['id']);
+                    
+                    if (!$item) continue;
+                    
+                    $itemType = $item->item_type ?? 'Kitchen';
+                    $category = $item->category ?? '';
+                    
+                    if ($itemType === 'Bar' || $itemType === 'Both' || $category === 'Beverages') {
+                        $botItems[] = [
+                            'item_id' => $item->id,
+                            'item_name' => $item->item_name,
+                            'quantity' => $requestItem['quantity'],
+                        ];
+                    } else {
+                        $kotItems[] = [
+                            'item_id' => $item->id,
+                            'item_name' => $item->item_name,
+                            'quantity' => $requestItem['quantity'],
+                        ];
+                    }
+                }
+                
+                // Create KOT if there are kitchen items
+                if (!empty($kotItems)) {
+                    $kotNo = 'KOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'KOT')->count() + 1, 4, '0', STR_PAD_LEFT);
+                    
+                    Kot::create([
+                        'kot_no' => $kotNo,
+                        'sale_id' => $sale->id,
+                        'branch_id' => $userBranchId,
+                        'user_id' => $userId,
+                        'user_name' => $user->name ?? null,
+                        'type' => 'KOT',
+                        'items' => $kotItems,
+                        'status' => 'pending',
+                    ]);
+                }
+                
+                // Create BOT if there are bar items
+                if (!empty($botItems)) {
+                    $botNo = 'BOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'BOT')->count() + 1, 4, '0', STR_PAD_LEFT);
+                    
+                    Kot::create([
+                        'kot_no' => $botNo,
+                        'sale_id' => $sale->id,
+                        'branch_id' => $userBranchId,
+                        'user_id' => $userId,
+                        'user_name' => $user->name ?? null,
+                        'type' => 'BOT',
+                        'items' => $botItems,
+                        'status' => 'pending',
+                    ]);
                 }
             }
 

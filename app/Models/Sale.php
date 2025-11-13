@@ -22,6 +22,7 @@ class Sale extends Model
         'card_payment',
         'balance',
         'credit_balance',
+        'order_type',
     ];
 
     protected $casts = [
@@ -57,5 +58,13 @@ class Sale extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the KOTs/BOTs for this sale
+     */
+    public function kots()
+    {
+        return $this->hasMany(Kot::class);
     }
 }

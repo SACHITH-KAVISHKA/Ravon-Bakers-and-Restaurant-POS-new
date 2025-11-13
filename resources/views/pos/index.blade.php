@@ -1607,24 +1607,24 @@
 
     <script>
         // Branch information for receipts
-            const branchInfo = {
-                name: 'RAVON BAKERS',
-                address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
-                telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
-            };
-        
+        const branchInfo = {
+            name: 'RAVON BAKERS',
+            address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
+            telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
+        };
+
         // Logo URL for PDF - encode logo image as base64 on server side
         @php
-            $logoPath = public_path('images/logo.jpg');
-            $logoBase64Data = '';
-            if (file_exists($logoPath)) {
-                $imageData = file_get_contents($logoPath);
-                $logoBase64Data = 'data:image/jpeg;base64,' . base64_encode($imageData);
-            }
+        $logoPath = public_path('images/logo.jpg');
+        $logoBase64Data = '';
+        if (file_exists($logoPath)) {
+            $imageData = file_get_contents($logoPath);
+            $logoBase64Data = 'data:image/jpeg;base64,'.base64_encode($imageData);
+        }
         @endphp
         let logoBase64 = @json($logoBase64Data); // Pre-loaded from server
         let circularLogoBase64 = null; // Will hold the circular version
-        
+
         // Function to create circular logo from square image
         function createCircularLogo(base64Image, size) {
             return new Promise((resolve, reject) => {
@@ -1634,25 +1634,25 @@
                     canvas.width = size;
                     canvas.height = size;
                     const ctx = canvas.getContext('2d');
-                    
+
                     // Fill with white background first
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, size, size);
-                    
+
                     // Create circular clipping path
                     ctx.beginPath();
                     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
                     ctx.closePath();
                     ctx.clip();
-                    
+
                     // Calculate aspect ratio and center crop
                     const scale = Math.max(size / img.width, size / img.height);
                     const x = (size / 2) - (img.width / 2) * scale;
                     const y = (size / 2) - (img.height / 2) * scale;
-                    
+
                     // Draw image centered and scaled to fill circle
                     ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-                    
+
                     // Convert to base64
                     resolve(canvas.toDataURL('image/jpeg', 0.95));
                 };
@@ -1660,7 +1660,7 @@
                 img.src = base64Image;
             });
         }
-        
+
         // Create circular logo on page load
         if (logoBase64) {
             createCircularLogo(logoBase64, 200).then(circularLogo => {
@@ -1670,7 +1670,7 @@
                 console.error('Error creating circular logo:', err);
             });
         }
-        
+
         let cart = []; // Initialize empty cart
         let selectedPaymentMethod = null; // No payment method selected by default
         let customerPayment = 0;
@@ -2353,9 +2353,9 @@
             const hasBev = cartData.some(item => {
                 console.log(`Item: ${item.name}, Type: ${item.itemType}, Category: ${item.category}`);
                 // Check if item type is 'Bar' or 'Both' OR if category is 'Beverages'
-                return item.itemType === 'Bar' || 
-                       item.itemType === 'Both' || 
-                       item.category === 'Beverages';
+                return item.itemType === 'Bar' ||
+                    item.itemType === 'Both' ||
+                    item.category === 'Beverages';
             });
             console.log('Has beverage items:', hasBev);
             return hasBev;
@@ -2578,7 +2578,7 @@
 
                         // KOT/BOT now print automatically to thermal printers
                         // No need to open browser windows
-                        
+
                         // Hide payment modal immediately
                         const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                         modal.hide();
@@ -2887,9 +2887,9 @@
                                 const logoSize = 15; // Smaller but still visible
                                 const logoX = (pageWidth - logoSize) / 2; // Proper centering
                                 const logoY = yPosition;
-                                
+
                                 pdf.addImage(logoToUse, 'JPEG', logoX, logoY, logoSize, logoSize);
-                                yPosition += logoSize + 2;
+                                yPosition += logoSize + 4; // Increased gap from 2 to 4
                             } catch (e) {
                                 console.warn('Error adding logo to continuation page:', e);
                                 yPosition += 8;
@@ -2897,13 +2897,13 @@
                         } else {
                             yPosition += 8;
                         }
-                        
+
                         pdf.setFontSize(12);
                         pdf.setFont('courier', 'bold');
                         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                             align: 'center'
                         });
-                        yPosition += 6;
+                        yPosition += 7; // Increased spacing from 6 to 7
 
                         pdf.setFontSize(8);
                         pdf.setFont('courier', 'normal');
@@ -2930,9 +2930,9 @@
                         const logoSize = 20; // Increased size for better visibility
                         const logoX = (pageWidth - logoSize) / 2; // Center calculation
                         const logoY = yPosition;
-                        
+
                         pdf.addImage(logoToUse, 'JPEG', logoX, logoY, logoSize, logoSize);
-                        yPosition += logoSize + 3;
+                        yPosition += logoSize + 6; // Increased gap from 3 to 6
                     } catch (e) {
                         console.warn('Error adding logo to PDF:', e);
                         yPosition += 5;
@@ -2940,13 +2940,13 @@
                 } else {
                     yPosition += 5;
                 }
-                
+
                 pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 6;
+                yPosition += 7; // Increased spacing from 6 to 7
 
                 pdf.setFontSize(10);
                 pdf.setFont('courier', 'normal');
@@ -3292,13 +3292,13 @@
 
                 // Get stored cart data or use current cart
                 const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
-                
+
                 // Filter only bar/beverage items based on item_type OR category
                 const barItems = cartData.filter(item => {
                     // Check if item type is 'Bar' or 'Both' OR if category is 'Beverages'
-                    return item.itemType === 'Bar' || 
-                           item.itemType === 'Both' || 
-                           item.category === 'Beverages';
+                    return item.itemType === 'Bar' ||
+                        item.itemType === 'Both' ||
+                        item.category === 'Beverages';
                 });
 
                 if (barItems.length === 0) {
@@ -3349,34 +3349,35 @@
 
                 // Header - BAR ORDER TICKET (logo removed for faster generation)
                 pdf.setFont('courier', 'bold');
-                pdf.setFontSize(14);
+                pdf.setFontSize(18);
                 pdf.text('BAR ORDER TICKET', pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 6;
-
-                pdf.setFontSize(10);
-                pdf.text('(BOT)', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 8;
 
+                pdf.setFontSize(14);
+                pdf.text('(BOT)', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 10;
+
                 // Branch information
-                pdf.setFontSize(8);
+                pdf.setFontSize(11);
                 pdf.setFont('courier', 'bold');
                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 4;
-                pdf.setFont('courier', 'normal');
+                yPosition += 6;
+                pdf.setFontSize(9);
+                pdf.setFont('courier', 'bold');
                 pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 4;
+                yPosition += 5;
                 pdf.text('Phone: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 8;
+                yPosition += 10;
 
                 // Separator line
                 pdf.setLineWidth(0.5);
@@ -3384,8 +3385,8 @@
                 yPosition += 6;
 
                 // BOT information
-                pdf.setFontSize(9);
-                pdf.setFont('courier', 'normal');
+                pdf.setFontSize(11);
+                pdf.setFont('courier', 'bold');
 
                 checkPageBreak(25);
 
@@ -3393,51 +3394,51 @@
                 pdf.text(botData.botNo, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
-                yPosition += 5;
+                yPosition += 6; // Increased spacing
 
                 pdf.text('WAITER:', leftMargin, yPosition);
                 pdf.text(botData.userName, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
-                yPosition += 5;
+                yPosition += 6; // Increased spacing
 
                 pdf.text('DATE:', leftMargin, yPosition);
                 pdf.text(botData.date, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
-                yPosition += 5;
+                yPosition += 6; // Increased spacing
 
                 pdf.text('TIME:', leftMargin, yPosition);
                 pdf.text(botData.time, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
-                yPosition += 8;
+                yPosition += 10; // Increased spacing
 
                 // Items section header
                 checkPageBreak(15);
 
-                pdf.setLineWidth(0.3);
+                pdf.setLineWidth(0.5);
                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-                yPosition += 6;
+                yPosition += 8;
 
                 pdf.setFont('courier', 'bold');
-                pdf.setFontSize(10);
+                pdf.setFontSize(14);
                 pdf.text('BEVERAGE ITEMS', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 6;
+                yPosition += 8;
 
-                pdf.setLineWidth(0.3);
+                pdf.setLineWidth(0.5);
                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-                yPosition += 6;
+                yPosition += 8;
 
                 // Process each item with automatic page breaks
                 botData.items.forEach((item, index) => {
-                    checkPageBreak(12);
+                    checkPageBreak(15);
 
                     // Item name and quantity (emphasized)
                     pdf.setFont('courier', 'bold');
-                    pdf.setFontSize(10);
+                    pdf.setFontSize(13);
 
                     let itemName = item.name;
                     if (itemName.length > 22) {
@@ -3445,12 +3446,12 @@
                     }
 
                     pdf.text(itemName, leftMargin, yPosition);
-                    yPosition += 5;
+                    yPosition += 6; // Increased spacing
 
                     // Quantity (larger and bold)
-                    pdf.setFontSize(11);
+                    pdf.setFontSize(14);
                     pdf.text(`x ${item.quantity}`, leftMargin + 2, yPosition);
-                    yPosition += 7;
+                    yPosition += 8;
 
                     // Add spacing between items
                     if (index < botData.items.length - 1) {
@@ -3472,15 +3473,14 @@
 
                 // Prepare immediately message
                 pdf.setFont('courier', 'bold');
-                pdf.setFontSize(11);
+                pdf.setFontSize(16);
                 pdf.text('PREPARE IMMEDIATELY', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 8;
-
+                yPosition += 10;
                 // Footer
-                pdf.setFont('courier', 'normal');
-                pdf.setFontSize(8);
+                pdf.setFont('courier', 'bold');
+                pdf.setFontSize(10);
                 pdf.text('Thank you!', pageWidth / 2, yPosition, {
                     align: 'center'
                 });

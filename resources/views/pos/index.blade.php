@@ -1388,6 +1388,7 @@
                         data-item-id="{{ $item->id }}"
                         data-item-name="{{ $item->item_name }}"
                         data-item-price="{{ $displayPrice }}"
+                        data-item-type="{{ $item->item_type ?? 'Kitchen' }}"
                         onclick="addToCartFromCard(this)">
                         <div class="item-name">{{ $item->item_name }}</div>
                         <div class="item-price">LKR {{ number_format($displayPrice, 2) }}</div>
@@ -1590,6 +1591,9 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="bi bi-arrow-left"></i> Back
                     </button>
+                    <button type="button" id="modal-bot-btn" class="btn btn-info" onclick="downloadBOTPDF()" style="margin-right: 10px; display: none;">
+                        <i class="bi bi-cup-straw"></i> Print BOT
+                    </button>
                     <button type="button" id="modal-print-btn" class="btn btn-success" onclick="processModalPayment()" disabled>
                         <i class="bi bi-check-circle"></i> Print Receipt
                     </button>
@@ -1631,14 +1635,23 @@
                     canvas.height = size;
                     const ctx = canvas.getContext('2d');
                     
+                    // Fill with white background first
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, size, size);
+                    
                     // Create circular clipping path
                     ctx.beginPath();
                     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
                     ctx.closePath();
                     ctx.clip();
                     
-                    // Draw image
-                    ctx.drawImage(img, 0, 0, size, size);
+                    // Calculate aspect ratio and center crop
+                    const scale = Math.max(size / img.width, size / img.height);
+                    const x = (size / 2) - (img.width / 2) * scale;
+                    const y = (size / 2) - (img.height / 2) * scale;
+                    
+                    // Draw image centered and scaled to fill circle
+                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
                     
                     // Convert to base64
                     resolve(canvas.toDataURL('image/jpeg', 0.95));
@@ -1669,6 +1682,8 @@
             const itemId = parseInt(card.dataset.itemId);
             const itemName = card.dataset.itemName;
             const price = parseFloat(card.dataset.itemPrice);
+            const itemType = card.dataset.itemType || 'Kitchen';
+            const category = card.dataset.category || '';
 
             if (isNaN(price) || price <= 0) {
                 console.error('Invalid price:', card.dataset.itemPrice);
@@ -1676,11 +1691,11 @@
                 return;
             }
 
-            addToCart(itemId, itemName, price);
+            addToCart(itemId, itemName, price, itemType, category);
         }
 
         // Add item to cart
-        function addToCart(itemId, itemName, price) {
+        function addToCart(itemId, itemName, price, itemType = 'Kitchen', category = '') {
             const existingItem = cart.find(item => item.id === itemId);
             const itemPrice = parseFloat(price) || 0;
 
@@ -1691,7 +1706,9 @@
                     id: itemId,
                     name: itemName,
                     price: itemPrice,
-                    quantity: 1
+                    quantity: 1,
+                    itemType: itemType,
+                    category: category
                 });
             }
 
@@ -1769,6 +1786,9 @@
                 const totalItems = cart.reduce((sum, item) => sum + (parseInt(item.quantity) || 0), 0);
                 cartCountElement.textContent = totalItems;
             }
+
+            // Update BOT button visibility whenever cart changes
+            updateBOTButtonVisibility();
         }
 
         // Update totals
@@ -2003,6 +2023,9 @@
 
             // Ensure print button disabled when modal opens
             toggleModalPrintButton();
+
+            // Update BOT button visibility based on cart items
+            updateBOTButtonVisibility();
 
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
@@ -2323,6 +2346,38 @@
             updateModalTotals();
         }
 
+        // Check if cart has beverage items (Bar items)
+        function hasBeverageItems() {
+            const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
+            console.log('Checking beverage items in cart:', cartData);
+            const hasBev = cartData.some(item => {
+                console.log(`Item: ${item.name}, Type: ${item.itemType}, Category: ${item.category}`);
+                // Check if item type is 'Bar' or 'Both' OR if category is 'Beverages'
+                return item.itemType === 'Bar' || 
+                       item.itemType === 'Both' || 
+                       item.category === 'Beverages';
+            });
+            console.log('Has beverage items:', hasBev);
+            return hasBev;
+        }
+
+        // Update BOT button visibility
+        function updateBOTButtonVisibility() {
+            const botBtn = document.getElementById('modal-bot-btn');
+            console.log('BOT button element:', botBtn);
+            if (botBtn) {
+                if (hasBeverageItems()) {
+                    console.log('Showing BOT button');
+                    botBtn.style.display = 'inline-block';
+                } else {
+                    console.log('Hiding BOT button');
+                    botBtn.style.display = 'none';
+                }
+            } else {
+                console.log('BOT button not found in DOM');
+            }
+        }
+
         // Update modal totals
         function updateModalTotals() {
             const total = getTotalAmount();
@@ -2524,16 +2579,19 @@
                         // KOT/BOT now print automatically to thermal printers
                         // No need to open browser windows
                         
-                        // Hide payment modal
+                        // Hide payment modal immediately
                         const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                         modal.hide();
 
-                        // Generate PDF receipt
-                        downloadReceiptPDF();
-
-                        // Clear the cart and start new order
+                        // Clear the cart and start new order immediately
                         cart = [];
                         updateCartDisplay();
+                        updateBOTButtonVisibility();
+
+                        // Generate PDF receipt asynchronously (non-blocking) for faster response
+                        setTimeout(() => {
+                            downloadReceiptPDF();
+                        }, 100);
                     } else {
                         showError(data.message || 'Error processing payment');
                     }
@@ -2822,21 +2880,22 @@
                         yPosition = 10;
 
                         // Add simplified header for continuation pages
-                        // Add circular logo if available
-                        if (circularLogoBase64) {
+                        // Add logo if available (use original or circular, smaller for continuation)
+                        const logoToUse = circularLogoBase64 || logoBase64;
+                        if (logoToUse) {
                             try {
-                                const logoSize = 16;
-                                const logoX = pageWidth / 2 - logoSize / 2;
+                                const logoSize = 15; // Smaller but still visible
+                                const logoX = (pageWidth - logoSize) / 2; // Proper centering
                                 const logoY = yPosition;
                                 
-                                pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
-                                yPosition += 20;
+                                pdf.addImage(logoToUse, 'JPEG', logoX, logoY, logoSize, logoSize);
+                                yPosition += logoSize + 2;
                             } catch (e) {
-                                console.error('Error adding logo to continuation page:', e);
-                                yPosition += 20;
+                                console.warn('Error adding logo to continuation page:', e);
+                                yPosition += 8;
                             }
                         } else {
-                            yPosition += 20;
+                            yPosition += 8;
                         }
                         
                         pdf.setFontSize(12);
@@ -2864,21 +2923,22 @@
                 }
 
                 // Header section - only on first page
-                // Add circular logo if available
-                if (circularLogoBase64) {
+                // Add logo if available (use original or circular)
+                const logoToUse = circularLogoBase64 || logoBase64;
+                if (logoToUse) {
                     try {
-                        const logoSize = 16;
-                        const logoX = pageWidth / 2 - logoSize / 2;
+                        const logoSize = 20; // Increased size for better visibility
+                        const logoX = (pageWidth - logoSize) / 2; // Center calculation
                         const logoY = yPosition;
                         
-                        pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
-                        yPosition += 20;
+                        pdf.addImage(logoToUse, 'JPEG', logoX, logoY, logoSize, logoSize);
+                        yPosition += logoSize + 3;
                     } catch (e) {
-                        console.error('Error adding logo to PDF:', e);
-                        yPosition += 20;
+                        console.warn('Error adding logo to PDF:', e);
+                        yPosition += 5;
                     }
                 } else {
-                    yPosition += 20;
+                    yPosition += 5;
                 }
                 
                 pdf.setFontSize(14);
@@ -3184,7 +3244,7 @@
                             // ignore if can't attach
                         }
 
-                        // Trigger print and focus the iframe window
+                        // Trigger print immediately for faster response
                         setTimeout(() => {
                             try {
                                 win.focus();
@@ -3194,7 +3254,7 @@
                             } catch (e) {
                                 console.error('Print failed:', e);
                             }
-                        }, 300);
+                        }, 50);
 
                         // Fallback: if afterprint doesn't fire, remove iframe after a safe delay
                         setTimeout(() => {
@@ -3220,6 +3280,273 @@
             } catch (error) {
                 console.error('PDF Error:', error);
                 alert('Failed to generate PDF: ' + error.message);
+            }
+        }
+
+        // Download BOT (Bar Order Ticket) as PDF
+        function downloadBOTPDF() {
+            try {
+                const {
+                    jsPDF
+                } = window.jspdf;
+
+                // Get stored cart data or use current cart
+                const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
+                
+                // Filter only bar/beverage items based on item_type OR category
+                const barItems = cartData.filter(item => {
+                    // Check if item type is 'Bar' or 'Both' OR if category is 'Beverages'
+                    return item.itemType === 'Bar' || 
+                           item.itemType === 'Both' || 
+                           item.category === 'Beverages';
+                });
+
+                if (barItems.length === 0) {
+                    alert('No beverage items found in the current order.');
+                    return;
+                }
+
+                // Calculate totals from bar items only
+                const subtotal = barItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+                // Build BOT data object
+                const botData = {
+                    botNo: 'BOT' + new Date().getTime().toString().slice(-6),
+                    userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
+                    date: new Date().toLocaleDateString('en-GB'),
+                    time: new Date().toLocaleTimeString('en-GB', {
+                        hour12: false
+                    }),
+                    subtotal: subtotal.toFixed(2),
+                    items: barItems.map(item => ({
+                        name: item.name,
+                        quantity: item.quantity,
+                        unitPrice: item.price.toFixed(2),
+                        totalPrice: (item.price * item.quantity).toFixed(2)
+                    }))
+                };
+
+                // Create PDF (80mm thermal receipt format - 3.15 inches)
+                const pageWidth = 80; // 80mm
+                const pageHeight = 297; // A4 height in mm
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: [pageWidth, pageHeight]
+                });
+
+                let yPosition = 10;
+                const leftMargin = 5;
+                const rightMargin = 5;
+
+                // Function to check if we need a page break
+                const checkPageBreak = (requiredSpace) => {
+                    if (yPosition + requiredSpace > pageHeight - 10) {
+                        pdf.addPage();
+                        yPosition = 10;
+                    }
+                };
+
+                // Header - BAR ORDER TICKET (logo removed for faster generation)
+                pdf.setFont('courier', 'bold');
+                pdf.setFontSize(14);
+                pdf.text('BAR ORDER TICKET', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 6;
+
+                pdf.setFontSize(10);
+                pdf.text('(BOT)', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 8;
+
+                // Branch information
+                pdf.setFontSize(8);
+                pdf.setFont('courier', 'bold');
+                pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 4;
+                pdf.setFont('courier', 'normal');
+                pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 4;
+                pdf.text('Phone: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 8;
+
+                // Separator line
+                pdf.setLineWidth(0.5);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                yPosition += 6;
+
+                // BOT information
+                pdf.setFontSize(9);
+                pdf.setFont('courier', 'normal');
+
+                checkPageBreak(25);
+
+                pdf.text('BOT NO:', leftMargin, yPosition);
+                pdf.text(botData.botNo, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
+
+                pdf.text('WAITER:', leftMargin, yPosition);
+                pdf.text(botData.userName, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
+
+                pdf.text('DATE:', leftMargin, yPosition);
+                pdf.text(botData.date, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
+
+                pdf.text('TIME:', leftMargin, yPosition);
+                pdf.text(botData.time, pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 8;
+
+                // Items section header
+                checkPageBreak(15);
+
+                pdf.setLineWidth(0.3);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                yPosition += 6;
+
+                pdf.setFont('courier', 'bold');
+                pdf.setFontSize(10);
+                pdf.text('BEVERAGE ITEMS', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 6;
+
+                pdf.setLineWidth(0.3);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                yPosition += 6;
+
+                // Process each item with automatic page breaks
+                botData.items.forEach((item, index) => {
+                    checkPageBreak(12);
+
+                    // Item name and quantity (emphasized)
+                    pdf.setFont('courier', 'bold');
+                    pdf.setFontSize(10);
+
+                    let itemName = item.name;
+                    if (itemName.length > 22) {
+                        itemName = itemName.substring(0, 19) + '...';
+                    }
+
+                    pdf.text(itemName, leftMargin, yPosition);
+                    yPosition += 5;
+
+                    // Quantity (larger and bold)
+                    pdf.setFontSize(11);
+                    pdf.text(`x ${item.quantity}`, leftMargin + 2, yPosition);
+                    yPosition += 7;
+
+                    // Add spacing between items
+                    if (index < botData.items.length - 1) {
+                        pdf.setLineDashPattern([0.5, 0.5], 0);
+                        pdf.setLineWidth(0.2);
+                        pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                        pdf.setLineDashPattern([], 0);
+                        yPosition += 4;
+                    }
+                });
+
+                // Bottom section
+                checkPageBreak(30);
+
+                yPosition += 4;
+                pdf.setLineWidth(0.5);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                yPosition += 8;
+
+                // Prepare immediately message
+                pdf.setFont('courier', 'bold');
+                pdf.setFontSize(11);
+                pdf.text('PREPARE IMMEDIATELY', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 8;
+
+                // Footer
+                pdf.setFont('courier', 'normal');
+                pdf.setFontSize(8);
+                pdf.text('Thank you!', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 5;
+
+                pdf.text(new Date().toLocaleString('en-GB'), pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+
+                // Generate blob and trigger print
+                const pdfBlob = pdf.output('blob');
+                const blobUrl = URL.createObjectURL(pdfBlob);
+
+                // Create hidden iframe for printing
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = blobUrl;
+                document.body.appendChild(iframe);
+
+                // Setup print
+                iframe.onload = function() {
+                    try {
+                        const cleanup = () => {
+                            try {
+                                if (iframe && iframe.parentNode) {
+                                    document.body.removeChild(iframe);
+                                }
+                                URL.revokeObjectURL(blobUrl);
+                            } catch (e) {
+                                console.error('Cleanup error:', e);
+                            }
+                        };
+
+                        iframe.contentWindow.onafterprint = cleanup;
+
+                        setTimeout(() => {
+                            try {
+                                iframe.contentWindow.print();
+                            } catch (printErr) {
+                                console.error('Print error:', printErr);
+                                cleanup();
+                            }
+                        }, 50);
+
+                        setTimeout(() => {
+                            if (document.body.contains(iframe)) {
+                                cleanup();
+                            }
+                        }, 8000);
+
+                    } catch (err) {
+                        console.error('Print iframe error', err);
+                        setTimeout(() => {
+                            try {
+                                if (iframe && iframe.parentNode) document.body.removeChild(iframe);
+                            } catch (e) {}
+                            try {
+                                URL.revokeObjectURL(blobUrl);
+                            } catch (e) {}
+                        }, 3000);
+                    }
+                };
+
+            } catch (error) {
+                console.error('BOT PDF Error:', error);
+                alert('Failed to generate BOT PDF: ' + error.message);
             }
         }
 

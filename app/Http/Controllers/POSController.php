@@ -43,33 +43,33 @@ class POSController extends Controller
             $query = $query->with('inventory');
         }
 
-        $items = $query->get()->groupBy('category');
+        $allItems = $query->get();
 
-        // Sort categories alphabetically
-        $items = $items->sortKeys();
-
-        // Attach a branch-aware pos_price attribute to each item so views can use it
-        $items = $items->map(function ($categoryItems) use ($user, $userBranchId) {
-            return $categoryItems->map(function ($item) use ($user, $userBranchId) {
-                $posPrice = 0;
-                // If staff with branch, prefer that branch's price
-                if ($user && $user->role === 'staff' && $userBranchId) {
-                    $bp = $item->branchPrices->firstWhere('branch_id', $userBranchId);
-                    if ($bp) {
-                        $posPrice = $bp->price;
-                    }
+        // Attach pos_price to all items first
+        $allItems = $allItems->map(function ($item) use ($user, $userBranchId) {
+            $posPrice = 0;
+            // If staff with branch, prefer that branch's price
+            if ($user && $user->role === 'staff' && $userBranchId) {
+                $bp = $item->branchPrices->firstWhere('branch_id', $userBranchId);
+                if ($bp) {
+                    $posPrice = $bp->price;
                 }
+            }
 
-                // fallback to first branch price if none found
-                if ($posPrice === 0 || $posPrice === 0.0) {
-                    $firstBp = $item->branchPrices->first();
-                    $posPrice = $firstBp ? $firstBp->price : 0;
-                }
+            // fallback to first branch price if none found
+            if ($posPrice === 0 || $posPrice === 0.0) {
+                $firstBp = $item->branchPrices->first();
+                $posPrice = $firstBp ? $firstBp->price : 0;
+            }
 
-                // Attach attribute
-                $item->setAttribute('pos_price', $posPrice);
-                return $item;
-            });
+            // Attach attribute
+            $item->setAttribute('pos_price', $posPrice);
+            return $item;
+        });
+
+        // Group by category for category filtering (each category sorted alphabetically)
+        $items = $allItems->groupBy('category')->sortKeys()->map(function ($categoryItems) {
+            return $categoryItems->sortBy('item_name')->values();
         });
             
         return view('pos.index', compact('items'));

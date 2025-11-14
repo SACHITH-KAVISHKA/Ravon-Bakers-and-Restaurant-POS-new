@@ -1378,13 +1378,16 @@
                 </div>
 
                 <div class="items-grid" id="items-container">
-                    @foreach($items as $category => $categoryItems)
-                    @foreach($categoryItems as $item)
+                    @php
+                    // Flatten all items and sort alphabetically for main display
+                    $allItemsSorted = $items->flatten()->sortBy('item_name');
+                    @endphp
+                    @foreach($allItemsSorted as $item)
                     @php
                     $displayPrice = $item->pos_price ?? ($item->branchPrices->first()?->price ?? 0);
                     @endphp
                     <div class="item-card"
-                        data-category="{{ $category }}"
+                        data-category="{{ $item->category }}"
                         data-item-id="{{ $item->id }}"
                         data-item-name="{{ $item->item_name }}"
                         data-item-price="{{ $displayPrice }}"
@@ -1392,7 +1395,6 @@
                         <div class="item-name">{{ $item->item_name }}</div>
                         <div class="item-price">LKR {{ number_format($displayPrice, 2) }}</div>
                     </div>
-                    @endforeach
                     @endforeach
                 </div>
             </div>

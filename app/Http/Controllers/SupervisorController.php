@@ -231,8 +231,9 @@ class SupervisorController extends Controller
      */
     public function inventoryHistory(Request $request)
     {
-        // STEP 1: Determine the Target Date
-        $filterDate = $request->input('date');
+        // STEP 1: Get date range filters
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
         $filterTime = $request->input('time');
 
         // Get all branches for display
@@ -248,7 +249,9 @@ class SupervisorController extends Controller
         $otherBranches = $branches->where('id', '!=', $mainBranchId);
 
         // STEP 2: Check if showing current stock or historical
-        if (empty($filterDate) && empty($filterTime)) {
+        // Use current stock ONLY if no dates provided (ignoring time without dates)
+        // If any date is provided, do historical calculation
+        if (empty($fromDate) && empty($toDate)) {
             // CURRENT STOCK - Use inventories table directly
             $results = DB::select("
                 SELECT
@@ -272,10 +275,15 @@ class SupervisorController extends Controller
                     items.item_name, branches.id
             ");
         } else {
-            // HISTORICAL STOCK - Calculate from transactions
-            $targetDateTime = empty($filterTime) 
-                ? $filterDate . ' 23:59:59' 
-                : $filterDate . ' ' . $filterTime;
+            // HISTORICAL STOCK - Calculate from transactions in date range
+            // Set default dates if not provided
+            $fromDateTime = !empty($fromDate) 
+                ? $fromDate . ' 00:00:00' 
+                : '1900-01-01 00:00:00';
+                
+            $toDateTime = !empty($toDate)
+                ? ($toDate . ' ' . (!empty($filterTime) ? $filterTime . ':00' : '23:59:59'))
+                : date('Y-m-d') . ' 23:59:59';
 
             // Run the Single Unified SQL Query for historical data
             $results = DB::select("
@@ -365,7 +373,7 @@ class SupervisorController extends Controller
             ) AS transactions
                 ON items.id = transactions.item_id
                 AND branches.id = transactions.branch_id
-                AND transactions.transaction_date <= ?
+                AND transactions.transaction_date BETWEEN ? AND ?
 
             WHERE
                 items.is_active = 1
@@ -379,8 +387,9 @@ class SupervisorController extends Controller
             ", [
                 $mainBranchId,      // For productions (main branch)
                 $mainBranchId,      // For transfers from_branch_id COALESCE
-                $targetDateTime,    // Transaction filter
-                $targetDateTime     // Item creation filter
+                $fromDateTime,      // Transaction filter FROM
+                $toDateTime,        // Transaction filter TO
+                $toDateTime         // Item creation filter
             ]);
         }
 
@@ -420,7 +429,7 @@ class SupervisorController extends Controller
             'query' => request()->query(),
         ]);
 
-        return view('supervisor.inventory-history', compact('allItems', 'branches', 'mainBranch', 'otherBranches', 'filterDate', 'filterTime'));
+        return view('supervisor.inventory-history', compact('allItems', 'branches', 'mainBranch', 'otherBranches', 'fromDate', 'toDate', 'filterTime'));
     }
 
     /**
@@ -429,7 +438,8 @@ class SupervisorController extends Controller
      */
     public function exportInventoryHistory(Request $request)
     {
-        $filterDate = $request->input('date');
+        $fromDate = $request->input('from_date');
+        $toDate = $request->input('to_date');
         $filterTime = $request->input('time');
 
         // Get branches and determine main branch same as inventoryHistory
@@ -441,22 +451,26 @@ class SupervisorController extends Controller
         $otherBranches = $branches->where('id', '!=', $mainBranch->id ?? null);
 
         // Use the unified query to get stock data
-        $itemsCollection = $this->getUnifiedStockData($filterDate, $filterTime, $mainBranch, $otherBranches);
+        $itemsCollection = $this->getUnifiedStockData($fromDate, $toDate, $filterTime, $mainBranch, $otherBranches);
 
         // Create spreadsheet
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Set title with date/time filter info
+        // Set title with date range filter info
         $titleRow = 1;
-        if ($filterDate || $filterTime) {
+        if ($fromDate || $toDate || $filterTime) {
             $title = 'Inventory History Report';
-            $filterInfo = 'As of: ';
-            if ($filterDate) {
-                $filterInfo .= date('M d, Y', strtotime($filterDate));
+            $filterInfo = '';
+            if ($fromDate && $toDate) {
+                $filterInfo = 'From: ' . date('M d, Y', strtotime($fromDate)) . ' To: ' . date('M d, Y', strtotime($toDate));
+            } elseif ($fromDate) {
+                $filterInfo = 'From: ' . date('M d, Y', strtotime($fromDate));
+            } elseif ($toDate) {
+                $filterInfo = 'To: ' . date('M d, Y', strtotime($toDate));
             }
             if ($filterTime) {
-                $filterInfo .= ' ' . date('h:i A', strtotime($filterTime));
+                $filterInfo .= ' at ' . date('h:i A', strtotime($filterTime));
             }
             
             $sheet->setCellValue('A1', $title);
@@ -549,8 +563,8 @@ class SupervisorController extends Controller
         }
 
         // Create filename
-        if ($filterDate || $filterTime) {
-            $fileName = 'inventory-history-' . ($filterDate ?: 'time-filter') . '-' . now()->format('Ymd-His') . '.xlsx';
+        if ($fromDate || $toDate || $filterTime) {
+            $fileName = 'inventory-history-' . ($fromDate ?: 'from') . '-to-' . ($toDate ?: 'now') . '-' . now()->format('Ymd-His') . '.xlsx';
         } else {
             $fileName = 'current-inventory-' . now()->format('Ymd-His') . '.xlsx';
         }
@@ -571,13 +585,16 @@ class SupervisorController extends Controller
      * Replaces getCurrentStockData(), getHistoricalStockData(), and calculateStockAtDateTime()
      * This eliminates the N+1 query problem and dual-logic bug
      * Updated: Now uses inventories table for current stock, transaction calculation for historical
+     * Updated: Now supports date range filtering (from_date to to_date)
      */
-    private function getUnifiedStockData($filterDate, $filterTime, $mainBranch, $otherBranches)
+    private function getUnifiedStockData($fromDate, $toDate, $filterTime, $mainBranch, $otherBranches)
     {
         $mainBranchId = $mainBranch ? $mainBranch->id : null;
 
         // Check if showing current stock or historical
-        if (empty($filterDate) && empty($filterTime)) {
+        // Use current stock ONLY if no dates provided (ignoring time without dates)
+        // If any date is provided, do historical calculation
+        if (empty($fromDate) && empty($toDate)) {
             // CURRENT STOCK - Use inventories table directly
             $results = DB::select("
                 SELECT
@@ -601,10 +618,14 @@ class SupervisorController extends Controller
                     items.item_name, branches.id
             ");
         } else {
-            // HISTORICAL STOCK - Calculate from transactions
-            $targetDateTime = empty($filterTime) 
-                ? $filterDate . ' 23:59:59' 
-                : $filterDate . ' ' . $filterTime;
+            // HISTORICAL STOCK - Calculate from transactions in date range
+            $fromDateTime = !empty($fromDate) 
+                ? $fromDate . ' 00:00:00' 
+                : '1900-01-01 00:00:00';
+                
+            $toDateTime = !empty($toDate)
+                ? ($toDate . ' ' . (!empty($filterTime) ? $filterTime . ':00' : '23:59:59'))
+                : date('Y-m-d') . ' 23:59:59';
 
             // Execute the unified SQL query for historical data
             $results = DB::select("
@@ -694,7 +715,7 @@ class SupervisorController extends Controller
             ) AS transactions
                 ON items.id = transactions.item_id
                 AND branches.id = transactions.branch_id
-                AND transactions.transaction_date <= ?
+                AND transactions.transaction_date BETWEEN ? AND ?
 
             WHERE
                 items.is_active = 1
@@ -708,8 +729,9 @@ class SupervisorController extends Controller
             ", [
                 $mainBranchId,      // For productions (main branch)
                 $mainBranchId,      // For transfers from_branch_id COALESCE
-                $targetDateTime,    // Transaction filter
-                $targetDateTime     // Item creation filter
+                $fromDateTime,      // Transaction filter FROM
+                $toDateTime,        // Transaction filter TO
+                $toDateTime         // Item creation filter
             ]);
         }
 

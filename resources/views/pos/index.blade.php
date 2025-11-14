@@ -1610,6 +1610,7 @@
         // Branch information for receipts
             const branchInfo = {
                 name: '{{ Auth::user()->branch->display_name ?? Auth::user()->branch->name ?? "RAVON BAKERS" }}',
+                companyName: '{{ Auth::user()->branch->company_name ?? "" }}',
                 address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
                 telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
             };
@@ -2935,6 +2936,16 @@
                 });
                 yPosition += 5;
 
+                // Company name (if exists)
+                if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
+                    pdf.setFontSize(9);
+                    pdf.setFont('courier', 'normal');
+                    pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
+                        align: 'center'
+                    });
+                    yPosition += 4;
+                }
+
                 // Branch address and phone
                 pdf.setFontSize(8);
                 pdf.setFont('courier', 'normal');
@@ -3351,6 +3362,17 @@
                     align: 'center'
                 });
                 yPosition += 6;
+                
+                // Company name (if exists)
+                if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
+                    pdf.setFontSize(9);
+                    pdf.setFont('courier', 'normal');
+                    pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
+                        align: 'center'
+                    });
+                    yPosition += 5;
+                }
+                
                 pdf.setFontSize(9);
                 pdf.setFont('courier', 'bold');
                 pdf.text(branchInfo.address, pageWidth / 2, yPosition, {

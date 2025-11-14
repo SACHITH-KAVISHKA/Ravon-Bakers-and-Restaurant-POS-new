@@ -38,6 +38,7 @@
             <thead>
                 <tr>
                     <th>Branch Name</th>
+                    <th>Company Name</th>
                     <th>Address</th>
                     <th>Telephone</th>
                     <th>Status</th>
@@ -54,6 +55,11 @@
                         <div class="d-flex align-items-center fw-bold">
                             {{ $branch->name }}
                         </div>
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            {{ $branch->company_name ?? 'N/A' }}
+                        </small>
                     </td>
                     <td>
                         <small class="text-muted">
@@ -85,7 +91,7 @@
                     <td>
                         <div class="btn-group" role="group">
                             <button class="btn btn-sm btn-outline-warning"
-                                onclick="editBranch({{ $branch->id }}, '{{ addslashes($branch->name) }}', {{ $branch->status }}, '{{ addslashes($branch->address ?? '') }}', '{{ addslashes($branch->telephone ?? '') }}', '{{ addslashes($branch->display_name ?? '') }}')"
+                                onclick="editBranch({{ $branch->id }}, '{{ addslashes($branch->name) }}', {{ $branch->status }}, '{{ addslashes($branch->address ?? '') }}', '{{ addslashes($branch->telephone ?? '') }}', '{{ addslashes($branch->display_name ?? '') }}', '{{ addslashes($branch->company_name ?? '') }}')"
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -146,6 +152,13 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="branch_company_name" class="form-label">Company Name</label>
+                        <input type="text" class="form-control" id="branch_company_name" name="company_name"
+                            placeholder="Enter company name">
+                        <div class="invalid-feedback" id="branch_company_name_error"></div>
+                    </div>
+
+                    <div class="mb-3">
                         <label for="branch_display_name" class="form-label">Display Name</label>
                         <input type="text" class="form-control" id="branch_display_name" name="display_name"
                             placeholder="Enter display name">
@@ -187,7 +200,7 @@
 </div>
 
 <script>
-    function editBranch(id, name, status, address = '', telephone = '', displayName = '') {
+    function editBranch(id, name, status, address = '', telephone = '', displayName = '', companyName = '') {
         const modal = document.getElementById('addBranchModal');
         const form = document.getElementById('branchForm');
         const title = document.getElementById('addBranchModalLabel');
@@ -205,6 +218,7 @@
 
         // Fill form fields
         document.getElementById('branch_name').value = name;
+        document.getElementById('branch_company_name').value = companyName || '';
         document.getElementById('branch_display_name').value = displayName || '';
         document.getElementById('branch_address').value = address || '';
         document.getElementById('branch_telephone').value = telephone || '';

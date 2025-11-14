@@ -235,20 +235,6 @@ class SupervisorController extends Controller
         $filterDate = $request->input('date');
         $filterTime = $request->input('time');
 
-        // Create targetDateTime variable
-        if (empty($filterDate)) {
-            // No filter = Current Stock Report (use NOW)
-            $targetDateTime = date('Y-m-d H:i:s');
-        } else {
-            // Historical Stock Report
-            if (empty($filterTime)) {
-                // Default to end of day if no time specified
-                $targetDateTime = $filterDate . ' 23:59:59';
-            } else {
-                $targetDateTime = $filterDate . ' ' . $filterTime;
-            }
-        }
-
         // Get all branches for display
         $branches = Branch::where('status', 1)->orderBy('name')->get();
         $mainBranch = $branches->where('name', 'Main Branch')->first();
@@ -261,8 +247,38 @@ class SupervisorController extends Controller
         $mainBranchId = $mainBranch ? $mainBranch->id : null;
         $otherBranches = $branches->where('id', '!=', $mainBranchId);
 
-        // STEP 2: Run the Single Unified SQL Query
-        $results = DB::select("
+        // STEP 2: Check if showing current stock or historical
+        if (empty($filterDate) && empty($filterTime)) {
+            // CURRENT STOCK - Use inventories table directly
+            $results = DB::select("
+                SELECT
+                    items.id as item_id,
+                    items.item_name as item_name,
+                    items.item_code as item_code,
+                    branches.id as branch_id,
+                    branches.name as branch_name,
+                    COALESCE(inventories.current_stock, 0) as calculated_stock
+                FROM
+                    items
+                CROSS JOIN
+                    branches
+                LEFT JOIN
+                    inventories ON items.id = inventories.item_id 
+                    AND branches.id = inventories.branch_id
+                WHERE
+                    items.is_active = 1
+                    AND branches.status = 1
+                ORDER BY
+                    items.item_name, branches.id
+            ");
+        } else {
+            // HISTORICAL STOCK - Calculate from transactions
+            $targetDateTime = empty($filterTime) 
+                ? $filterDate . ' 23:59:59' 
+                : $filterDate . ' ' . $filterTime;
+
+            // Run the Single Unified SQL Query for historical data
+            $results = DB::select("
             SELECT
                 items.id as item_id,
                 items.item_name as item_name,
@@ -360,12 +376,13 @@ class SupervisorController extends Controller
                 items.id, items.item_name, items.item_code, branches.id, branches.name
             ORDER BY
                 items.item_name, branches.id
-        ", [
-            $mainBranchId,      // For productions (main branch)
-            $mainBranchId,      // For transfers from_branch_id COALESCE
-            $targetDateTime,    // Transaction filter
-            $targetDateTime     // Item creation filter
-        ]);
+            ", [
+                $mainBranchId,      // For productions (main branch)
+                $mainBranchId,      // For transfers from_branch_id COALESCE
+                $targetDateTime,    // Transaction filter
+                $targetDateTime     // Item creation filter
+            ]);
+        }
 
         // STEP 3: Format the Results
         // Transform flat SQL results into grouped structure for the view
@@ -553,27 +570,44 @@ class SupervisorController extends Controller
      * NEW UNIFIED METHOD: Get stock data using single SQL query
      * Replaces getCurrentStockData(), getHistoricalStockData(), and calculateStockAtDateTime()
      * This eliminates the N+1 query problem and dual-logic bug
+     * Updated: Now uses inventories table for current stock, transaction calculation for historical
      */
     private function getUnifiedStockData($filterDate, $filterTime, $mainBranch, $otherBranches)
     {
-        // Determine the target datetime
-        if (empty($filterDate)) {
-            // No filter = Current Stock Report (use NOW)
-            $targetDateTime = date('Y-m-d H:i:s');
-        } else {
-            // Historical Stock Report
-            if (empty($filterTime)) {
-                // Default to end of day if no time specified
-                $targetDateTime = $filterDate . ' 23:59:59';
-            } else {
-                $targetDateTime = $filterDate . ' ' . $filterTime;
-            }
-        }
-
         $mainBranchId = $mainBranch ? $mainBranch->id : null;
 
-        // Execute the unified SQL query
-        $results = DB::select("
+        // Check if showing current stock or historical
+        if (empty($filterDate) && empty($filterTime)) {
+            // CURRENT STOCK - Use inventories table directly
+            $results = DB::select("
+                SELECT
+                    items.id as item_id,
+                    items.item_name as item_name,
+                    items.item_code as item_code,
+                    branches.id as branch_id,
+                    branches.name as branch_name,
+                    COALESCE(inventories.current_stock, 0) as calculated_stock
+                FROM
+                    items
+                CROSS JOIN
+                    branches
+                LEFT JOIN
+                    inventories ON items.id = inventories.item_id 
+                    AND branches.id = inventories.branch_id
+                WHERE
+                    items.is_active = 1
+                    AND branches.status = 1
+                ORDER BY
+                    items.item_name, branches.id
+            ");
+        } else {
+            // HISTORICAL STOCK - Calculate from transactions
+            $targetDateTime = empty($filterTime) 
+                ? $filterDate . ' 23:59:59' 
+                : $filterDate . ' ' . $filterTime;
+
+            // Execute the unified SQL query for historical data
+            $results = DB::select("
             SELECT
                 items.id as item_id,
                 items.item_name as item_name,
@@ -671,12 +705,13 @@ class SupervisorController extends Controller
                 items.id, items.item_name, items.item_code, branches.id, branches.name
             ORDER BY
                 items.item_name, branches.id
-        ", [
-            $mainBranchId,      // For productions (main branch)
-            $mainBranchId,      // For transfers from_branch_id COALESCE
-            $targetDateTime,    // Transaction filter
-            $targetDateTime     // Item creation filter
-        ]);
+            ", [
+                $mainBranchId,      // For productions (main branch)
+                $mainBranchId,      // For transfers from_branch_id COALESCE
+                $targetDateTime,    // Transaction filter
+                $targetDateTime     // Item creation filter
+            ]);
+        }
 
         // Transform flat SQL results into grouped structure
         return collect($results)->groupBy('item_id')->map(function ($rows) use ($mainBranch, $otherBranches) {

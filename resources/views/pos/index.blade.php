@@ -281,9 +281,9 @@
             flex: 1;
             overflow-y: auto;
             padding: 4px;
-            height: calc(100vh - 550px);
-            min-height: 200px;
-            max-height: 350px;
+            height: calc(100vh - 450px);
+            min-height: 300px;
+            max-height: 600px;
         }
 
         .cart-header {
@@ -1250,7 +1250,7 @@
             }
 
             .cart-section {
-                max-height: 200px;
+                max-height: 350px;
                 overflow-y: auto;
             }
 

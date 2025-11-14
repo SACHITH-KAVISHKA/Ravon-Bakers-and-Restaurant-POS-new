@@ -32,7 +32,7 @@ class POSController extends Controller
         
         $query = Item::where('is_active', true)
             ->with(['branchPrices.branch'])
-            ->orderBy('category');
+            ->orderBy('item_name', 'asc');
 
         if ($user && $user->role === 'staff' && $userBranchId) {
             // For staff, also eager-load inventory for their branch
@@ -44,6 +44,9 @@ class POSController extends Controller
         }
 
         $items = $query->get()->groupBy('category');
+
+        // Sort categories alphabetically
+        $items = $items->sortKeys();
 
         // Attach a branch-aware pos_price attribute to each item so views can use it
         $items = $items->map(function ($categoryItems) use ($user, $userBranchId) {

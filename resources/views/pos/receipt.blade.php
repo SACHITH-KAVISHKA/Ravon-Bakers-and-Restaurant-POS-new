@@ -449,7 +449,7 @@
                     "unitPrice": "{{ number_format($item->unit_price, 2) }}",
                     "totalPrice": "{{ number_format($item->total_price, 2) }}"
                 }
-                @if(!$loop - > last), @endif
+                @if(!$loop->last), @endif
                 @endforeach
             ]
         }

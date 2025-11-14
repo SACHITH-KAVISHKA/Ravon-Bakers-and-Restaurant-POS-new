@@ -95,16 +95,12 @@
                                                 </div>
                                             </td>
                                             <td class="px-2 py-2 text-center" style="background-color: #f5f9ff;">
-                                                <span class="stock-number" style="color: #0b66d1; font-weight:700; font-size:0.95rem;">{{ $item['main_stock'] }}</span>
+                                                <span class="stock-number" style="color: {{ $item['main_stock'] < 0 ? '#dc3545' : '#0b66d1' }}; font-weight:700; font-size:0.95rem;">{{ $item['main_stock'] }}</span>
                                             </td>
                                             @foreach($otherBranches as $branch)
                                                 <td class="px-2 py-2 text-center" style="background-color: #fffbf5;">
-                                                    @php $qty = $item['branch_stocks'][$branch->name]; @endphp
-                                                    @if($qty > 0)
-                                                        <span class="stock-number" style="color: #e65100; font-weight:600; font-size:0.9rem;">{{ $qty }}</span>
-                                                    @else
-                                                        <span class="text-muted" style="font-size:0.85rem;">0</span>
-                                                    @endif
+                                                    @php $qty = $item['branch_stocks'][$branch->name] ?? 0; @endphp
+                                                    <span class="stock-number" style="color: {{ $qty < 0 ? '#dc3545' : ($qty > 0 ? '#e65100' : '#6c757d') }}; font-weight:{{ $qty != 0 ? '600' : '400' }}; font-size:0.9rem;">{{ $qty }}</span>
                                                 </td>
                                             @endforeach
                                         </tr>

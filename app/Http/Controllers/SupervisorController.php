@@ -392,7 +392,7 @@ class SupervisorController extends Controller
             // Build branch stock array (by branch name for easier access in view)
             $branchStocks = [];
             foreach ($rows as $row) {
-                $branchStocks[$row->branch_name] = max(0, (int)$row->calculated_stock); // Ensure no negative stock
+                $branchStocks[$row->branch_name] = (int)$row->calculated_stock;
             }
             
             // Get main branch stock
@@ -720,7 +720,7 @@ class SupervisorController extends Controller
             // Build branch stock array
             $branchStocks = [];
             foreach ($rows as $row) {
-                $branchStocks[$row->branch_name] = max(0, (int)$row->calculated_stock); // Ensure no negative stock
+                $branchStocks[$row->branch_name] = (int)$row->calculated_stock;
             }
             
             // Get main branch stock

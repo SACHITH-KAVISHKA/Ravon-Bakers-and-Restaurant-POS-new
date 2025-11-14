@@ -575,7 +575,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" 
+                                <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}"
                                    href="{{ route('stock-transfer.transfers') }}"
                                    style="position: relative;">
                                     @if($pendingStockTransfersCount > 0)
@@ -655,7 +655,7 @@
 
                 <!-- Admin Reports dropdown -->
                 @php
-                $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('reports.*');
+                $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('reports.*') ||request()->routeIs('sales-report2.*') ;
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link d-flex justify-content-between align-items-center {{ $adminReportsActive ? 'active' : '' }}"
@@ -672,6 +672,12 @@
                                 <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" href="{{ route('sales-report.index') }}">
                                     <i class="bi bi-cash-coin"></i>
                                     <span>Daily Sales Report</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('sales-report2.*') ? 'active' : '' }}" href="{{ route('sales-report2.index2') }}">
+                                    <i class="bi bi-cash-coin"></i>
+                                    <span>Daily Sales Report-2</span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -749,7 +755,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.branch-wastage-view') ? 'active' : '' }}" 
+                                <a class="nav-link {{ request()->routeIs('staff.branch-wastage-view') ? 'active' : '' }}"
                                    href="{{ route('staff.branch-wastage-view') }}">
                                     <i class="bi bi-trash"></i>
                                     <span>Branch Wastage</span>
@@ -874,7 +880,7 @@
         // Global AJAX error handler for jQuery
         $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
             let errorMessage = 'An error occurred. Please try again.';
-            
+
             // Try to get error message from JSON response
             if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 errorMessage = jqXHR.responseJSON.message;
@@ -889,7 +895,7 @@
                     errorMessage = jqXHR.statusText || errorMessage;
                 }
             }
-            
+
             // Show error alert
             alert('Error: ' + errorMessage);
         });
@@ -897,7 +903,7 @@
         // Global error handler for fetch API
         window.addEventListener('unhandledrejection', function(event) {
             console.error('Unhandled promise rejection:', event.reason);
-            
+
             // If it's a fetch error, try to extract message
             if (event.reason && event.reason.message) {
                 alert('Error: ' + event.reason.message);
@@ -908,14 +914,14 @@
         window.fetchWithErrorHandling = async function(url, options = {}) {
             try {
                 const response = await fetch(url, options);
-                
+
                 if (!response.ok) {
                     const data = await response.json().catch(() => ({}));
                     const errorMessage = data.message || `HTTP error! status: ${response.status}`;
                     alert('Error: ' + errorMessage);
                     throw new Error(errorMessage);
                 }
-                
+
                 return response;
             } catch (error) {
                 if (!error.message.includes('HTTP error')) {

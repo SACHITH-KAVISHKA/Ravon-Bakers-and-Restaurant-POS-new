@@ -146,8 +146,10 @@ class SupervisorController extends Controller
                     'quantity' => $itemData['quantity'],
                 ]);
 
-                // Update inventory
-                $inventory = Inventory::where('item_id', $itemData['item_id'])->first();
+                // Update inventory - ONLY Main Branch (branch_id = 1)
+                $inventory = Inventory::where('item_id', $itemData['item_id'])
+                                      ->where('branch_id', 1)
+                                      ->first();
                 if ($inventory) {
                     $inventory->increment('current_stock', $itemData['quantity']);
                 } else {
@@ -987,8 +989,10 @@ class SupervisorController extends Controller
                     $oldQty = $existing[$itemId] ?? 0;
                     $delta = $newQty - $oldQty; // positive: increase main stock; negative: reduce main stock
 
-                    // Apply to main inventory (branch_id = 1 or first inventory record)
-                    $inventory = Inventory::where('item_id', $itemId)->first();
+                    // Apply to main inventory - ONLY Main Branch (branch_id = 1)
+                    $inventory = Inventory::where('item_id', $itemId)
+                                          ->where('branch_id', 1)
+                                          ->first();
 
                     if ($delta !== 0) {
                         if ($inventory) {

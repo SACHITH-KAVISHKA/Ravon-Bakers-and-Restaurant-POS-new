@@ -143,6 +143,20 @@ class ItemController extends Controller
                     );
                 }
             }
+
+            // Automatically create inventory record for Main Branch only (branch_id = 1)
+            $existingInventory = Inventory::where('item_id', $item->id)
+                                          ->where('branch_id', 1)
+                                          ->first();
+            
+            if (!$existingInventory) {
+                Inventory::create([
+                    'item_id' => $item->id,
+                    'branch_id' => 1, // Main Branch
+                    'current_stock' => 0,
+                    'low_stock_alert' => 10,
+                ]);
+            }
         });
 
         return redirect()->route('items.index')->with('success', 'Item created successfully.');

@@ -11,7 +11,12 @@ use App\Http\Controllers\POSController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\StockTransferController;
+use App\Http\Controllers\KotController;
 use Illuminate\Support\Facades\Route;
+use Mike42\Escpos\Printer;
+use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Mike42\Escpos\Exception\Exception as EscposException;
+use App\Http\Controllers\PrinterController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -154,5 +159,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/{stockTransfer}/reject', [StockTransferController::class, 'reject'])->name('reject');
     });
 });
+
+Route::post('/qz/sign', [PrinterController::class, 'signQzRequest']);
 
 require __DIR__ . '/auth.php';

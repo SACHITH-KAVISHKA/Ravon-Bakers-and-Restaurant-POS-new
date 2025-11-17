@@ -1616,26 +1616,26 @@
             qz.security.setCertificatePromise(function(resolve, reject) {
 
                 resolve(`-----BEGIN CERTIFICATE-----
-                    MIIDtTCCAp2gAwIBAgIUYdvAvubwkX5fYFv+GPh1Imy8mW4wDQYJKoZIhvcNAQEL
-                    BQAwajELMAkGA1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0Nv
-                    bG9tYm8xFTATBgNVBAoMDFJhdm9uIEJha2VyczEgMB4GA1UEAwwXdGVzdGluZzIu
-                    cmF2b25iYWtlcnMubGswHhcNMjUxMTE1MTc0NTAxWhcNMzUxMTEzMTc0NTAxWjBq
-                    MQswCQYDVQQGEwJMSzEQMA4GA1UECAwHV2VzdGVybjEQMA4GA1UEBwwHQ29sb21i
-                    bzEVMBMGA1UECgwMUmF2b24gQmFrZXJzMSAwHgYDVQQDDBd0ZXN0aW5nMi5yYXZv
-                    bmJha2Vycy5sazCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALe4rjDM
-                    tlI9U3cM0f+ZFb18WO2mh2oxPv9Z11gTIgHf/LZ7cKmDdOLPcarzTdLApPKeY6rI
-                    Q55FVTdSXwU4wFK1nNQwo9YKDqkr7E5YdZI/uRZPh8+Im1AF0sifJUWCx5LejPDq
-                    n1QTArC54JnP7LLyHlb5Hpdqcj1QJkIQVczMNiBqk+gu4eB/tV0o8PevdcOrDria
-                    obQOzmilbmdWjoNy1k9rxTH8sx6MwCw2JSV8jMj5CFNEUuM7khM+br5pSe1QLet4
-                    fD1DaL2D+OJ7q1o5qbal7x9wCW0Bs6jP/TOJPum4aDon3uyeYNykNt1rwmL4mk/c
-                    uEWEWRes5WFm3VcCAwEAAaNTMFEwHQYDVR0OBBYEFEPcHxZ6QuiIRnjCNV+A2Bkj
-                    ScgvMB8GA1UdIwQYMBaAFEPcHxZ6QuiIRnjCNV+A2BkjScgvMA8GA1UdEwEB/wQF
-                    MAMBAf8wDQYJKoZIhvcNAQELBQADggEBABwoDA3/JM3Kfj3UaD0ssEWTomKbzMze
-                    ThcD1RxTHR+MEyZiQYqiQAMOgDNVpYYtKFcSQkxfXmh3LlVyxSATEfy86E6wJh30
-                    4QSp7r6ZshANb/dWL3x67CxbsZsd+TvrzlQIbK7ds0xAnhyFxLDcC3bwHjb26b6r
-                    GcPnfdJgVgTsJ7uXZHQWYfgx0aA4qsYtOmCNejJS/8dgS/q8TxG9VB3hTygCMPXD
-                    EE09WNYx2scJrfowXpZqR/0RmQrRfnxdMhuqpmiCnaQX98Alfx+1wLfh3Ssgt9O0
-                    TGkpl/CQvNOO1tlUWdDP3UDRUUSgLBaiZ/qy9FBwImP+Fk9n+WpfTyY=
+                    MIIDqzCCApOgAwIBAgIURnXllt3WhlgxHc/qdr8XWeD7ltIwDQYJKoZIhvcNAQEL
+                    BQAwZTELMAkGA1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0Nv
+                    bG9tYm8xFTATBgNVBAoMDFJhdm9uIEJha2VyczEbMBkGA1UEAwwScG9zLnJhdm9u
+                    YmFrZXJzLmxrMB4XDTI1MTExNzA1NTUyNVoXDTM1MTExNTA1NTUyNVowZTELMAkG
+                    A1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0NvbG9tYm8xFTAT
+                    BgNVBAoMDFJhdm9uIEJha2VyczEbMBkGA1UEAwwScG9zLnJhdm9uYmFrZXJzLmxr
+                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvotPw8d6nHoLpJWDa+Vf
+                    i7ZD/ZpWS8RnuIFx4SYmJFyutLzGyheEsSiTrQhNk1Ksjm1g7CHpgyssPzRvCcrg
+                    ImyzZCt4jrXILj+XrtQjVCdyiB1l28BSOBfpLUChV+6lRYwAGemSYNN9cO2jNyWC
+                    Yumbkxgc94B7bkqvddSZPDqi+cLfANMhVA3RAUTufnpVkjDO0T+ugG7K87LBk0P3
+                    rotox1PGkUgEu0bAugSO+2QC5EKf+ZdpFI04Y6w6zS8hCKbAvVu16D2Xf85AvdDO
+                    5gyBco1mj1eSOzMkolal5jr5JnzInERpDKtdKJwb46EM9VJEzC0vcNgdaQNxyhm8
+                    JwIDAQABo1MwUTAdBgNVHQ4EFgQUZXXP8k120487MmNlFYvJg6AvL/UwHwYDVR0j
+                    BBgwFoAUZXXP8k120487MmNlFYvJg6AvL/UwDwYDVR0TAQH/BAUwAwEB/zANBgkq
+                    hkiG9w0BAQsFAAOCAQEAAzZYvMCHdUc2M5S9q6sLhKwPQv7w/3WZKobRMYnrl3V7
+                    4wW6UU1wrOpz6QOl7Nq4n7Z0EYIBUvhAyxAwx189ywA2NWdoMlEIB2nXZ0BJHyCU
+                    THA9n3V7MF8SZ8qKosoWoE5BqxZaTNeQEY0//l+hjQau5rLsiYRMjuaS9Nt9cjJO
+                    cChQypBt1H+amVz03uamFmtH1sc7l/x0qD2FUVYnOkfQkR1N6kGDaX3zdsi/Vqwf
+                    ZCma1ck8SnCgJ8G5yezmIB/NKu0uWLY6hVtBJoqfUETVCH6HkUC5UChpu3WBv23p
+                    74SE0hBNngWCKrEEdepr2sI4F919lmlgSHcrauaVvA==
                 -----END CERTIFICATE-----`);
             });
 
@@ -3328,7 +3328,7 @@
                 // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const receiptPrinterName = "XP-80C";
+                const receiptPrinterName = "OutletPOS";
                 await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
 
                 console.log("Receipt PDF has been sent to QZ Tray.");
@@ -3571,7 +3571,7 @@
                   // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const botPrinterName = "XP-80C";
+                const botPrinterName = "BOT";
                 await printPDFwithQZ(pdfBase64, botPrinterName, "BOT");
 
                 // showSuccess("BOT sent to printer!");

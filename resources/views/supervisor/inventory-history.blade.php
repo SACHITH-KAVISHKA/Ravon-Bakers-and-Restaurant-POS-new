@@ -20,32 +20,26 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <form method="GET" action="{{ route('supervisor.inventory-history') }}" class="row g-3">
-                        <div class="col-md-3">
-                            <label for="from_date" class="form-label fw-bold">
-                                <i class="bi bi-calendar3"></i> From Date
+                        <div class="col-md-4">
+                            <label for="date" class="form-label fw-bold">
+                                <i class="bi bi-calendar3"></i> Date
                             </label>
-                            <input type="date" class="form-control" id="from_date" name="from_date" value="{{ $fromDate ?? '' }}">
+                            <input type="date" class="form-control" id="date" name="date" value="{{ $filterDate ?? '' }}">
                         </div>
                         <div class="col-md-3">
-                            <label for="to_date" class="form-label fw-bold">
-                                <i class="bi bi-calendar3"></i> To Date
-                            </label>
-                            <input type="date" class="form-control" id="to_date" name="to_date" value="{{ $toDate ?? '' }}">
-                        </div>
-                        <div class="col-md-2">
                             <label for="time" class="form-label fw-bold">
                                 <i class="bi bi-clock"></i> Time
                             </label>
                             <input type="time" class="form-control" id="time" name="time" value="{{ $filterTime ?? '' }}">
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
+                        <div class="col-md-5 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary me-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
                                 <i class="bi bi-search"></i> Search
                             </button>
                             <a href="{{ route('supervisor.inventory-history') }}" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-circle"></i> Clear
                             </a>
-                            <a href="{{ route('supervisor.inventory-history.export', ['from_date' => $fromDate ?? null, 'to_date' => $toDate ?? null, 'time' => $filterTime ?? null]) }}" class="btn btn-success ms-2" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none; color: #fff;">
+                            <a href="{{ route('supervisor.inventory-history.export', ['date' => $filterDate ?? null, 'time' => $filterTime ?? null]) }}" class="btn btn-success ms-2" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); border: none; color: #fff;">
                                 <i class="bi bi-file-earmark-excel"></i> Export Excel
                             </a>
                         </div>
@@ -61,7 +55,7 @@
                     <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                         <h5 class="card-title mb-0">
                             <i class="bi bi-box-seam"></i> 
-                            @if($fromDate || $toDate || $filterTime)
+                            @if($filterDate || $filterTime)
                                 Historical Stock Transactions
                             @else
                                 Current Inventory Stock
@@ -77,14 +71,14 @@
                                         <th class="border-0 px-3 py-3">Item</th>
                                         <th class="border-0 px-3 py-3 text-center" style="background-color: #e3f2fd; color: #1976d2;">
                                             Main Stock
-                                            @if($fromDate || $toDate || $filterTime)
+                                            @if($filterDate || $filterTime)
                                                 <br><small class="fw-normal">(Production)</small>
                                             @endif
                                         </th>
                                         @foreach($otherBranches as $branch)
                                             <th class="border-0 px-3 py-3 text-center" style="background-color: #fff3e0; color: #e65100;">
                                                 {{ $branch->name }}
-                                                @if($fromDate || $toDate || $filterTime)
+                                                @if($filterDate || $filterTime)
                                                     <br><small class="fw-normal">(Transfers)</small>
                                                 @endif
                                             </th>

@@ -122,7 +122,29 @@
             background: #fff;
             border-right: 2px solid #dee2e6;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 0;
+            max-height: calc(100vh - 60px);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Custom scrollbar for categories panel */
+        .categories-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .categories-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .categories-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .categories-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         /* Middle Panel - Items */
@@ -131,6 +153,28 @@
             background: #f8f9fa;
             padding: 20px;
             overflow-y: auto;
+            overflow-x: hidden;
+            max-height: calc(100vh - 60px);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Custom scrollbar for items panel */
+        .items-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .items-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .items-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .items-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         /* Right Panel - Cart & Payment */
@@ -199,6 +243,8 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px;
+            width: 100%;
+            padding-bottom: 20px;
         }
 
         .item-card {
@@ -1187,6 +1233,21 @@
                 border-bottom: 2px solid #dee2e6;
                 overflow-x: auto;
                 overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Custom scrollbar for categories panel on mobile */
+            .categories-panel::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .categories-panel::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+
+            .categories-panel::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 3px;
             }
 
             .category-list {
@@ -1214,11 +1275,15 @@
                 flex: 1;
                 padding: 15px;
                 overflow-y: auto;
+                overflow-x: hidden;
+                max-height: calc(100vh - 470px);
+                -webkit-overflow-scrolling: touch;
             }
 
             .items-grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
                 gap: 10px;
+                padding-bottom: 20px;
             }
 
             .item-card {

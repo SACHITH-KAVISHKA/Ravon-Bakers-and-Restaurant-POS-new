@@ -25,6 +25,8 @@
     <style>
         .sidebar {
             min-height: 100vh;
+            height: 100vh;
+            max-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
@@ -34,6 +36,26 @@
             width: 250px;
             z-index: 1050;
             overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+
+        /* Custom scrollbar for sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
         }
 
         .sidebar-logo {
@@ -343,10 +365,19 @@
             .sidebar {
                 transform: translateX(-100%);
                 will-change: transform;
+                max-height: 100vh;
+                overflow-y: auto;
+                overflow-x: hidden;
             }
 
             .sidebar.show {
                 transform: translateX(0);
+            }
+            
+            /* Ensure sidebar content is scrollable on mobile */
+            .sidebar .position-sticky {
+                position: relative !important;
+                height: auto;
             }
 
             .content-wrapper,

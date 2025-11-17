@@ -13,6 +13,7 @@ use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\KotController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Mike42\Escpos\Printer;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 use Mike42\Escpos\Exception\Exception as EscposException;
@@ -66,8 +67,8 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-    // POS System - All authenticated users can access
-    Route::prefix('pos')->name('pos.')->group(function () {
+    // POS System - ONLY staff members can access
+    Route::middleware(['auth', 'verified'])->prefix('pos')->name('pos.')->group(function () {
         Route::get('/', [POSController::class, 'index'])->name('index');
         Route::post('/process-sale', [POSController::class, 'processSale'])->name('process-sale');
         Route::get('/receipt/{sale}', [POSController::class, 'receipt'])->name('receipt');

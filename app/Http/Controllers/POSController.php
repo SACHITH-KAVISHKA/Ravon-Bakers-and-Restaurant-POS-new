@@ -17,6 +17,11 @@ class POSController extends Controller
 {
     public function index()
     {
+        // Only staff members can access POS
+        if (Auth::user()->role !== 'staff') {
+            abort(403, 'Only staff members can access POS system.');
+        }
+        
         // Clear any previous sale session when starting new POS session
         if (request()->has('clear') || !session()->has('pos_initialized')) {
             session()->forget(['sale_id', 'pos_cart', 'pos_customer_payment', 'pos_payment_method']);
@@ -77,6 +82,11 @@ class POSController extends Controller
 
     public function processSale(Request $request)
     {
+        // Only staff members can process sales
+        if (Auth::user()->role !== 'staff') {
+            abort(403, 'Only staff members can access POS system.');
+        }
+        
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.id' => 'required|exists:items,id',

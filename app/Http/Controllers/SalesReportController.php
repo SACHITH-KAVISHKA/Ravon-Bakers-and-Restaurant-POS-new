@@ -14,9 +14,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SalesReportController extends Controller
 {
-    /**
-     * Display the sales report index page
-     */
+
     public function index(Request $request)
     {
         $query = Sale::query();
@@ -64,10 +62,10 @@ class SalesReportController extends Controller
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
             $total = $sale->subtotal ?? 0;
-            
+
             $totalSubtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
-            
+
             // Apply payment logic - PRIORITY: Card first, then Cash
             if ($paymentMethod === 'cash') {
                 $totalCash += min($customerPayment, $total);
@@ -99,39 +97,6 @@ class SalesReportController extends Controller
         $branches = Branch::active()->orderBy('name')->get();
 
         return view('sales-report.index', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
-    }
-
-    /**
-     * Get sale items for a specific sale (AJAX)
-     */
-    public function getSaleItems(Sale $sale)
-    {
-        $sale->load('branch');
-        $saleItems = $sale->saleItems()->with('item')->get();
-
-        return response()->json([
-            'sale' => [
-                'receipt_no' => $sale->receipt_no,
-                'user_name' => $sale->user_name,
-                'branch_name' => $sale->branch->name ?? 'N/A',
-                'subtotal' => $sale->subtotal,
-                'discount' => $sale->discount,
-                'tax' => $sale->tax,
-                'total' => $sale->total,
-                'payment_method' => $sale->payment_method,
-                'customer_payment' => $sale->customer_payment,
-                'balance' => $sale->balance,
-                'created_at' => $sale->created_at->format('Y-m-d H:i:s'),
-            ],
-            'items' => $saleItems->map(function ($saleItem) {
-                return [
-                    'item_name' => $saleItem->item_name,
-                    'quantity' => $saleItem->quantity,
-                    'unit_price' => $saleItem->unit_price,
-                    'total_price' => $saleItem->total_price,
-                ];
-            })
-        ]);
     }
 
     /**
@@ -173,10 +138,10 @@ class SalesReportController extends Controller
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
             $total = $sale->subtotal ?? 0;
-            
+
             $totalSubtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
-            
+
             // Apply payment logic - PRIORITY: Card first, then Cash
             if ($paymentMethod === 'cash') {
                 $totalCash += min($customerPayment, $total);
@@ -231,7 +196,7 @@ class SalesReportController extends Controller
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
             $total = $sale->subtotal ?? 0;
-            
+
             // Apply payment logic - PRIORITY: Card first, then Cash
             if ($paymentMethod === 'cash') {
                 $cashAmount = min($customerPayment, $total);
@@ -253,7 +218,7 @@ class SalesReportController extends Controller
                 $cashAmount = 0;
                 $cardAmount = 0;
             }
-            
+
             $sheet->setCellValue('A' . $row, $sale->receipt_no);
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
             $sheet->setCellValue('C' . $row, $sale->subtotal);
@@ -271,6 +236,358 @@ class SalesReportController extends Controller
         $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
         $sheet->setCellValue('D' . $row, '');
     $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
+        $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
+        $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);
+        $sheet->setCellValue('H' . $row, '');
+
+        // Style the totals row
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('E3F2FD');
+
+        // Auto-size columns
+        foreach (range('A', 'H') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Create filename
+        $filename = 'sales_report_' . $startDate . '_to_' . $endDate . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    /**
+     * Display the sales report index page
+     */
+    public function index2(Request $request)
+    {
+        $query = Sale::query();
+        // Only show active sales (status = 1)
+        $query->where('status', 1);
+
+        // [MODIFIED] Filter for odd IDs OR card/credit sales
+        $query->where(function ($q) {
+            $q->whereRaw('id % 2 != 0')
+              ->orWhere('payment_method', 'card')
+              ->orWhere('payment_method', 'card_and_cash')
+              ->orWhere('credit_balance', '>', 0);
+        });
+
+        // Default to today's date
+        $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $branchId = $request->get('branch_id');
+
+        // [FIXED] Run the subquery first to get the IDs into an array
+        $lastTenSalesIds = Sale::query()
+            ->where('status', 1)
+            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->pluck('id'); // Get the IDs into a collection/array
+
+        $query = Sale::query();
+        // Only show active sales (status = 1)
+        $query->where('status', 1);
+
+        // [MODIFIED] Use the $lastTenSalesIds array in the 'orWhereIn'
+        $query->where(function ($q) use ($lastTenSalesIds) {
+            $q->where(function ($sub) { // The odd/card/credit group
+                $sub->whereRaw('id % 2 != 0')
+                    ->orWhere('payment_method', 'card')
+                    ->orWhere('payment_method', 'card_and_cash')
+                    ->orWhere('credit_balance', '>', 0);
+            })
+            ->orWhereIn('id', $lastTenSalesIds); // The "last 10" group
+        });
+
+        // Apply date filter
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        // Apply branch filter
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        // [MODIFIED] Get sales with pagination (10 results)
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
+
+        // Calculate totals - get all sales for filtering, then calculate in PHP
+
+        // [FIXED] We can re-use the $lastTenSalesIds array for the totals query
+
+        $allSalesQuery = Sale::query()
+            ->where('status', 1)
+            // [MODIFIED] Apply same combined filter logic to totals
+            ->where(function ($q) use ($lastTenSalesIds) {
+                $q->where(function ($sub) { // The odd/card/credit group
+                    $sub->whereRaw('id % 2 != 0')
+                        ->orWhere('payment_method', 'card')
+                        ->orWhere('payment_method', 'card_and_cash')
+                        ->orWhere('credit_balance', '>', 0);
+                })
+                ->orWhereIn('id', $lastTenSalesIds); // The "last 10" group
+            })
+            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+        $allSales = $allSalesQuery->get();
+
+        // Calculate totals with overpayment trimming
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($allSales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        // Create totals object
+        $totals = (object) [
+            'total_transactions' => $allSales->count(),
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
+
+        // Get available branches for the dropdown
+        $branches = Branch::active()->orderBy('name')->get();
+
+        return view('sales-report.index2', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
+    }
+
+    /**
+     * Get sale items for a specific sale (AJAX)
+     */
+    public function getSaleItems(Sale $sale)
+    {
+        $sale->load('branch');
+        $saleItems = $sale->saleItems()->with('item')->get();
+
+        return response()->json([
+            'sale' => [
+                'receipt_no' => $sale->receipt_no,
+                'user_name' => $sale->user_name,
+                'branch_name' => $sale->branch->name ?? 'N/A',
+                'subtotal' => $sale->subtotal,
+                'discount' => $sale->discount,
+                'tax' => $sale->tax,
+                'total' => $sale->total,
+                'payment_method' => $sale->payment_method,
+                'customer_payment' => $sale->customer_payment,
+                'balance' => $sale->balance,
+                'created_at' => $sale->created_at->format('Y-m-d H:i:s'),
+            ],
+            'items' => $saleItems->map(function ($saleItem) {
+                return [
+                    'item_name' => $saleItem->item_name,
+                    'quantity' => $saleItem->quantity,
+                    'unit_price' => $saleItem->unit_price,
+                    'total_price' => $saleItem->total_price,
+                ];
+            })
+        ]);
+    }
+
+    /**
+     * Export sales report to Excel
+     */
+    public function exportExcel2(Request $request)
+    {
+        $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $branchId = $request->get('branch_id');
+
+        // [FIXED] Run the subquery first to get the IDs into an array
+        $lastTenSalesIds = Sale::query()
+            ->where('status', 1)
+            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->pluck('id'); // Get the IDs into a collection/array
+
+        $query = Sale::query();
+        // Only export active sales
+        $query->where('status', 1);
+
+        // [MODIFIED] Use the $lastTenSalesIds array in the 'orWhereIn'
+        $query->where(function ($q) use ($lastTenSalesIds) {
+            $q->where(function ($sub) { // The odd/card/credit group
+                $sub->whereRaw('id % 2 != 0')
+                    ->orWhere('payment_method', 'card')
+                    ->orWhere('payment_method', 'card_and_cash')
+                    ->orWhere('credit_balance', '>', 0);
+            })
+            ->orWhereIn('id', $lastTenSalesIds); // The "last 10" group
+        });
+
+        // Apply filters
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
+
+        // Calculate totals with overpayment trimming
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        // Create totals object
+        $totals = (object) [
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
+
+        // Create spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set headers
+        $headers = [
+            'A1' => 'Receipt No',
+            'B1' => 'Branch Name',
+            'C1' => 'Subtotal',
+            'D1' => 'Payment Method',
+            'E1' => 'Cash',
+            'F1' => 'Card',
+            'G1' => 'Credit',
+            'H1' => 'Date',
+        ];
+
+        foreach ($headers as $cell => $header) {
+            $sheet->setCellValue($cell, $header);
+            $sheet->getStyle($cell)->getFont()->setBold(true);
+        }
+
+        // Add data
+        $row = 2;
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $cashAmount = min($customerPayment, $total);
+                $cardAmount = 0;
+            } elseif ($paymentMethod === 'card') {
+                $cashAmount = 0;
+                $cardAmount = min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $cardAmount = $total;
+                    $cashAmount = 0;
+                } else {
+                    $cardAmount = $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $cashAmount = min($customerPayment, $remaining);
+                }
+            } else {
+                $cashAmount = 0;
+                $cardAmount = 0;
+            }
+
+            $sheet->setCellValue('A' . $row, $sale->receipt_no);
+            $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
+            $sheet->setCellValue('C' . $row, $sale->subtotal);
+            $sheet->setCellValue('D' . $row, $sale->payment_method);
+            $sheet->setCellValue('E' . $row, $cashAmount);
+            $sheet->setCellValue('F' . $row, $cardAmount);
+            $sheet->setCellValue('G' . $row, $sale->credit_balance ?? 0);
+            $sheet->setCellValue('H' . $row, $sale->created_at->format('Y-m-d H:i:s'));
+            $row++;
+        }
+
+        // Add totals row
+        $sheet->setCellValue('A' . $row, 'TOTAL');
+        $sheet->setCellValue('B' . $row, '');
+        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('D' . $row, '');
+        $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
         $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
         $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);
         $sheet->setCellValue('H' . $row, '');
@@ -387,7 +704,7 @@ class SalesReportController extends Controller
                             $restoredCount++;
                         } else {
                             $error = "Stock mismatch for inventory #{$inventory->id}";
-                            
+
                             $errors[] = $error;
                         }
                     } else {

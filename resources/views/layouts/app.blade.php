@@ -12,20 +12,16 @@
 
     <title>{{ config('app.name', 'Ravon Bakers') }} - Restaurant Management System</title>
 
-    <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
     <link rel="shortcut icon" type="image/jpeg" href="{{ asset('images/logo.jpg') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/logo.jpg') }}">
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
-    <!-- Custom CSS -->
     <style>
         .sidebar {
             min-height: 100vh;
@@ -486,15 +482,12 @@
         }
     </style>
 
-    <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body>
-    <!-- Sidebar Overlay for Mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
         <div class="position-sticky pt-3">
             <div class="sidebar-header">
@@ -508,7 +501,6 @@
                     <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
                 </a>
                 @else
-                <!-- Admins link logo to user management -->
                 <a href="{{ route('users.index') }}" style="text-decoration: none;">
                     <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
                 </a>
@@ -520,7 +512,6 @@
 
             <ul class="nav flex-column px-3">
                 @if(auth()->user()->isSupervisor())
-                <!-- Supervisor Navigation -->
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('supervisor.dashboard') ? 'active' : '' }}"
                         href="{{ route('supervisor.dashboard') }}">
@@ -553,7 +544,6 @@
                     </a>
                 </li>
 
-                <!-- Reports dropdown -->
                 @php
                 $reportsActive = request()->routeIs('supervisor.wastage-view') || request()->routeIs('stock-transfer.transfers') || request()->routeIs('supervisor.inventory-history') || request()->routeIs('supervisor.productions.*');
                 @endphp
@@ -575,7 +565,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}" 
+                                <a class="nav-link {{ request()->routeIs('stock-transfer.transfers') ? 'active' : '' }}"
                                    href="{{ route('stock-transfer.transfers') }}"
                                    style="position: relative;">
                                     @if($pendingStockTransfersCount > 0)
@@ -604,7 +594,6 @@
                     </div>
                 </li>
                 @else
-                <!-- Regular Navigation for Admin and Staff -->
                 @if(auth()->user()->role !== 'admin')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
@@ -635,8 +624,7 @@
                 </li>
                 @endcan
 
-                <!-- Categories and Items - Only for Admin -->
-                @if(auth()->user()->role === 'admin')
+                @if(auth()->user()->role === 'admin' || auth()->user()->role === 'director')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}"
                         href="{{ route('categories.index') }}">
@@ -653,9 +641,15 @@
                     </a>
                 </li>
 
-                <!-- Admin Reports dropdown -->
                 @php
-                $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('reports.*');
+                    $adminReportsActive = false; // Default
+                    if (auth()->user()->role === 'director') {
+                        // Director sees sales-report.* and reports.*
+                        $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('reports.*');
+                    } elseif (auth()->user()->role === 'admin') {
+                        // Admin sees sales-report2.* and reports.*
+                        $adminReportsActive = request()->routeIs('sales-report2.*') || request()->routeIs('reports.*');
+                    }
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link d-flex justify-content-between align-items-center {{ $adminReportsActive ? 'active' : '' }}"
@@ -668,12 +662,28 @@
                     </a>
                     <div class="submenu-container {{ $adminReportsActive ? 'show' : '' }}" id="adminReportsSubmenu">
                         <ul class="nav flex-column ms-3">
+
+                            {{-- Show "Daily Sales Report" ONLY to director --}}
+                            @if(auth()->user()->role === 'director')
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('sales-report.*') ? 'active' : '' }}" href="{{ route('sales-report.index') }}">
                                     <i class="bi bi-cash-coin"></i>
                                     <span>Daily Sales Report</span>
                                 </a>
                             </li>
+                            @endif
+
+                            {{-- Show "Daily Sales Report-2" ONLY to admin --}}
+                            @if(auth()->user()->role === 'admin')
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('sales-report2.*') ? 'active' : '' }}" href="{{ route('sales-report2.index2') }}">
+                                    <i class="bi bi-cash-coin"></i>
+                                    <span>Daily Sales Report-2</span>
+                                </a>
+                            </li>
+                            @endif
+
+                            {{-- Show these reports to BOTH admin and director --}}
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('reports.stock-report') ? 'active' : '' }}" href="{{ route('reports.stock-report') }}">
                                     <i class="bi bi-boxes"></i>
@@ -691,7 +701,6 @@
                 </li>
                 @endif
 
-                <!-- Stock Transfer (For Staff) -->
                 @if(auth()->user()->role === 'staff' && auth()->user()->branch_id)
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('stock-transfer.*') ? 'active' : '' }}"
@@ -699,7 +708,7 @@
                         style="position: relative;">
                         @if($pendingStockTransfersCount > 0)
                         <span class="position-absolute badge rounded-pill bg-warning text-dark"
-                              style="top: 0; left: 0; font-size: 0.65rem; padding: 0.25rem 0.5rem; transform: translate(-25%, -25%);">
+                            style="top: 0; left: 0; font-size: 0.65rem; padding: 0.25rem 0.5rem; transform: translate(-25%, -25%);">
                             {{ $pendingStockTransfersCount }}
                             <span class="visually-hidden">pending transfers</span>
                         </span>
@@ -717,7 +726,6 @@
                 </li>
                 @endif
 
-                <!-- Add Branch Wastage (For Staff) -->
                 @if(auth()->user()->role === 'staff')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('staff.add-branch-wastage') ? 'active' : '' }}"
@@ -726,7 +734,6 @@
                         <span>Add Wastage</span>
                     </a>
                 </li>
-                <!-- Reports Dropdown (For Staff) -->
                 @php
                 $staffReportsActive = request()->routeIs('staff.branch-wastage-view') || request()->routeIs('staff.branch-inventory');
                 @endphp
@@ -749,7 +756,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ request()->routeIs('staff.branch-wastage-view') ? 'active' : '' }}" 
+                                <a class="nav-link {{ request()->routeIs('staff.branch-wastage-view') ? 'active' : '' }}"
                                    href="{{ route('staff.branch-wastage-view') }}">
                                     <i class="bi bi-trash"></i>
                                     <span>Branch Wastage</span>
@@ -764,20 +771,15 @@
         </div>
     </nav>
 
-    <!-- Sidebar Overlay for Mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- Main content -->
     <main class="content-wrapper">
-        <!-- Top Navigation -->
         <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
             <div class="container-fluid">
-                <!-- Sidebar Toggle Button (Desktop) -->
                 <button class="btn btn-outline-secondary me-3" type="button" id="sidebarToggle">
                     <i class="bi bi-list"></i>
                 </button>
 
-                <!-- Mobile Hamburger Menu -->
                 <button class="navbar-toggler d-md-none" type="button" id="mobileMenuToggle">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -802,7 +804,6 @@
                 @endif
 
                 <div class="d-flex align-items-center">
-                    <!-- POS Button (visible to staff only, not supervisors) -->
                     @if(auth()->check() && auth()->user()->isStaff())
                     <a href="{{ route('pos.index') }}" class="btn pos-btn me-3">
                         <i class="bi bi-calculator"></i>
@@ -810,7 +811,6 @@
                     </a>
                     @endif
 
-                    <!-- User Dropdown -->
                     <div class="dropdown">
                         <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i>
@@ -831,7 +831,6 @@
             </div>
         </nav>
 
-        <!-- Page Content -->
         <div class="container-fluid px-4">
             @if (session('success'))
             <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -850,7 +849,6 @@
             @yield('content', $slot ?? '')
         </div>
 
-        <!-- Footer -->
         <footer class="main-footer" id="mainFooter">
             <div class="container-fluid">
                 <div class="footer-content">
@@ -865,16 +863,14 @@
         </footer>
     </main>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <!-- Global AJAX Error Handler -->
     <script>
         // Global AJAX error handler for jQuery
         $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
             let errorMessage = 'An error occurred. Please try again.';
-            
+
             // Try to get error message from JSON response
             if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
                 errorMessage = jqXHR.responseJSON.message;
@@ -889,7 +885,7 @@
                     errorMessage = jqXHR.statusText || errorMessage;
                 }
             }
-            
+
             // Show error alert
             alert('Error: ' + errorMessage);
         });
@@ -897,7 +893,7 @@
         // Global error handler for fetch API
         window.addEventListener('unhandledrejection', function(event) {
             console.error('Unhandled promise rejection:', event.reason);
-            
+
             // If it's a fetch error, try to extract message
             if (event.reason && event.reason.message) {
                 alert('Error: ' + event.reason.message);
@@ -908,14 +904,14 @@
         window.fetchWithErrorHandling = async function(url, options = {}) {
             try {
                 const response = await fetch(url, options);
-                
+
                 if (!response.ok) {
                     const data = await response.json().catch(() => ({}));
                     const errorMessage = data.message || `HTTP error! status: ${response.status}`;
                     alert('Error: ' + errorMessage);
                     throw new Error(errorMessage);
                 }
-                
+
                 return response;
             } catch (error) {
                 if (!error.message.includes('HTTP error')) {
@@ -926,7 +922,6 @@
         };
     </script>
 
-    <!-- Custom JS -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');

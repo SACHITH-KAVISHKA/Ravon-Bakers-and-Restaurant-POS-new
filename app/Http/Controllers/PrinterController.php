@@ -9,6 +9,49 @@ use Illuminate\Support\Facades\Log;
 
 class PrinterController extends Controller
 {
+
+      public function signQzRequest(Request $request)
+    {
+        $requestData = $request->input('data');
+        // storage/app/keys/private-key.pem
+        $absolutePath = storage_path('app/keys/private-key.pem');
+
+        // 1. File existence check using 'file_exists'
+        if (!file_exists($absolutePath)) {
+            // 'file_exists'
+            return response()->json([
+                'error' => 'PHP file_exists() check failed. Key not found.',
+                'checked_path' => $absolutePath
+            ], 500);
+        }
+
+        // 2. File readability check using 'is_readable'
+        $privateKey = file_get_contents($absolutePath);
+
+        // Check if file_get_contents returned false
+        if ($privateKey === false) {
+            return response()->json([
+                'error' => 'PHP file_get_contents() failed. Key found but UNREADABLE.',
+                'checked_path' => $absolutePath
+            ], 500);
+        }
+
+        $signature = null;
+
+        // 3. Attempt to sign the data
+        if (!openssl_sign($requestData, $signature, $privateKey, 'sha1')) {
+             return response()->json(['error' => 'Failed to sign data. Check OpenSSL.'], 500);
+        }
+
+        if ($signature) {
+            return response()->json(['signature' => base64_encode($signature)]);
+        }
+
+        return response()->json(['error' => 'Signing failed'], 500);
+    }
+
+
+
     /**
      * Display a listing of printers
      */
@@ -16,7 +59,7 @@ class PrinterController extends Controller
     {
         $printers = Printer::with('branch')->orderBy('printer_type')->orderBy('name')->get();
         $branches = Branch::where('status', 1)->get();
-        
+
         return view('printers.index', compact('printers', 'branches'));
     }
 
@@ -118,14 +161,14 @@ class PrinterController extends Controller
         try {
             $connector = $printer->getConnector();
             $escposPrinter = new \Mike42\Escpos\Printer($connector);
-            
+
             // Print test page
             $escposPrinter->setJustification(\Mike42\Escpos\Printer::JUSTIFY_CENTER);
             $escposPrinter->setEmphasis(true);
             $escposPrinter->text("TEST PRINT\n");
             $escposPrinter->setEmphasis(false);
             $escposPrinter->text(str_repeat("=", 32) . "\n\n");
-            
+
             $escposPrinter->setJustification(\Mike42\Escpos\Printer::JUSTIFY_LEFT);
             $escposPrinter->text("Printer: {$printer->name}\n");
             $escposPrinter->text("Type: " . strtoupper($printer->printer_type) . "\n");
@@ -138,20 +181,20 @@ class PrinterController extends Controller
             $escposPrinter->text("Date: " . now()->format('Y-m-d H:i:s') . "\n");
             $escposPrinter->text(str_repeat("=", 32) . "\n");
             $escposPrinter->text("Status: SUCCESS\n");
-            
+
             $escposPrinter->cut();
             $escposPrinter->close();
 
             Log::info("Printer test successful: {$printer->name}");
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Test print sent successfully! Check your printer.'
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error("Printer test failed: {$printer->name} - " . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Printer test failed: ' . $e->getMessage()

@@ -34,7 +34,7 @@ class AuthServiceProvider extends ServiceProvider
 
         // Define gate for supervisor access (admin and supervisor can access)
         Gate::define('supervisor-access', function (User $user) {
-            return $user->isSupervisor() || $user->isAdmin();
+            return $user->isSupervisor() || $user->isAdmin() || $user->isDirector();
         });
     }
 }

@@ -17,6 +17,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 
+    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2/qz-tray.js"></script>
+
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1607,6 +1609,125 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+
+        // --- QZ TRAY SECURITY CONFIGURATION (START) ---
+
+            // 1.Given Certificate
+            qz.security.setCertificatePromise(function(resolve, reject) {
+
+                resolve(`-----BEGIN CERTIFICATE-----
+                    MIIDqzCCApOgAwIBAgIURnXllt3WhlgxHc/qdr8XWeD7ltIwDQYJKoZIhvcNAQEL
+                    BQAwZTELMAkGA1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0Nv
+                    bG9tYm8xFTATBgNVBAoMDFJhdm9uIEJha2VyczEbMBkGA1UEAwwScG9zLnJhdm9u
+                    YmFrZXJzLmxrMB4XDTI1MTExNzA1NTUyNVoXDTM1MTExNTA1NTUyNVowZTELMAkG
+                    A1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0NvbG9tYm8xFTAT
+                    BgNVBAoMDFJhdm9uIEJha2VyczEbMBkGA1UEAwwScG9zLnJhdm9uYmFrZXJzLmxr
+                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvotPw8d6nHoLpJWDa+Vf
+                    i7ZD/ZpWS8RnuIFx4SYmJFyutLzGyheEsSiTrQhNk1Ksjm1g7CHpgyssPzRvCcrg
+                    ImyzZCt4jrXILj+XrtQjVCdyiB1l28BSOBfpLUChV+6lRYwAGemSYNN9cO2jNyWC
+                    Yumbkxgc94B7bkqvddSZPDqi+cLfANMhVA3RAUTufnpVkjDO0T+ugG7K87LBk0P3
+                    rotox1PGkUgEu0bAugSO+2QC5EKf+ZdpFI04Y6w6zS8hCKbAvVu16D2Xf85AvdDO
+                    5gyBco1mj1eSOzMkolal5jr5JnzInERpDKtdKJwb46EM9VJEzC0vcNgdaQNxyhm8
+                    JwIDAQABo1MwUTAdBgNVHQ4EFgQUZXXP8k120487MmNlFYvJg6AvL/UwHwYDVR0j
+                    BBgwFoAUZXXP8k120487MmNlFYvJg6AvL/UwDwYDVR0TAQH/BAUwAwEB/zANBgkq
+                    hkiG9w0BAQsFAAOCAQEAAzZYvMCHdUc2M5S9q6sLhKwPQv7w/3WZKobRMYnrl3V7
+                    4wW6UU1wrOpz6QOl7Nq4n7Z0EYIBUvhAyxAwx189ywA2NWdoMlEIB2nXZ0BJHyCU
+                    THA9n3V7MF8SZ8qKosoWoE5BqxZaTNeQEY0//l+hjQau5rLsiYRMjuaS9Nt9cjJO
+                    cChQypBt1H+amVz03uamFmtH1sc7l/x0qD2FUVYnOkfQkR1N6kGDaX3zdsi/Vqwf
+                    ZCma1ck8SnCgJ8G5yezmIB/NKu0uWLY6hVtBJoqfUETVCH6HkUC5UChpu3WBv23p
+                    74SE0hBNngWCKrEEdepr2sI4F919lmlgSHcrauaVvA==
+                -----END CERTIFICATE-----`);
+            });
+
+            // 2. Retvive Signature from the Server
+            qz.security.setSignaturePromise(function(toSign) {
+                return function(resolve, reject) {
+                    // CSRF Token
+                    var tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                    var token = tokenMeta ? tokenMeta.content : "";
+
+                    fetch('/qz/sign', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token
+                        },
+                        body: JSON.stringify({ data: toSign })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.signature) {
+                            resolve(data.signature);
+                        } else {
+                            console.error("Signature Error:", data);
+                            reject(data.error || "No signature returned");
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Signing Failed:", err);
+                        reject(err);
+                    });
+                };
+            });
+
+        /**
+         * Use QZ Tray to print a PDF blob.
+         * @param {Blob} pdfBlob - jsPDF -- PDF blob
+         * @param {string|null} printerName - Printer name or null for default printer
+         * @param {string} jobType - Print job type description
+         */
+        async function printPDFwithQZ(pdfBlob, printerName = null, jobType = "POS Print") {
+            try {
+                // 1. Connect to QZ Tray websocket
+                if (!qz.websocket.isActive()) {
+                    await qz.websocket.connect();
+                }
+
+                // 2. Select printer
+                let printer = printerName;
+                if (!printer) {
+                    printer = await qz.printers.getDefault();
+                    if (!printer) {
+                        throw new Error("Cannot find a default printer.");
+                    }
+                }
+
+                // 3. Prepare the print configuration
+                const config = qz.configs.create(printer, {
+                    // Important: Specify that we are sending a PDF
+                });
+
+                // 4. Printing data preparation
+                const data = [{
+                    type: 'pdf',
+                    format: 'base64',
+                    data: pdfBlob
+                }];
+
+                // 5. Print the document
+                await qz.print(config, data);
+
+                console.log(`${jobType} Sent to printer: ${printer}`);
+
+            } catch (err) {
+                console.error('QZ Tray Error:', err);
+                let errorMessage = 'Printing failed. Is the QZ Tray working?\n\n' + err.message;
+                if (err.message && err.message.includes('default printer')) {
+                    errorMessage = 'Printing failed. A default printer cannot be found. Please set it in the OS.';
+                } else if (err.message && err.message.includes('Failed to get signature')) {
+                    errorMessage = 'Printing failed. Server signature error. Check the backend.';
+                } else if (err.message && err.message.includes('websocket')) {
+                    errorMessage = 'Unable to connect to QZ Tray. Please run the QZ Tray software and try again.';
+                }
+
+                showError(errorMessage);
+
+                throw err;
+            }
+        }
+        // --- END QZ TRAY INTEGRATION ---
+
+
         // Branch information for receipts
             const branchInfo = {
                 name: '{{ Auth::user()->branch->display_name ?? Auth::user()->branch->name ?? "RAVON BAKERS" }}',
@@ -1614,7 +1735,7 @@
                 address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
                 telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
             };
-        
+
         // Logo URL for PDF - encode logo image as base64 on server side
         @php
             $logoPath = public_path('images/logo.jpg');
@@ -1626,7 +1747,7 @@
         @endphp
         let logoBase64 = @json($logoBase64Data); // Pre-loaded from server
         let circularLogoBase64 = null; // Will hold the circular version
-        
+
         // Function to create circular logo from square image
         function createCircularLogo(base64Image, size) {
             return new Promise((resolve, reject) => {
@@ -1636,16 +1757,16 @@
                     canvas.width = size;
                     canvas.height = size;
                     const ctx = canvas.getContext('2d');
-                    
+
                     // Create circular clipping path
                     ctx.beginPath();
                     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
                     ctx.closePath();
                     ctx.clip();
-                    
+
                     // Draw image
                     ctx.drawImage(img, 0, 0, size, size);
-                    
+
                     // Convert to base64
                     resolve(canvas.toDataURL('image/jpeg', 0.95));
                 };
@@ -1653,7 +1774,7 @@
                 img.src = base64Image;
             });
         }
-        
+
         // Create circular logo on page load
         if (logoBase64) {
             createCircularLogo(logoBase64, 200).then(circularLogo => {
@@ -1663,7 +1784,7 @@
                 console.error('Error creating circular logo:', err);
             });
         }
-        
+
         let cart = []; // Initialize empty cart
         let selectedPaymentMethod = null; // No payment method selected by default
         let customerPayment = 0;
@@ -2549,15 +2670,18 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
                     body: JSON.stringify(orderData)
                 })
                 .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
+                // MODIFIED: Added async to handle await for printing
+                .then(async (data) => {
+                        if (data.success || data.receipt_no) {
                         // Show success modal briefly
-                        showSuccess('Payment Successful!');
+                        // MODIFIED: Changed message to indicate printing
+                        showSuccess('Payment Successful! Printing...');
 
                         // Store cart data before clearing for PDF generation
                         window.lastSaleData = {
@@ -2573,8 +2697,25 @@
                         const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
                         modal.hide();
 
-                        // Generate PDF receipt
-                        downloadReceiptPDF();
+                        // --- QZ TRAY MODIFICATION ---
+                        try {
+                            // Generate AND Print PDF receipt using QZ Tray
+                            // This function is now async
+                            // 1. Print Recipt
+                            await downloadReceiptPDF();
+
+                            // 2. Print BOT if beverage items are present
+                            if (hasBeverageItems()) {
+                                console.log("Beverage items detected. Printing BOT...");
+                                await downloadBOTPDF(false);
+                            }
+                        } catch (printError) {
+                            // The printPDFwithQZ function already showed an error modal
+                            console.error("Printing failed after successful payment:", printError);
+                            // You can add another notification here if needed
+                            showError("Payment was SUCCESSFUL, but printing failed. Check QZ Tray.");
+                        }
+                        // --- END MODIFICATION ---
 
                         // Clear the cart and start new order
                         cart = [];
@@ -2784,8 +2925,9 @@
 
             updateCartDisplay();
         }
+        // MODIFIED: Changed to an async function to support 'await'
         // Download receipt as PDF - DYNAMIC LENGTH VERSION
-        function downloadReceiptPDF() {
+        async function downloadReceiptPDF() {
             try {
                 const {
                     jsPDF
@@ -2874,7 +3016,7 @@
                                 const logoSize = 16;
                                 const logoX = pageWidth / 2 - logoSize / 2;
                                 const logoY = yPosition;
-                                
+
                                 pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
                                 yPosition += 20;
                             } catch (e) {
@@ -2884,7 +3026,7 @@
                         } else {
                             yPosition += 20;
                         }
-                        
+
                         pdf.setFontSize(12);
                         pdf.setFont('courier', 'bold');
                         // Use branch display name for continuation pages
@@ -2917,7 +3059,7 @@
                         const logoSize = 16;
                         const logoX = pageWidth / 2 - logoSize / 2;
                         const logoY = yPosition;
-                        
+
                         pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
                         yPosition += 20;
                     } catch (e) {
@@ -2927,7 +3069,7 @@
                 } else {
                     yPosition += 20;
                 }
-                
+
                 // Branch name
                 pdf.setFontSize(14);
                 pdf.setFont('courier', 'bold');
@@ -3190,96 +3332,43 @@
                     align: 'center'
                 });
 
-                // Create hidden iframe for printing instead of new window
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.style.position = 'absolute';
-                iframe.style.width = '0';
-                iframe.style.height = '0';
-                iframe.style.border = 'none';
-                document.body.appendChild(iframe);
 
-                const pdfBlob = pdf.output('blob');
-                const blobUrl = URL.createObjectURL(pdfBlob);
-                iframe.src = blobUrl;
+                // --- QZ TRAY MODIFICATION ---
+                // MODIFIED: 'iframe' logic REMOVED
+                // The PDF is now generated, get the blob
+                // Generate Base64 String
+                const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                iframe.onload = function() {
-                    try {
-                        const win = iframe.contentWindow;
+                const receiptPrinterName = "OutletPOS";
+                await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
 
-                        // Cleanup function to remove iframe and revoke blob URL
-                        const cleanup = () => {
-                            try {
-                                if (iframe && iframe.parentNode) {
-                                    document.body.removeChild(iframe);
-                                }
-                            } catch (e) {
-                                console.warn('Error removing print iframe:', e);
-                            }
-                            try {
-                                URL.revokeObjectURL(blobUrl);
-                            } catch (e) {
-                                /* ignore */
-                            }
-                        };
-
-                        // Prefer afterprint event to know when printing completed
-                        const onAfterPrint = () => {
-                            cleanup();
-                            try {
-                                win.removeEventListener('afterprint', onAfterPrint);
-                            } catch (e) {}
-                        };
-
-                        // Attach listener if supported
-                        try {
-                            win.addEventListener('afterprint', onAfterPrint);
-                        } catch (e) {
-                            // ignore if can't attach
-                        }
-
-                        // Trigger print and focus the iframe window
-                        setTimeout(() => {
-                            try {
-                                win.focus();
-                            } catch (e) {}
-                            try {
-                                win.print();
-                            } catch (e) {
-                                console.error('Print failed:', e);
-                            }
-                        }, 300);
-
-                        // Fallback: if afterprint doesn't fire, remove iframe after a safe delay
-                        setTimeout(() => {
-                            if (document.body.contains(iframe)) {
-                                cleanup();
-                            }
-                        }, 8000);
-
-                    } catch (err) {
-                        console.error('Print iframe error', err);
-                        // Best-effort cleanup
-                        setTimeout(() => {
-                            try {
-                                if (iframe && iframe.parentNode) document.body.removeChild(iframe);
-                            } catch (e) {}
-                            try {
-                                URL.revokeObjectURL(blobUrl);
-                            } catch (e) {}
-                        }, 3000);
-                    }
-                };
+                console.log("Receipt PDF has been sent to QZ Tray.");
+                // --- END QZ TRAY MODIFICATION ---
 
             } catch (error) {
                 console.error('PDF Error:', error);
-                alert('Failed to generate PDF: ' + error.message);
+
+                // --- QZ TRAY MODIFICATION ---
+                // QZ Tray errors (like "websocket") will be caught by printPDFwithQZ
+                // This catches jsPDF errors
+                if (!error.message || !error.message.includes('QZ')) {
+                    alert('Failed to generate PDF: ' + error.message);
+                }
+                // Re-throw to be caught by processModalPayment
+                throw error;
             }
         }
 
-        // Download BOT (Bar Order Ticket) as PDF
-        function downloadBOTPDF() {
+            // MODIFIED: Added 'showAlerts = true' parameter
+            async function downloadBOTPDF(showAlerts = true) {
+            const botBtn = document.getElementById('modal-bot-btn');
             try {
+                // MODIFIED: Only show button spinning if called from the button
+                if (showAlerts && botBtn) {
+                    botBtn.disabled = true;
+                    botBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Printing BOT...';
+                }
+
                 const {
                     jsPDF
                 } = window.jspdf;
@@ -3287,17 +3376,19 @@
                 // Get stored cart data or use current cart
                 const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
 
-                // Filter only bar/beverage items based on item_type OR category
+                // Filter only bar/beverage items...
                 const barItems = cartData.filter(item => {
-                    // Check if item type is 'Bar' or 'Both' OR if category is 'Beverages'
                     return item.itemType === 'Bar' ||
                         item.itemType === 'Both' ||
                         item.category === 'Beverages';
                 });
 
+                // MODIFIED: Only show alert if called from the button
                 if (barItems.length === 0) {
-                    alert('No beverage items found in the current order.');
-                    return;
+                    if (showAlerts) {
+                        alert('No beverage items found in the current order.');
+                    }
+                    return; // finally block will re-enable button
                 }
 
                 // Calculate totals from bar items only
@@ -3495,63 +3586,41 @@
                     align: 'center'
                 });
 
-                // Generate blob and trigger print
-                const pdfBlob = pdf.output('blob');
-                const blobUrl = URL.createObjectURL(pdfBlob);
 
-                // Create hidden iframe for printing
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = blobUrl;
-                document.body.appendChild(iframe);
+                // --- QZ TRAY MODIFICATION ---
+                // MODIFIED: 'iframe' logic REMOVED
+                // Generate blob
+                  // Generate Base64 String
+                const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                // Setup print
-                iframe.onload = function() {
-                    try {
-                        const cleanup = () => {
-                            try {
-                                if (iframe && iframe.parentNode) {
-                                    document.body.removeChild(iframe);
-                                }
-                                URL.revokeObjectURL(blobUrl);
-                            } catch (e) {
-                                console.error('Cleanup error:', e);
-                            }
-                        };
+                const botPrinterName = "BOT";
+                await printPDFwithQZ(pdfBase64, botPrinterName, "BOT");
 
-                        iframe.contentWindow.onafterprint = cleanup;
+                // showSuccess("BOT sent to printer!");
 
-                        setTimeout(() => {
-                            try {
-                                iframe.contentWindow.print();
-                            } catch (printErr) {
-                                console.error('Print error:', printErr);
-                                cleanup();
-                            }
-                        }, 50);
-
-                        setTimeout(() => {
-                            if (document.body.contains(iframe)) {
-                                cleanup();
-                            }
-                        }, 8000);
-
-                    } catch (err) {
-                        console.error('Print iframe error', err);
-                        setTimeout(() => {
-                            try {
-                                if (iframe && iframe.parentNode) document.body.removeChild(iframe);
-                            } catch (e) {}
-                            try {
-                                URL.revokeObjectURL(blobUrl);
-                            } catch (e) {}
-                        }, 3000);
-                    }
-                };
+                // MODIFIED: Only show success alert if called from button
+                if (showAlerts) {
+                    showSuccess("BOT sent to printer!");
+                }
+                // --- END QZ TRAY MODIFICATION ---
 
             } catch (error) {
                 console.error('BOT PDF Error:', error);
-                alert('Failed to generate BOT PDF: ' + error.message);
+                // QZ Tray errors are already shown by printPDFwithQZ
+                // This catches jsPDF errors
+                if (!error.message || !error.message.includes('QZ')) {
+                    alert('Failed to generate BOT PDF: ' + error.message);
+                }
+            } finally {
+                // // Re-enable button regardless of success or failure
+                // botBtn.disabled = false;
+                // botBtn.innerHTML = '<i class="bi bi-cup-straw"></i> Print BOT';
+
+                // MODIFIED: Only re-enable button if called from the button
+                if (showAlerts && botBtn) {
+                    botBtn.disabled = false;
+                    botBtn.innerHTML = '<i class="bi bi-cup-straw"></i> Print BOT';
+                }
             }
         }
 

@@ -12,15 +12,19 @@ class CategoryController extends Controller
     use AuthorizesRequests;
 
     /**
+     * Apply 'manage-users' gate to all controller methods.
+     * This will allow 'admin' and 'director' roles.
+     */
+    public function __construct()
+    {
+        $this->middleware('can:manage-users');
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        // Only admin can access category management
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can access category management.');
-        }
-
         $this->authorize('viewAny', Category::class);
 
         $categories = Category::active()->orderBy('name')->get();
@@ -33,11 +37,6 @@ class CategoryController extends Controller
      */
     public function create()
     {
-        // Only admin can create categories
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can create categories.');
-        }
-
         $this->authorize('create', Category::class);
 
         $categories = Category::active()->orderBy('name')->get();
@@ -50,11 +49,6 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
-        // Only admin can store categories
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can create categories.');
-        }
-
         $this->authorize('create', Category::class);
 
         $validated = $request->validate([
@@ -82,11 +76,6 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
-        // Only admin can view category details
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can view category details.');
-        }
-
         $this->authorize('view', $category);
 
         return view('categories.show', compact('category'));
@@ -97,11 +86,6 @@ class CategoryController extends Controller
      */
     public function edit(Category $category)
     {
-        // Only admin can edit categories
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can edit categories.');
-        }
-
         $this->authorize('update', $category);
 
         $categories = Category::active()->where('id', '!=', $category->id)->orderBy('name')->get();
@@ -114,11 +98,6 @@ class CategoryController extends Controller
      */
     public function update(Request $request, Category $category)
     {
-        // Only admin can update categories
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can update categories.');
-        }
-
         $this->authorize('update', $category);
 
         $validated = $request->validate([
@@ -136,11 +115,6 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        // Only admin can delete categories
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can delete categories.');
-        }
-
         $this->authorize('delete', $category);
 
         $category->softDelete();
@@ -154,11 +128,6 @@ class CategoryController extends Controller
      */
     public function restore(Category $category)
     {
-        // Only admin can restore categories
-        if (Auth::user()->role !== 'admin') {
-            abort(403, 'Only administrators can restore categories.');
-        }
-
         $this->authorize('delete', $category);
 
         $category->restore();

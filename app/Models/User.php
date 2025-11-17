@@ -81,7 +81,13 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
-
+       /**
+     * Check if user is director
+     */
+    public function isDirector(): bool
+    {
+        return $this->role === 'director';
+    }
     /**
      * Check if user is staff
      */
@@ -103,7 +109,7 @@ class User extends Authenticatable
      */
     public function hasManagementPrivileges(): bool
     {
-        return $this->isAdmin() || $this->isSupervisor();
+        return $this->isAdmin() || $this->isSupervisor() || $this->isDirector();
     }
 
     /**

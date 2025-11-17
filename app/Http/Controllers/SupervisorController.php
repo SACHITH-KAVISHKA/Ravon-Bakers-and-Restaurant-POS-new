@@ -408,10 +408,10 @@ class SupervisorController extends Controller
             
             return [
                 'id' => $firstRow->item_id,
-                'name' => $firstRow->item_name,  // Changed from 'item_name' to 'name' to match view
-                'item_code' => $firstRow->item_code ?? '',  // Add item_code for view
+                'name' => $firstRow->item_name,
+                'item_code' => $firstRow->item_code ?? '',
                 'main_stock' => $mainStock,
-                'branch_stocks' => $branchStocks  // Keyed by branch name
+                'branch_stocks' => $branchStocks
             ];
         })->values();
 

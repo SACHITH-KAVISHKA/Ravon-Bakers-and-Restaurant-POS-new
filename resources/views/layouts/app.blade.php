@@ -704,12 +704,12 @@
                             </li>
                             @endif
 
-                            {{-- Show "Daily Sales Report-2" ONLY to admin --}}
+                            {{-- Show "Daily Sales Report" ONLY to admin --}}
                             @if(auth()->user()->role === 'admin')
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('sales-report2.*') ? 'active' : '' }}" href="{{ route('sales-report2.index2') }}">
                                     <i class="bi bi-cash-coin"></i>
-                                    <span>Daily Sales Report-2</span>
+                                    <span>Daily Sales Report</span>
                                 </a>
                             </li>
                             @endif

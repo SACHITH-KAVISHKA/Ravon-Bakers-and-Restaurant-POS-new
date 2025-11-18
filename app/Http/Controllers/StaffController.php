@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\InventoryRequest;
 use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
@@ -64,8 +65,9 @@ class StaffController extends Controller
             return redirect()->back()->with('error', 'You must be assigned to a branch to accept inventory items.');
         }
 
-        DB::transaction(function () use ($request, $inventoryRequest, $userId, $userBranchId) {
-            $itemIds = $request->items;
+        try {
+            DB::transaction(function () use ($request, $inventoryRequest, $userId, $userBranchId) {
+                $itemIds = $request->items;
             
             // Get the inventory request items to be accepted
             $itemsToAccept = InventoryRequestItem::with('item')
@@ -98,13 +100,24 @@ class StaffController extends Controller
                         'low_stock_alert' => 10, // Default low stock alert
                     ]);
                 }
-            }
-        });
+                }
+            });
 
-        $acceptedCount = count($request->items);
-        
-        return redirect()->route('staff.pending-inventory-requests')
-            ->with('success', "Successfully accepted {$acceptedCount} items and added them to your branch inventory!");
+            $acceptedCount = count($request->items);
+            
+            return redirect()->route('staff.pending-inventory-requests')
+                ->with('success', "Successfully accepted {$acceptedCount} items and added them to your branch inventory!");
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Accept Inventory Items Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while accepting inventory. Please contact support.');
+
+        } catch (\Exception $e) {
+            Log::error('Accept Inventory Items Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while accepting inventory. Please try again.');
+        }
     }
 
     /**
@@ -244,9 +257,10 @@ class StaffController extends Controller
             }
         }
 
-        DB::transaction(function () use ($request, $userId, $userBranchId) {
-            // Create wastage record
-            $wastage = Wastage::create([
+        try {
+            DB::transaction(function () use ($request, $userId, $userBranchId) {
+                // Create wastage record
+                $wastage = Wastage::create([
                 'user_id' => $userId,
                 'branch_id' => $userBranchId,
                 'date_time' => $request->date_time,
@@ -272,11 +286,24 @@ class StaffController extends Controller
                 if ($inventory) {
                     $inventory->decrement('current_stock', $itemData['wasted_quantity']);
                 }
-            }
-        });
+                }
+            });
 
-        return redirect()->route('staff.branch-inventory')
-            ->with('success', 'Branch wastage has been recorded successfully and inventory has been updated!');
+            return redirect()->route('staff.branch-inventory')
+                ->with('success', 'Branch wastage has been recorded successfully and inventory has been updated!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Store Branch Wastage Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while recording wastage. Please contact support.')
+                ->withInput();
+
+        } catch (\Exception $e) {
+            Log::error('Store Branch Wastage Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while recording wastage. Please try again.')
+                ->withInput();
+        }
     }
 
     /**
@@ -382,9 +409,10 @@ class StaffController extends Controller
             return back()->withErrors(['to_branch_id' => 'You cannot transfer to your own branch.'])->withInput();
         }
 
-        DB::transaction(function () use ($request, $userId, $userBranchId) {
-            // Create the stock transfer from staff's branch to another branch
-            $transfer = StockTransfer::create([
+        try {
+            DB::transaction(function () use ($request, $userId, $userBranchId) {
+                // Create the stock transfer from staff's branch to another branch
+                $transfer = StockTransfer::create([
                 'from_branch_id' => $userBranchId, // Staff's branch as source
                 'to_branch_id' => $request->to_branch_id,
                 'date_time' => $request->date_time,
@@ -410,11 +438,24 @@ class StaffController extends Controller
                     'quantity' => $itemData['quantity'],
                     'available_quantity' => $inventory->current_stock,
                 ]);
-            }
-        });
+                }
+            });
 
-        return redirect()->route('stock-transfer.transfers')
-            ->with('success', 'Stock transfer request has been sent successfully!');
+            return redirect()->route('stock-transfer.transfers')
+                ->with('success', 'Stock transfer request has been sent successfully!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Staff Stock Transfer Store Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while creating stock transfer. Please contact support.')
+                ->withInput();
+
+        } catch (\Exception $e) {
+            Log::error('Staff Stock Transfer Store Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**

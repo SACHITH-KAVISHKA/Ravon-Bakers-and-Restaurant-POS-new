@@ -147,6 +147,12 @@
                                         <i class="bi bi-eye"></i>
                                     </button>
 
+                                    <button class="btn btn-sm btn-outline-success ms-1 print-receipt-btn"
+                                        data-receipt-url="{{ route('sales-report.receipt', ['sale' => $sale->id]) }}"
+                                        title="Print Receipt">
+                                        <i class="bi bi-printer"></i>
+                                    </button>
+
                                     @if($sale->status ?? 1)
                                     <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn" 
                                             data-sale-id="{{ $sale->id }}"
@@ -405,6 +411,31 @@
                 }).always(function() {
                     button.prop('disabled', false);
                 });
+            });
+
+            // Handle direct print receipt button
+            $(document).on('click', '.print-receipt-btn', function() {
+                const receiptUrl = $(this).data('receipt-url');
+                
+                // Create or reuse hidden iframe
+                let printFrame = document.getElementById('print-receipt-frame');
+                if (!printFrame) {
+                    printFrame = document.createElement('iframe');
+                    printFrame.id = 'print-receipt-frame';
+                    printFrame.style.display = 'none';
+                    document.body.appendChild(printFrame);
+                }
+                
+                // Load receipt and print
+                printFrame.src = receiptUrl;
+                printFrame.onload = function() {
+                    try {
+                        printFrame.contentWindow.print();
+                    } catch (e) {
+                        console.error('Print error:', e);
+                        alert('Unable to print. Please try again.');
+                    }
+                };
             });
         });
     </script>

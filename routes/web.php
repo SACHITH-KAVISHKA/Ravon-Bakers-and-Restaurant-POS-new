@@ -80,6 +80,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [SalesReportController::class, 'index'])->name('index');
         // Route::get('/', [SalesReportController::class, 'index2'])->name('index2');
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
+        Route::get('/receipt/{sale}', [SalesReportController::class, 'receipt'])->name('receipt');
         Route::get('/export', [SalesReportController::class, 'exportExcel'])->name('export');
         // Route::get('/export', [SalesReportController::class, 'exportExcel2'])->name('export2');
         Route::post('/sale/{sale}/status', [SalesReportController::class, 'updateStatus'])->name('sale.update-status');
@@ -89,6 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('sales-report2')->name('sales-report2.')->group(function () {
         Route::get('/', [SalesReportController::class, 'index2'])->name('index2');
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
+        Route::get('/receipt/{sale}', [SalesReportController::class, 'receipt'])->name('receipt');
         Route::get('/export', [SalesReportController::class, 'exportExcel2'])->name('export2');
         Route::post('/sale/{sale}/status', [SalesReportController::class, 'updateStatus'])->name('sale.update-status');
     });

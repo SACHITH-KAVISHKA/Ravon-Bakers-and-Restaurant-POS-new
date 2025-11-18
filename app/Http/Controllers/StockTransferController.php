@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class StockTransferController extends Controller
 {
@@ -61,10 +62,11 @@ class StockTransferController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.01',
         ]);
 
-        DB::transaction(function () use ($request, $userId) {
-            // Create the stock transfer (from central inventory to branch)
-            // Explicitly set from_branch_id to 1 for supervisor transfers (main/central inventory)
-            $transfer = StockTransfer::create([
+        try {
+            DB::transaction(function () use ($request, $userId) {
+                // Create the stock transfer (from central inventory to branch)
+                // Explicitly set from_branch_id to 1 for supervisor transfers (main/central inventory)
+                $transfer = StockTransfer::create([
                 'from_branch_id' => 1, // Main/Central inventory branch
                 'to_branch_id' => $request->to_branch_id,
                 'date_time' => $request->date_time,
@@ -91,11 +93,24 @@ class StockTransferController extends Controller
                     'quantity' => $itemData['quantity'],
                     'available_quantity' => $inventory->current_stock,
                 ]);
-            }
-        });
+                }
+            });
 
-        return redirect()->route('supervisor.stock-transfer.by-status')
-            ->with('success', 'Stock transfer request has been sent successfully!');
+            return redirect()->route('supervisor.stock-transfer.by-status')
+                ->with('success', 'Stock transfer request has been sent successfully!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Stock Transfer Store Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while creating stock transfer. Please contact support.')
+                ->withInput();
+
+        } catch (\Exception $e) {
+            Log::error('Stock Transfer Store Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
@@ -251,9 +266,10 @@ class StockTransferController extends Controller
             return redirect()->back()->with('error', 'This transfer has already been processed.');
         }
 
-        DB::transaction(function () use ($stockTransfer, $userId) {
-            // Update transfer status
-            $stockTransfer->update([
+        try {
+            DB::transaction(function () use ($stockTransfer, $userId) {
+                // Update transfer status
+                $stockTransfer->update([
                 'status' => 'accepted',
                 'processed_by' => $userId,
                 'processed_at' => now(),
@@ -294,10 +310,21 @@ class StockTransferController extends Controller
                     $destInventory->low_stock_alert = $defaultLowAlert;
                     $destInventory->save();
                 }
-            }
-        });
+                }
+            });
 
-        return redirect()->back()->with('success', 'Stock transfer has been accepted successfully!');
+            return redirect()->back()->with('success', 'Stock transfer has been accepted successfully!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Stock Transfer Accept Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while accepting transfer. Please contact support.');
+
+        } catch (\Exception $e) {
+            Log::error('Stock Transfer Accept Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while accepting transfer. Please try again.');
+        }
     }
 
     /**
@@ -354,16 +381,28 @@ class StockTransferController extends Controller
             return redirect()->back()->with('error', 'Only pending transfers can be deleted.');
         }
 
-        DB::transaction(function () use ($stockTransfer) {
-            // Delete transfer items first
-            $stockTransfer->transferItems()->delete();
+        try {
+            DB::transaction(function () use ($stockTransfer) {
+                // Delete transfer items first
+                $stockTransfer->transferItems()->delete();
 
-            // Delete the transfer itself
-            $stockTransfer->delete();
-        });
+                // Delete the transfer itself
+                $stockTransfer->delete();
+            });
 
-        return redirect()->route('supervisor.stock-transfer.by-status')
-            ->with('success', 'Pending stock transfer has been deleted.');
+            return redirect()->route('supervisor.stock-transfer.by-status')
+                ->with('success', 'Pending stock transfer has been deleted.');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Stock Transfer Delete Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while deleting transfer. Please contact support.');
+
+        } catch (\Exception $e) {
+            Log::error('Stock Transfer Delete Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while deleting transfer. Please try again.');
+        }
     }
 
     /**

@@ -50,6 +50,7 @@
             </div>
         </div>
     </div>
+
     @if($allItems->count() > 0)
         <div class="row mb-4">
             <div class="col-12">
@@ -58,7 +59,7 @@
                         <h5 class="card-title mb-0">
                             <i class="bi bi-box-seam"></i> 
                             @if($fromDate ?? false)
-                                Stock Changes - {{ date('M d, Y', strtotime($fromDate)) }}
+                                Historical Stock - {{ date('M d, Y', strtotime($fromDate)) }}
                                 @if($fromTime ?? false)
                                     ({{ date('h:i A', strtotime($fromTime)) }} - 11:59 PM)
                                 @else

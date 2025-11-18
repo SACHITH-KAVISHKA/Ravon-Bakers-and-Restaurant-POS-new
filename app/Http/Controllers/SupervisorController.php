@@ -188,7 +188,7 @@ class SupervisorController extends Controller
      */
     public function getItems()
     {
-        $items = Item::with('inventory')
+        $items = Item::with('inventory', 'branchPrices')
             ->where('is_active', true)
             ->orderBy('item_name', 'asc')
             ->get()
@@ -246,16 +246,6 @@ class SupervisorController extends Controller
      * Show available stock items organized by category
      * Refactored to use unified SQL query for both current and historical stock
      */
-    /**
-     * Show available stock items organized by category
-     * 
-     * STOCK CALCULATION MODES:
-     * 1. CURRENT STOCK (no date filter): Shows real-time stock from inventories table
-     * 2. SINGLE DATE CALCULATION (with selected_date): Calculate stock changes for THAT specific date only
-     * 
-     * SINGLE DATE FORMULA (selected_date 00:00:00 → selected_date 23:59:59):
-     * stock_changes = purchases + transfers_in - transfers_out - wastage - sales (all on that specific date)
-     */
     public function inventoryHistory(Request $request)
     {
         // Get filters - user selects a specific date to view that day's transactions
@@ -278,15 +268,16 @@ class SupervisorController extends Controller
             $results = $this->getCurrentStock();
             $toDateTime = null;
         } 
-        // MODE 2: SINGLE DATE CALCULATION (Transactions on selected date only)
+        // MODE 2: HISTORICAL STOCK CALCULATION (Backwards from current stock)
         else {
             // FROM datetime: User selected date + time (or 00:00:00 for full day)
             $fromDateTime = $fromDate . ' ' . (!empty($fromTime) ? $fromTime . ':00' : '00:00:00');
             
-            // TO datetime: End of the SAME selected date (23:59:59)
-            $toDateTime = $fromDate . ' 23:59:59';
+            // TO datetime: Current date and time
+            $toDateTime = date('Y-m-d H:i:s');
             
-            $results = $this->getForwardCalculatedStock($mainBranchId, $fromDateTime, $toDateTime);
+            // Calculate stock at selected date by getting current stock and subtracting all transactions from selected date to now
+            $results = $this->getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime);
         }
 
         // Transform results for view
@@ -322,30 +313,22 @@ class SupervisorController extends Controller
                 branches.name as branch_name,
                 COALESCE(inventories.current_stock, 0) as calculated_stock
             FROM items
-            CROSS JOIN branches
             LEFT JOIN inventories 
-                ON items.id = inventories.item_id 
-                AND branches.id = inventories.branch_id
-            WHERE items.is_active = 1
+                ON items.id = inventories.item_id
+            LEFT JOIN branches
+                ON inventories.branch_id = branches.id
                 AND branches.status = 1
+            WHERE items.is_active = 1
+                AND branches.id IS NOT NULL
             ORDER BY items.item_name, branches.id
         ");
     }
 
     /**
-     * SINGLE DATE CALCULATION: Calculate stock changes for a specific date or date range
-     * 
-     * LOGIC (from_date → to_date):
-     * Shows net stock changes during the specified period
-     * 
-     * TRANSACTION RULES (transactions BETWEEN from_date AND to_date):
-     * - Purchases: ADD (+) to Main Branch
-     * - Sales: SUBTRACT (-) from Branch
-     * - Wastages: SUBTRACT (-) from Branch
-     * - Transfers OUT: SUBTRACT (-) from Source Branch
-     * - Transfers IN: ADD (+) to Destination Branch
+     * Calculate historical stock by working backwards from current stock
+     * Current Stock - (Transactions from selected date to now) = Stock at selected date
      */
-    private function getForwardCalculatedStock($mainBranchId, $fromDateTime, $toDateTime)
+    private function getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime)
     {
         try {
             return DB::select("
@@ -355,11 +338,14 @@ class SupervisorController extends Controller
                 items.item_code as item_code,
                 branches.id as branch_id,
                 branches.name as branch_name,
-                COALESCE(SUM(transactions.quantity_change), 0) as calculated_stock
+                COALESCE(inventories.current_stock, 0) - COALESCE(SUM(transactions.quantity_change), 0) as calculated_stock
             FROM items
             CROSS JOIN branches
+            LEFT JOIN inventories 
+                ON items.id = inventories.item_id 
+                AND branches.id = inventories.branch_id
             LEFT JOIN (
-                -- 1. PURCHASES: Add to Main Branch (NORMAL)
+                -- 1. PURCHASES: SUBTRACT (reverse operation - these happened after selected date)
                 SELECT
                     iri.item_id,
                     ? as branch_id,
@@ -372,7 +358,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 2. TRANSFERS OUT: Subtract from Source Branch (NORMAL)
+                -- 2. TRANSFERS OUT: ADD BACK (reverse - these reduced stock after selected date)
                 SELECT
                     sti.item_id,
                     COALESCE(st.from_branch_id, ?) as branch_id,
@@ -385,7 +371,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 3. TRANSFERS IN: Add to Destination Branch (NORMAL)
+                -- 3. TRANSFERS IN: SUBTRACT (reverse - these added stock after selected date)
                 SELECT
                     sti.item_id,
                     st.to_branch_id as branch_id,
@@ -398,7 +384,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 4. WASTAGES: Subtract from Branch (NORMAL)
+                -- 4. WASTAGES: ADD BACK (reverse - these reduced stock after selected date)
                 SELECT
                     wi.item_id,
                     w.branch_id,
@@ -410,7 +396,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 5. SALES: Subtract from Branch (NORMAL)
+                -- 5. SALES: ADD BACK (reverse - these reduced stock after selected date)
                 SELECT
                     si.item_id,
                     s.branch_id,
@@ -426,21 +412,26 @@ class SupervisorController extends Controller
                 AND branches.id = transactions.branch_id
             WHERE items.is_active = 1
                 AND branches.status = 1
-            GROUP BY items.id, items.item_name, items.item_code, branches.id, branches.name
+            GROUP BY items.id, items.item_name, items.item_code, branches.id, branches.name, inventories.current_stock
             ORDER BY items.item_name ASC, branches.name ASC
         ", [
-            $mainBranchId,
-            $fromDateTime,
-            $toDateTime,
-            $mainBranchId,
-            $fromDateTime,
-            $toDateTime,
-            $fromDateTime,
-            $toDateTime,
-            $fromDateTime,
-            $toDateTime,
-            $fromDateTime,
-            $toDateTime
+            // Bindings order must match the ? placeholders above
+            $mainBranchId,       // purchases -> ? as branch_id
+            $fromDateTime,       // purchases start
+            $toDateTime,         // purchases end
+
+            $mainBranchId,       // transfers out COALESCE(..., ?) fallback
+            $fromDateTime,       // transfers out start
+            $toDateTime,         // transfers out end
+
+            $fromDateTime,       // transfers in start
+            $toDateTime,         // transfers in end
+
+            $fromDateTime,       // wastages start
+            $toDateTime,         // wastages end
+
+            $fromDateTime,       // sales start
+            $toDateTime          // sales end
         ]);
 
         } catch (\Illuminate\Database\QueryException $e) {
@@ -509,8 +500,8 @@ class SupervisorController extends Controller
             $results = $this->getCurrentStock();
         } else {
             $fromDateTime = $fromDate . ' ' . (!empty($fromTime) ? $fromTime . ':00' : '00:00:00');
-            $toDateTime = $fromDate . ' 23:59:59';
-            $results = $this->getForwardCalculatedStock($mainBranchId, $fromDateTime, $toDateTime);
+            $toDateTime = date('Y-m-d H:i:s');
+            $results = $this->getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime);
         }
 
         // Transform results
@@ -523,12 +514,12 @@ class SupervisorController extends Controller
         // Set title with date filter info
         $titleRow = 1;
         if ($fromDate || $fromTime) {
-            $title = 'Stock Changes Report';
-            $filterInfo = 'Date: ' . date('M d, Y', strtotime($fromDate));
+            $title = 'Historical Stock Report';
+            $filterInfo = 'Stock as of: ' . date('M d, Y', strtotime($fromDate));
             if ($fromTime) {
-                $filterInfo .= ' (from ' . date('h:i A', strtotime($fromTime)) . ' to 11:59 PM)';
+                $filterInfo .= ' at ' . date('h:i A', strtotime($fromTime));
             } else {
-                $filterInfo .= ' (Full Day)';
+                $filterInfo .= ' (Start of Day)';
             }
             
             $sheet->setCellValue('A1', $title);
@@ -622,7 +613,7 @@ class SupervisorController extends Controller
 
         // Create filename
         if ($fromDate) {
-            $fileName = 'stock-changes-' . str_replace('-', '', $fromDate) . '-to-today-' . now()->format('Ymd-His') . '.xlsx';
+            $fileName = 'historical-stock-' . str_replace('-', '', $fromDate) . '-' . now()->format('Ymd-His') . '.xlsx';
         } else {
             $fileName = 'current-inventory-' . now()->format('Ymd-His') . '.xlsx';
         }
@@ -1211,4 +1202,3 @@ class SupervisorController extends Controller
         }
     }
 }
-

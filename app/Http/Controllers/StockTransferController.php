@@ -59,7 +59,11 @@ class StockTransferController extends Controller
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:items,id',
-            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.quantity' => ['required', 'numeric', function ($attribute, $value, $fail) {
+                if ($value == 0) {
+                    $fail('The quantity cannot be zero.');
+                }
+            }],
         ]);
 
         try {
@@ -82,7 +86,13 @@ class StockTransferController extends Controller
                     ->where('branch_id', 1) // Main branch inventory
                     ->first();
 
-                if (!$inventory || $inventory->current_stock < $itemData['quantity']) {
+                if (!$inventory) {
+                    throw new \Exception("Inventory not found for item ID: {$itemData['item_id']}");
+                }
+
+                // Allow negative quantities for negative stock transfers
+                // Only check if transferring more positive stock than available
+                if ($itemData['quantity'] > 0 && $inventory->current_stock < $itemData['quantity']) {
                     throw new \Exception("Insufficient stock in main branch inventory for item ID: {$itemData['item_id']}");
                 }
 
@@ -421,6 +431,33 @@ class StockTransferController extends Controller
 
         return response()->json([
             'available_quantity' => $inventory ? $inventory->current_stock : 0,
+        ]);
+    }
+
+    /**
+     * Get all available inventory items from main branch
+     */
+    public function getAllInventory()
+    {
+        if (!Gate::allows('supervisor-access')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Get all inventory items from main branch including negative stock
+        $inventoryItems = Inventory::where('branch_id', 1)
+            ->where('current_stock', '!=', 0)
+            ->with('item')
+            ->get()
+            ->map(function($inventory) {
+                return [
+                    'item_id' => $inventory->item_id,
+                    'item_name' => $inventory->item->item_name,
+                    'available_quantity' => $inventory->current_stock,
+                ];
+            });
+
+        return response()->json([
+            'items' => $inventoryItems,
         ]);
     }
 }

@@ -96,6 +96,9 @@
                                 <h5 class="fw-semibold mb-0">
                                     <i class="bi bi-box-seam"></i> Transfer Items
                                 </h5>
+                                <button type="button" class="btn btn-success" id="addAllItemsBtn">
+                                    <i class="bi bi-plus-circle"></i> Add All Available Items
+                                </button>
                             </div>
 
                             <div class="table-responsive">
@@ -156,7 +159,6 @@
                    class="form-control transfer-qty" 
                    name="items[INDEX][quantity]" 
                    step="0.01" 
-                   min="0.01" 
                    placeholder="0.00" 
                    required>
         </td>
@@ -174,8 +176,109 @@ document.addEventListener('DOMContentLoaded', function() {
     const itemsTableBody = document.getElementById('itemsTableBody');
     const itemRowTemplate = document.getElementById('itemRowTemplate');
 
+    // Modal helper functions
+    function showInfoModal(message) {
+        document.getElementById('infoModalBody').innerHTML = '<p class="mb-0">' + message + '</p>';
+        new bootstrap.Modal(document.getElementById('infoModal')).show();
+    }
+
+    function showErrorModal(message) {
+        document.getElementById('errorModalBody').innerHTML = '<p class="mb-0">' + message + '</p>';
+        new bootstrap.Modal(document.getElementById('errorModal')).show();
+    }
+
+    function showWarningModal(message) {
+        document.getElementById('warningModalBody').innerHTML = '<p class="mb-0">' + message + '</p>';
+        new bootstrap.Modal(document.getElementById('warningModal')).show();
+    }
+
     // Add first row on page load
     addItemRow();
+    
+    // Add All Available Items button handler
+    document.getElementById('addAllItemsBtn').addEventListener('click', function() {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
+        
+        fetch('/staff/stock-transfer/api/all-inventory')
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    showErrorModal('Error: ' + data.error);
+                } else if (data.items && data.items.length > 0) {
+                    // Clear existing rows
+                    itemsTableBody.innerHTML = '';
+                    itemIndex = 0;
+                    
+                    // Add all items
+                    data.items.forEach(item => {
+                        addItemRowWithData(item.item_id, item.item_name, item.available_quantity);
+                    });
+                    
+                    // Add one empty row at the end
+                    addItemRow();
+                } else {
+                    showInfoModal('<i class="bi bi-inbox"></i> No items found in your branch inventory.<br><small class="text-muted">Please check if your branch has any items with stock.</small>');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching inventory:', error);
+                showErrorModal('<strong>Failed to load inventory items</strong><br>' + error.message + '<br><small class="text-muted">Please try again or contact support if the issue persists.</small>');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-plus-circle"></i> Add All Available Items';
+            });
+    });
+    
+    function addItemRowWithData(itemId, itemName, availableQty) {
+        const template = itemRowTemplate.content.cloneNode(true);
+        const row = template.querySelector('.item-row');
+        
+        // Replace INDEX placeholder with actual index
+        row.innerHTML = row.innerHTML.replace(/INDEX/g, itemIndex);
+        
+        // Get elements
+        const itemSelectTd = row.querySelector('td:first-child');
+        const availableQtyInput = row.querySelector('.available-qty');
+        const transferQtyInput = row.querySelector('.transfer-qty');
+        const removeBtn = row.querySelector('.remove-item');
+        
+        // Replace select with item name display and hidden input
+        itemSelectTd.innerHTML = `
+            <input type="hidden" name="items[${itemIndex}][item_id]" value="${itemId}">
+            <div class="form-control" readonly style="background-color: #e9ecef;">${itemName}</div>
+        `;
+        
+        // Set values
+        availableQtyInput.value = availableQty;
+        transferQtyInput.value = availableQty;
+        transferQtyInput.max = availableQty;
+        
+        // Add event listeners
+        transferQtyInput.addEventListener('input', function() {
+            validateTransferQuantity(this);
+        });
+        
+        removeBtn.addEventListener('click', function() {
+            if (itemsTableBody.children.length > 1) {
+                row.remove();
+            } else {
+                showWarningModal('At least one item is required for the transfer.');
+            }
+        });
+        
+        itemsTableBody.appendChild(row);
+        itemIndex++;
+    }
     
     function addItemRow() {
         const template = itemRowTemplate.content.cloneNode(true);
@@ -215,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (itemsTableBody.children.length > 1) {
                 row.remove();
             } else {
-                alert('At least one item is required.');
+                showWarningModal('At least one item is required for the transfer.');
             }
         });
         
@@ -255,12 +358,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const availableQty = parseFloat(row.querySelector('.available-qty').value) || 0;
         const transferQty = parseFloat(input.value) || 0;
         
-        if (transferQty > availableQty) {
+        // Allow any value including negative quantities
+        // Only validate that it's a valid number
+        if (isNaN(transferQty)) {
             input.classList.add('is-invalid');
             if (!row.querySelector('.invalid-feedback')) {
                 const feedback = document.createElement('div');
                 feedback.className = 'invalid-feedback';
-                feedback.textContent = 'Transfer quantity cannot exceed available quantity';
+                feedback.textContent = 'Please enter a valid quantity';
                 input.parentNode.appendChild(feedback);
             }
         } else {
@@ -279,16 +384,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         rows.forEach(row => {
             const itemSelect = row.querySelector('.item-select');
+            const hiddenItemInput = row.querySelector('input[type="hidden"][name*="[item_id]"]');
             const transferQty = row.querySelector('.transfer-qty');
             
-            if (itemSelect.value && parseFloat(transferQty.value) > 0) {
+            // Check if item exists (either via select or hidden input) and has valid quantity
+            const hasItem = (itemSelect && itemSelect.value) || (hiddenItemInput && hiddenItemInput.value);
+            if (hasItem && !isNaN(parseFloat(transferQty.value))) {
                 hasValidItem = true;
             }
         });
         
         if (!hasValidItem) {
             e.preventDefault();
-            alert('Please add at least one item with a valid quantity.');
+            showWarningModal('Please add at least one item with a valid quantity.');
             return false;
         }
         
@@ -296,10 +404,69 @@ document.addEventListener('DOMContentLoaded', function() {
         const invalidInputs = itemsTableBody.querySelectorAll('.transfer-qty.is-invalid');
         if (invalidInputs.length > 0) {
             e.preventDefault();
-            alert('Please fix the invalid quantities before submitting.');
+            showErrorModal('<strong>Validation Error</strong><br>Please fix the highlighted errors before submitting the form.');
             return false;
         }
     });
 });
 </script>
+<!-- Info Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="infoModalLabel">
+                    <i class="bi bi-info-circle"></i> Information
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="infoModalBody">
+                <!-- Message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Error
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="errorModalBody">
+                <!-- Error message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Warning Modal -->
+<div class="modal fade" id="warningModal" tabindex="-1" aria-labelledby="warningModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="warningModalLabel">
+                    <i class="bi bi-exclamation-circle"></i> Warning
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="warningModalBody">
+                <!-- Warning message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

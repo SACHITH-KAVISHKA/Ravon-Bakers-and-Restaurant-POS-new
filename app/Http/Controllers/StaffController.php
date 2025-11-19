@@ -401,7 +401,11 @@ class StaffController extends Controller
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:items,id',
-            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.quantity' => ['required', 'numeric', function ($attribute, $value, $fail) {
+                if ($value == 0) {
+                    $fail('The quantity cannot be zero.');
+                }
+            }],
         ]);
 
         // Validate that the destination branch is not the same as the source
@@ -427,7 +431,13 @@ class StaffController extends Controller
                     ->where('branch_id', $userBranchId) // Staff's branch inventory
                     ->first();
 
-                if (!$inventory || $inventory->current_stock < $itemData['quantity']) {
+                if (!$inventory) {
+                    throw new \Exception("Inventory not found for item ID: {$itemData['item_id']}");
+                }
+
+                // Allow negative quantities for negative stock transfers
+                // Only check if transferring more positive stock than available
+                if ($itemData['quantity'] > 0 && $inventory->current_stock < $itemData['quantity']) {
                     throw new \Exception("Insufficient stock in your branch inventory for item ID: {$itemData['item_id']}");
                 }
 
@@ -502,6 +512,38 @@ class StaffController extends Controller
 
         return response()->json([
             'available_quantity' => $inventory ? $inventory->current_stock : 0,
+        ]);
+    }
+
+    /**
+     * Get all available inventory items from staff's branch
+     */
+    public function getAllStaffInventory()
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+        $userBranchId = (int) $user->branch_id;
+
+        // Ensure user has a branch
+        if (!$user || !$userBranchId) {
+            return response()->json(['error' => 'You must be assigned to a branch.'], 403);
+        }
+
+        // Get all inventory items from staff's branch including negative stock
+        $inventoryItems = Inventory::where('branch_id', $userBranchId)
+            ->where('current_stock', '!=', 0)
+            ->with('item')
+            ->get()
+            ->map(function ($inventory) {
+                return [
+                    'item_id' => $inventory->item_id,
+                    'item_name' => $inventory->item->item_name,
+                    'available_quantity' => $inventory->current_stock,
+                ];
+            });
+
+        return response()->json([
+            'items' => $inventoryItems,
         ]);
     }
 }

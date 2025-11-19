@@ -132,6 +132,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{stockTransfer}', [StockTransferController::class, 'show'])->name('show');
                 Route::delete('/{stockTransfer}', [StockTransferController::class, 'destroy'])->name('destroy');
             Route::get('/api/inventory/{item}', [StockTransferController::class, 'getInventory'])->name('api.inventory');
+            Route::get('/api/all-inventory', [StockTransferController::class, 'getAllInventory'])->name('api.all-inventory');
         });
     });
 
@@ -150,6 +151,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [App\Http\Controllers\StaffController::class, 'createStockTransfer'])->name('create');
             Route::post('/', [App\Http\Controllers\StaffController::class, 'storeStockTransfer'])->name('store');
             Route::get('/api/inventory/{item}', [App\Http\Controllers\StaffController::class, 'getStaffInventory'])->name('api.inventory');
+            Route::get('/api/all-inventory', [App\Http\Controllers\StaffController::class, 'getAllStaffInventory'])->name('api.all-inventory');
         });
     });
 

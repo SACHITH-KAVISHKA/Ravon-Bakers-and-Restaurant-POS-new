@@ -60,12 +60,6 @@
                             <i class="bi bi-box-seam"></i> 
                             @if($fromDate ?? false)
                                 Historical Stock - {{ date('M d, Y', strtotime($fromDate)) }}
-                                @if($fromTime ?? false)
-                                    ({{ date('h:i A', strtotime($fromTime)) }} - 11:59 PM)
-                                @else
-                                    (Full Day)
-                                @endif
-                                <small class="badge bg-info ms-2">Single Date</small>
                             @else
                                 Current Inventory Stock
                                 <small class="badge bg-success ms-2">Real-time</small>

@@ -110,10 +110,6 @@
                                 </tbody>
                             </table>
                         </div>
-
-                        <button type="button" class="btn btn-success btn-sm mt-2" id="addRowBtn">
-                            <i class="bi bi-plus-circle"></i> Add More Items
-                        </button>
                     </div>
 
                     <!-- Notes Section -->
@@ -149,18 +145,31 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         let rowIndex = 1;
-        const addRowBtn = document.getElementById('addRowBtn');
         const itemsTableBody = document.getElementById('itemsTableBody');
 
-        // Add new row
-        addRowBtn.addEventListener('click', function() {
-            const newRow = createNewRow(rowIndex);
-            itemsTableBody.appendChild(newRow);
-            rowIndex++;
-            updateRemoveButtons();
-        });
-
         // (Price display removed) Handle events via delegated listeners below
+
+        // Handle automatic row addition when quantity is entered on last row
+        itemsTableBody.addEventListener('blur', function(e) {
+            if (e.target.classList.contains('quantity-input')) {
+                const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
+                const currentRow = e.target.closest('.item-row');
+                const isLastRow = rows[rows.length - 1] === currentRow;
+                const quantityValue = parseFloat(e.target.value) || 0;
+                const itemSelect = currentRow.querySelector('.item-select');
+                const hasItemSelected = itemSelect && itemSelect.value;
+
+                // If this is the last row and has valid quantity and item selected, add a new row
+                if (isLastRow && quantityValue > 0 && hasItemSelected) {
+                    setTimeout(() => {
+                        const newRow = createNewRow(rowIndex);
+                        itemsTableBody.appendChild(newRow);
+                        rowIndex++;
+                        updateRemoveButtons();
+                    }, 50);
+                }
+            }
+        }, true); // Use capture phase to ensure event is caught
 
         // Handle remove row
         itemsTableBody.addEventListener('click', function(e) {

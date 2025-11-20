@@ -7,6 +7,9 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 fw-bold text-dark">Stock Transfer Details</h1>
+            <a href="{{ route('stock-transfer.transfers') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to All Stock Transfers
+            </a>
         </div>
     </div>
 </div>

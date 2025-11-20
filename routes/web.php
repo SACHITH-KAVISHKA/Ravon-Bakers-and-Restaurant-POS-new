@@ -167,4 +167,9 @@ Route::middleware('auth')->group(function () {
 
 Route::post('/qz/sign', [PrinterController::class, 'signQzRequest']);
 
+// Test page for double-click prevention (can be removed in production)
+Route::get('/test-double-click-prevention', function () {
+    return view('test-double-click-prevention');
+})->name('test.double-click');
+
 require __DIR__ . '/auth.php';

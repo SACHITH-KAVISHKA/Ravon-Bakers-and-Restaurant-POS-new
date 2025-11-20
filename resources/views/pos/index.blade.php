@@ -1672,6 +1672,9 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Prevent Double Submit Protection -->
+    <script src="{{ asset('js/prevent-double-submit.js') }}"></script>
 
     <script>
 
@@ -2726,10 +2729,16 @@
                 total: total
             };
 
-            // Process the payment
-            const printBtn = document.querySelector('.btn-success');
+            // Process the payment - Prevent double submission
+            const printBtn = document.getElementById('modal-print-btn');
+            
+            // Check if already processing
+            if (printBtn.disabled) {
+                return;
+            }
+            
             printBtn.disabled = true;
-            printBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+            printBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
             fetch('{{ route("pos.process-sale") }}', {
                     method: 'POST',

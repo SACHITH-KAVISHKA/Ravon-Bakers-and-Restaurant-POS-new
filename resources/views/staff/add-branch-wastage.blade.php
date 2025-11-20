@@ -97,10 +97,6 @@
                                 </tbody>
                             </table>
                         </div>
-
-                        <button type="button" class="btn btn-success btn-sm mt-2" id="addRowBtn">
-                            <i class="bi bi-plus-circle"></i> Add More Items
-                        </button>
                     </div>
 
                     <!-- Remarks Section -->
@@ -201,46 +197,42 @@
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM Content Loaded!');
-
         let rowIndex = 1;
-        const addRowBtn = document.getElementById('addRowBtn');
         const itemsTableBody = document.getElementById('itemsTableBody');
-
-        console.log('Button element:', addRowBtn);
-        console.log('Table body element:', itemsTableBody);
-        console.log('Wastage items loaded:', window.wastageItems);
-
-        if (!addRowBtn) {
-            console.error('ERROR: Add button not found!');
-            return;
-        }
 
         if (!itemsTableBody) {
             console.error('ERROR: Table body not found!');
             return;
         }
 
-        // Add new row
-        addRowBtn.addEventListener('click', function(e) {
-            console.log('Add button clicked!');
-            e.preventDefault();
-            e.stopPropagation();
+        // Add new row when Tab key is pressed on quantity input
+        itemsTableBody.addEventListener('keydown', function(e) {
+            if (e.target.classList.contains('quantity-input') && e.key === 'Tab' && !e.shiftKey) {
+                const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
+                const currentRow = e.target.closest('.item-row');
+                const isLastRow = rows[rows.length - 1] === currentRow;
+                const quantityValue = parseFloat(e.target.value) || 0;
+                const itemSelect = currentRow.querySelector('.item-select');
+                const hasItemSelected = itemSelect && itemSelect.value;
 
-            try {
-                const newRow = createNewRow(rowIndex);
-                console.log('New row created:', newRow);
-
-                itemsTableBody.appendChild(newRow);
-                console.log('Row appended to table');
-
-                rowIndex++;
-                updateRemoveButtons();
-                console.log('New row added successfully with index:', rowIndex - 1);
-            } catch (error) {
-                console.error('Error adding row:', error);
+                // If this is the last row and has valid quantity and item selected, add a new row
+                if (isLastRow && quantityValue > 0 && hasItemSelected) {
+                    e.preventDefault(); // Prevent default tab behavior
+                    const newRow = createNewRow(rowIndex);
+                    itemsTableBody.appendChild(newRow);
+                    rowIndex++;
+                    updateRemoveButtons();
+                    
+                    // Focus on the item select dropdown of the new row
+                    setTimeout(() => {
+                        const newItemSelect = newRow.querySelector('.item-select');
+                        if (newItemSelect) {
+                            newItemSelect.focus();
+                        }
+                    }, 10);
+                }
             }
-        });
+        }, true);
 
         // Handle item selection change
         itemsTableBody.addEventListener('change', function(e) {
@@ -255,6 +247,8 @@
                     quantityInput.setAttribute('max', stock);
                     quantityInput.value = '';
                     quantityInput.setCustomValidity('');
+                    // Focus on quantity input after selecting item
+                    quantityInput.focus();
                 } else {
                     stockDisplay.value = '';
                     quantityInput.removeAttribute('max');
@@ -290,7 +284,6 @@
         });
 
         function createNewRow(index) {
-            console.log('Creating row with index:', index);
             const row = document.createElement('tr');
             row.className = 'item-row';
 
@@ -355,7 +348,6 @@
 
         // Initialize remove buttons
         updateRemoveButtons();
-        console.log('Initialization complete');
 
         // Form submission validation
         const wastageForm = document.getElementById('wastageForm');
@@ -405,13 +397,6 @@
                 });
             });
         }
-    });
-
-    // Test if the button exists when page loads
-    window.addEventListener('load', function() {
-        console.log('Window load event fired');
-        const btn = document.getElementById('addRowBtn');
-        console.log('Button on window load:', btn);
     });
 </script>
 @endpush

@@ -149,9 +149,9 @@
 
         // (Price display removed) Handle events via delegated listeners below
 
-        // Handle automatic row addition when quantity is entered on last row
-        itemsTableBody.addEventListener('blur', function(e) {
-            if (e.target.classList.contains('quantity-input')) {
+        // Handle row addition when Tab key is pressed on quantity input
+        itemsTableBody.addEventListener('keydown', function(e) {
+            if (e.target.classList.contains('quantity-input') && e.key === 'Tab' && !e.shiftKey) {
                 const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
                 const currentRow = e.target.closest('.item-row');
                 const isLastRow = rows[rows.length - 1] === currentRow;
@@ -161,15 +161,22 @@
 
                 // If this is the last row and has valid quantity and item selected, add a new row
                 if (isLastRow && quantityValue > 0 && hasItemSelected) {
+                    e.preventDefault(); // Prevent default tab behavior
+                    const newRow = createNewRow(rowIndex);
+                    itemsTableBody.appendChild(newRow);
+                    rowIndex++;
+                    updateRemoveButtons();
+                    
+                    // Focus on the item select dropdown of the new row
                     setTimeout(() => {
-                        const newRow = createNewRow(rowIndex);
-                        itemsTableBody.appendChild(newRow);
-                        rowIndex++;
-                        updateRemoveButtons();
-                    }, 50);
+                        const newItemSelect = newRow.querySelector('.item-select');
+                        if (newItemSelect) {
+                            newItemSelect.focus();
+                        }
+                    }, 10);
                 }
             }
-        }, true); // Use capture phase to ensure event is caught
+        }, true);
 
         // Handle remove row
         itemsTableBody.addEventListener('click', function(e) {

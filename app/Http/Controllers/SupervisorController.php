@@ -29,7 +29,7 @@ class SupervisorController extends Controller
     public function dashboard()
     {
         $userId = (int) Auth::id();
-        
+
         // Get recent inventory requests by this supervisor
         $recentRequests = InventoryRequest::with(['department', 'inventoryRequestItems.item'])
             ->where('user_id', $userId)
@@ -127,7 +127,7 @@ class SupervisorController extends Controller
 
         DB::transaction(function () use ($request) {
             $userId = (int) Auth::id();
-            
+
             // Create inventory request
             $inventoryRequest = InventoryRequest::create([
                 'user_id' => $userId,
@@ -238,12 +238,12 @@ class SupervisorController extends Controller
         // Get all branches for display
         $branches = Branch::where('status', 1)->orderBy('name')->get();
         $mainBranch = $branches->where('name', 'Main Branch')->first();
-        
+
         // If no main branch found, use the first branch as main
         if (!$mainBranch) {
             $mainBranch = $branches->first();
         }
-        
+
         $mainBranchId = $mainBranch ? $mainBranch->id : null;
         $otherBranches = $branches->where('id', '!=', $mainBranchId);
 
@@ -263,7 +263,7 @@ class SupervisorController extends Controller
                 CROSS JOIN
                     branches
                 LEFT JOIN
-                    inventories ON items.id = inventories.item_id 
+                    inventories ON items.id = inventories.item_id
                     AND branches.id = inventories.branch_id
                 WHERE
                     items.is_active = 1
@@ -273,8 +273,8 @@ class SupervisorController extends Controller
             ");
         } else {
             // HISTORICAL STOCK - Calculate from transactions
-            $targetDateTime = empty($filterTime) 
-                ? $filterDate . ' 23:59:59' 
+            $targetDateTime = empty($filterTime)
+                ? $filterDate . ' 23:59:59'
                 : $filterDate . ' ' . $filterTime;
 
             // Run the Single Unified SQL Query for historical data
@@ -388,18 +388,18 @@ class SupervisorController extends Controller
         // Transform flat SQL results into grouped structure for the view
         $itemsCollection = collect($results)->groupBy('item_id')->map(function ($rows) use ($mainBranch, $otherBranches) {
             $firstRow = $rows->first();
-            
+
             // Build branch stock array (by branch name for easier access in view)
             $branchStocks = [];
             foreach ($rows as $row) {
                 $branchStocks[$row->branch_name] = (int)$row->calculated_stock;
             }
-            
+
             // Get main branch stock
-            $mainStock = $mainBranch && isset($branchStocks[$mainBranch->name]) 
-                ? $branchStocks[$mainBranch->name] 
+            $mainStock = $mainBranch && isset($branchStocks[$mainBranch->name])
+                ? $branchStocks[$mainBranch->name]
                 : 0;
-            
+
             return [
                 'id' => $firstRow->item_id,
                 'name' => $firstRow->item_name,  // Changed from 'item_name' to 'name' to match view
@@ -458,29 +458,29 @@ class SupervisorController extends Controller
             if ($filterTime) {
                 $filterInfo .= ' ' . date('h:i A', strtotime($filterTime));
             }
-            
+
             $sheet->setCellValue('A1', $title);
             $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            
+
             $sheet->setCellValue('A2', $filterInfo);
             $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
             $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
             $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            
+
             $titleRow = 4;
         } else {
             $sheet->setCellValue('A1', 'Current Inventory Report');
             $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            
+
             $sheet->setCellValue('A2', 'Generated on: ' . now()->format('M d, Y h:i A'));
             $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
             $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
             $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-            
+
             $titleRow = 4;
         }
 
@@ -505,20 +505,20 @@ class SupervisorController extends Controller
         $rowIndex = $titleRow + 1;
         $totalMainStock = 0;
         $totalBranchStocks = [];
-        
+
         foreach ($itemsCollection as $item) {
             $row = [
                 $item['name'] ?? '',
                 $item['item_code'] ?? '',
                 $item['main_stock'] ?? 0,
             ];
-            
+
             $totalMainStock += $item['main_stock'] ?? 0;
 
             foreach ($otherBranches as $branch) {
                 $branchStock = $item['branch_stocks'][$branch->name] ?? 0;
                 $row[] = $branchStock;
-                
+
                 if (!isset($totalBranchStocks[$branch->name])) {
                     $totalBranchStocks[$branch->name] = 0;
                 }
@@ -535,7 +535,7 @@ class SupervisorController extends Controller
             $totalRow[] = $totalBranchStocks[$branch->name] ?? 0;
         }
         $sheet->fromArray([$totalRow], null, 'A' . $rowIndex);
-        
+
         // Style totals row
         $totalStyle = $sheet->getStyle('A' . $rowIndex . ':' . $sheet->getHighestColumn() . $rowIndex);
         $totalStyle->getFont()->setBold(true);
@@ -592,7 +592,7 @@ class SupervisorController extends Controller
                 CROSS JOIN
                     branches
                 LEFT JOIN
-                    inventories ON items.id = inventories.item_id 
+                    inventories ON items.id = inventories.item_id
                     AND branches.id = inventories.branch_id
                 WHERE
                     items.is_active = 1
@@ -602,8 +602,8 @@ class SupervisorController extends Controller
             ");
         } else {
             // HISTORICAL STOCK - Calculate from transactions
-            $targetDateTime = empty($filterTime) 
-                ? $filterDate . ' 23:59:59' 
+            $targetDateTime = empty($filterTime)
+                ? $filterDate . ' 23:59:59'
                 : $filterDate . ' ' . $filterTime;
 
             // Execute the unified SQL query for historical data
@@ -716,18 +716,18 @@ class SupervisorController extends Controller
         // Transform flat SQL results into grouped structure
         return collect($results)->groupBy('item_id')->map(function ($rows) use ($mainBranch, $otherBranches) {
             $firstRow = $rows->first();
-            
+
             // Build branch stock array
             $branchStocks = [];
             foreach ($rows as $row) {
                 $branchStocks[$row->branch_name] = (int)$row->calculated_stock;
             }
-            
+
             // Get main branch stock
-            $mainStock = $mainBranch && isset($branchStocks[$mainBranch->name]) 
-                ? $branchStocks[$mainBranch->name] 
+            $mainStock = $mainBranch && isset($branchStocks[$mainBranch->name])
+                ? $branchStocks[$mainBranch->name]
                 : 0;
-            
+
             return [
                 'id' => $firstRow->item_id,
                 'name' => $firstRow->item_name,
@@ -794,7 +794,7 @@ class SupervisorController extends Controller
 
         DB::transaction(function () use ($request) {
             $userId = (int) Auth::id();
-            
+
             // Create wastage record
             $wastage = Wastage::create([
                 'user_id' => $userId,
@@ -835,7 +835,7 @@ class SupervisorController extends Controller
     public function wastageView(Request $request)
     {
         $userId = (int) Auth::id();
-        
+
         $query = Wastage::with(['wastageItems.item'])
             ->where('user_id', $userId)
             ->where('branch_id', 1)
@@ -868,7 +868,7 @@ class SupervisorController extends Controller
     public function productions(Request $request)
     {
         $userId = (int) Auth::id();
-        
+
         $query = InventoryRequest::with(['inventoryRequestItems.item'])
             ->where('user_id', $userId)
             ->where('status', 'completed')
@@ -893,7 +893,7 @@ class SupervisorController extends Controller
     public function showProduction(InventoryRequest $inventoryRequest)
     {
         $userId = (int) Auth::id();
-        
+
         // Authorization: only owner can view
         if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
@@ -909,7 +909,7 @@ class SupervisorController extends Controller
     public function editProduction(InventoryRequest $inventoryRequest)
     {
         $userId = (int) Auth::id();
-        
+
         // Authorization: only owner can edit
         if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
@@ -925,7 +925,7 @@ class SupervisorController extends Controller
     public function updateProduction(Request $request, InventoryRequest $inventoryRequest)
     {
         $userId = (int) Auth::id();
-        
+
         // Authorization: only owner can update
         if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
@@ -1027,7 +1027,7 @@ class SupervisorController extends Controller
     public function destroyProduction(InventoryRequest $inventoryRequest)
     {
         $userId = (int) Auth::id();
-        
+
         // Authorization: only owner can delete
         if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
@@ -1056,7 +1056,7 @@ class SupervisorController extends Controller
     public function exportProductions(Request $request)
     {
         $userId = (int) Auth::id();
-        
+
         $query = InventoryRequest::with(['department', 'inventoryRequestItems.item'])
             ->where('user_id', $userId)
             ->where('status', 'completed')
@@ -1143,7 +1143,7 @@ class SupervisorController extends Controller
     public function exportProductionDetails(InventoryRequest $inventoryRequest)
     {
         $userId = (int) Auth::id();
-        
+
         // Authorization: only owner can export
         if ($inventoryRequest->user_id !== $userId) {
             abort(403, 'Unauthorized action.');
@@ -1166,17 +1166,17 @@ class SupervisorController extends Controller
         $sheet->setCellValue('A' . $row, 'Date & Time:');
         $sheet->setCellValue('B' . $row, $inventoryRequest->date_time->format('M d, Y h:i A'));
         $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-        
+
         $row++;
         $sheet->setCellValue('A' . $row, 'Department:');
         $sheet->setCellValue('B' . $row, $inventoryRequest->department ? $inventoryRequest->department->name : 'N/A');
         $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-        
+
         $row++;
         $sheet->setCellValue('A' . $row, 'Total Items:');
         $sheet->setCellValue('B' . $row, $inventoryRequest->inventoryRequestItems->count());
         $sheet->getStyle('A' . $row)->getFont()->setBold(true);
-        
+
         $row++;
         $sheet->setCellValue('A' . $row, 'Total Quantity:');
         $sheet->setCellValue('B' . $row, $inventoryRequest->inventoryRequestItems->sum('quantity'));
@@ -1194,7 +1194,7 @@ class SupervisorController extends Controller
         $sheet->setCellValue('A' . $row, 'Items Added to Main Stock');
         $sheet->mergeCells('A' . $row . ':D' . $row);
         $sheet->getStyle('A' . $row)->getFont()->setBold(true)->setSize(14);
-        
+
         $row++;
         $headers = [
             'A' => '#',
@@ -1247,6 +1247,263 @@ class SupervisorController extends Controller
             'Content-Disposition' => 'attachment;filename="' . $filename . '"',
             'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    // public function itemTransactionDetails(Request $request)
+    // {
+    //     $branches = Branch::where('status', 1)->get();
+    //     $items = Item::where('is_active', 1)->orderBy('item_name')->get();
+
+    //     $transactions = [];
+    //     $selectedItem = null;
+    //     $selectedBranch = null;
+
+    //     if ($request->has(['item_id', 'branch_id', 'from_date', 'to_date'])) {
+    //         $validated = $request->validate([
+    //             'item_id' => 'required|exists:items,id',
+    //             'branch_id' => 'required|exists:branches,id',
+    //             'from_date' => 'required|date',
+    //             'to_date' => 'required|date|after_or_equal:from_date',
+    //         ]);
+
+    //         $itemId = $validated['item_id'];
+    //         $branchId = $validated['branch_id'];
+    //         $fromDate = $validated['from_date'] . ' 00:00:00';
+    //         $toDate = $validated['to_date'] . ' 23:59:59';
+
+    //         $selectedItem = Item::find($itemId);
+    //         $selectedBranch = Branch::find($branchId);
+
+    //         // 1. Sales (Out)
+    //         $sales = DB::table('sale_items')
+    //             ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+    //             ->where('sale_items.item_id', $itemId)
+    //             ->where('sales.branch_id', $branchId)
+    //             ->whereBetween('sales.created_at', [$fromDate, $toDate])
+    //             ->select(
+    //                 'sales.created_at as transaction_date',
+    //                 DB::raw("'Sale' as type"),
+    //                 DB::raw('0 - sale_items.quantity as quantity'),
+    //                 'sales.receipt_no as reference',
+    //                 'sales.user_name as performed_by'
+    //             );
+
+    //         // 2. Wastage (Out)
+    //         $wastage = DB::table('wastage_items')
+    //             ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
+    //             ->join('users', 'users.id', '=', 'wastages.user_id')
+    //             ->where('wastage_items.item_id', $itemId)
+    //             ->where('wastages.branch_id', $branchId)
+    //             ->whereBetween('wastages.date_time', [$fromDate, $toDate])
+    //             ->select(
+    //                 'wastages.date_time as transaction_date',
+    //                 DB::raw("'Wastage' as type"),
+    //                 DB::raw('0 - wastage_items.wasted_quantity as quantity'),
+    //                 DB::raw("CONCAT('WST-', wastages.id) as reference"),
+    //                 'users.name as performed_by'
+    //             );
+
+    //         // 3. Transfers Out
+    //         $transfersOut = DB::table('stock_transfer_items')
+    //             ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.transfer_id')
+    //             ->join('users', 'users.id', '=', 'stock_transfers.created_by')
+    //             ->where('stock_transfer_items.item_id', $itemId)
+    //             ->where('stock_transfers.from_branch_id', $branchId)
+    //             ->where('stock_transfers.status', 'accepted')
+    //             ->whereBetween('stock_transfers.date_time', [$fromDate, $toDate])
+    //             ->select(
+    //                 'stock_transfers.date_time as transaction_date',
+    //                 DB::raw("'Transfer Out' as type"),
+    //                 DB::raw('0 - stock_transfer_items.quantity as quantity'),
+    //                 DB::raw("CONCAT('TRF-', stock_transfers.id) as reference"),
+    //                 'users.name as performed_by'
+    //             );
+
+    //         // 4. Transfers In
+    //         $transfersIn = DB::table('stock_transfer_items')
+    //             ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.transfer_id')
+    //             ->join('users', 'users.id', '=', 'stock_transfers.created_by')
+    //             ->where('stock_transfer_items.item_id', $itemId)
+    //             ->where('stock_transfers.to_branch_id', $branchId)
+    //             ->where('stock_transfers.status', 'accepted')
+    //             ->whereBetween('stock_transfers.date_time', [$fromDate, $toDate])
+    //             ->select(
+    //                 'stock_transfers.date_time as transaction_date',
+    //                 DB::raw("'Transfer In' as type"),
+    //                 'stock_transfer_items.quantity as quantity',
+    //                 DB::raw("CONCAT('TRF-', stock_transfers.id) as reference"),
+    //                 'users.name as performed_by'
+    //             );
+
+    //         // Combine queries
+    //         $query = $sales
+    //             ->unionAll($wastage)
+    //             ->unionAll($transfersOut)
+    //             ->unionAll($transfersIn);
+
+    //         // 5. Production (In) - Main Branch Only (ID 1)
+    //         // Based on SupervisorController logic, production adds to Branch 1 stock
+    //         if ($branchId == 1) {
+    //             $production = DB::table('inventory_request_items')
+    //                 ->join('inventory_requests', 'inventory_requests.id', '=', 'inventory_request_items.inventory_request_id')
+    //                 ->join('users', 'users.id', '=', 'inventory_requests.user_id')
+    //                 ->where('inventory_request_items.item_id', $itemId)
+    //                 ->whereBetween('inventory_requests.date_time', [$fromDate, $toDate])
+    //                 // Assuming completed requests affect stock
+    //                 ->where('inventory_requests.status', 'completed')
+    //                 ->select(
+    //                     'inventory_requests.date_time as transaction_date',
+    //                     DB::raw("'Production' as type"),
+    //                     'inventory_request_items.quantity as quantity',
+    //                     DB::raw("CONCAT('PRD-', inventory_requests.id) as reference"),
+    //                     'users.name as performed_by'
+    //                 );
+
+    //             $query->unionAll($production);
+    //         }
+
+    //         $transactions = $query->orderBy('transaction_date', 'desc')->get();
+    //     }
+
+    //     return view('supervisor.reports.item-transaction-details', compact('branches', 'items', 'transactions', 'selectedItem', 'selectedBranch'));
+    // }
+
+    public function itemTransactionDetails(Request $request)
+    {
+        $branches = Branch::where('status', 1)->get();
+        $items = Item::where('is_active', 1)->orderBy('item_name')->get();
+
+        $transactions = [];
+        $selectedItem = null;
+        $selectedBranch = null;
+        $openingBalance = 0; // Initialize opening balance
+
+        if ($request->has(['item_id', 'branch_id', 'from_date', 'to_date'])) {
+            $validated = $request->validate([
+                'item_id' => 'required|exists:items,id',
+                'branch_id' => 'required|exists:branches,id',
+                'from_date' => 'required|date',
+                'to_date' => 'required|date|after_or_equal:from_date',
+            ]);
+
+            $itemId = $validated['item_id'];
+            $branchId = $validated['branch_id'];
+            $fromDate = $validated['from_date'] . ' 00:00:00';
+            $toDate = $validated['to_date'] . ' 23:59:59';
+
+            $selectedItem = Item::find($itemId);
+            $selectedBranch = Branch::find($branchId);
+
+            // --- 1. CALCULATE OPENING BALANCE (Transactions BEFORE from_date) ---
+
+            // Sales Out (Before)
+            $salesOutBefore = DB::table('sale_items')
+                ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+                ->where('sale_items.item_id', $itemId)
+                ->where('sales.branch_id', $branchId)
+                ->where('sales.created_at', '<', $fromDate)
+                ->sum('sale_items.quantity');
+
+            // Wastage Out (Before)
+            $wastageOutBefore = DB::table('wastage_items')
+                ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
+                ->where('wastage_items.item_id', $itemId)
+                ->where('wastages.branch_id', $branchId)
+                ->where('wastages.date_time', '<', $fromDate)
+                ->sum('wastage_items.wasted_quantity');
+
+            // Transfers Out (Before)
+            $transfersOutBefore = DB::table('stock_transfer_items')
+                ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.transfer_id')
+                ->where('stock_transfer_items.item_id', $itemId)
+                ->where('stock_transfers.from_branch_id', $branchId)
+                ->where('stock_transfers.status', 'accepted')
+                ->where('stock_transfers.date_time', '<', $fromDate)
+                ->sum('stock_transfer_items.quantity');
+
+            // Transfers In (Before)
+            $transfersInBefore = DB::table('stock_transfer_items')
+                ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.transfer_id')
+                ->where('stock_transfer_items.item_id', $itemId)
+                ->where('stock_transfers.to_branch_id', $branchId)
+                ->where('stock_transfers.status', 'accepted')
+                ->where('stock_transfers.date_time', '<', $fromDate)
+                ->sum('stock_transfer_items.quantity');
+
+            // Production In (Before) - Main Branch Only
+            $productionInBefore = 0;
+            if ($branchId == 1) {
+                $productionInBefore = DB::table('inventory_request_items')
+                    ->join('inventory_requests', 'inventory_requests.id', '=', 'inventory_request_items.inventory_request_id')
+                    ->where('inventory_request_items.item_id', $itemId)
+                    ->where('inventory_requests.status', 'completed')
+                    ->where('inventory_requests.date_time', '<', $fromDate)
+                    ->sum('inventory_request_items.quantity');
+            }
+
+            // Net Opening Balance Calculation
+            $openingBalance = ($transfersInBefore + $productionInBefore) - ($salesOutBefore + $wastageOutBefore + $transfersOutBefore);
+
+
+            // --- 2. GET REPORT TRANSACTIONS (Between dates) ---
+
+            // Sales (Out)
+            $sales = DB::table('sale_items')
+                ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+                ->where('sale_items.item_id', $itemId)
+                ->where('sales.branch_id', $branchId)
+                ->whereBetween('sales.created_at', [$fromDate, $toDate])
+                ->select('sales.created_at as transaction_date', DB::raw("'Sale' as type"), DB::raw('0 - sale_items.quantity as quantity'), 'sales.receipt_no as reference', 'sales.user_name as performed_by');
+
+            // Wastage (Out)
+            $wastage = DB::table('wastage_items')
+                ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
+                ->join('users', 'users.id', '=', 'wastages.user_id')
+                ->where('wastage_items.item_id', $itemId)
+                ->where('wastages.branch_id', $branchId)
+                ->whereBetween('wastages.date_time', [$fromDate, $toDate])
+                ->select('wastages.date_time as transaction_date', DB::raw("'Wastage' as type"), DB::raw('0 - wastage_items.wasted_quantity as quantity'), DB::raw("CONCAT('WST-', wastages.id) as reference"), 'users.name as performed_by');
+
+            // Transfers Out
+            $transfersOut = DB::table('stock_transfer_items')
+                ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.transfer_id')
+                ->join('users', 'users.id', '=', 'stock_transfers.created_by')
+                ->where('stock_transfer_items.item_id', $itemId)
+                ->where('stock_transfers.from_branch_id', $branchId)
+                ->where('stock_transfers.status', 'accepted')
+                ->whereBetween('stock_transfers.date_time', [$fromDate, $toDate])
+                ->select('stock_transfers.date_time as transaction_date', DB::raw("'Transfer Out' as type"), DB::raw('0 - stock_transfer_items.quantity as quantity'), DB::raw("CONCAT('TRF-', stock_transfers.id) as reference"), 'users.name as performed_by');
+
+            // Transfers In
+            $transfersIn = DB::table('stock_transfer_items')
+                ->join('stock_transfers', 'stock_transfers.id', '=', 'stock_transfer_items.transfer_id')
+                ->join('users', 'users.id', '=', 'stock_transfers.created_by')
+                ->where('stock_transfer_items.item_id', $itemId)
+                ->where('stock_transfers.to_branch_id', $branchId)
+                ->where('stock_transfers.status', 'accepted')
+                ->whereBetween('stock_transfers.date_time', [$fromDate, $toDate])
+                ->select('stock_transfers.date_time as transaction_date', DB::raw("'Transfer In' as type"), 'stock_transfer_items.quantity as quantity', DB::raw("CONCAT('TRF-', stock_transfers.id) as reference"), 'users.name as performed_by');
+
+            $query = $sales->unionAll($wastage)->unionAll($transfersOut)->unionAll($transfersIn);
+
+            // Production (In) - Main Branch Only
+            if ($branchId == 1) {
+                $production = DB::table('inventory_request_items')
+                    ->join('inventory_requests', 'inventory_requests.id', '=', 'inventory_request_items.inventory_request_id')
+                    ->join('users', 'users.id', '=', 'inventory_requests.user_id')
+                    ->where('inventory_request_items.item_id', $itemId)
+                    ->whereBetween('inventory_requests.date_time', [$fromDate, $toDate])
+                    ->where('inventory_requests.status', 'completed')
+                    ->select('inventory_requests.date_time as transaction_date', DB::raw("'Production' as type"), 'inventory_request_items.quantity as quantity', DB::raw("CONCAT('PRD-', inventory_requests.id) as reference"), 'users.name as performed_by');
+
+                $query->unionAll($production);
+            }
+
+            $transactions = $query->orderBy('transaction_date', 'asc')->get(); // Changed to ASC to show history in order
+        }
+
+        // Pass openingBalance to view
+        return view('supervisor.reports.item-transaction-details', compact('branches', 'items', 'transactions', 'selectedItem', 'selectedBranch', 'openingBalance'));
     }
 }
 

@@ -16,10 +16,10 @@ class SupervisorUserSeeder extends Seeder
     {
         // Create or update supervisor user without branch assignment (manages central inventory)
         User::updateOrCreate(
-            ['email' => 'supervisor@ravon.com'],
+            ['username' => 'supervisor'],
             [
                 'name' => 'Supervisor User',
-                'email' => 'supervisor@ravon.com',
+                'username' => 'supervisor',
                 'password' => Hash::make('supervisor123'),
                 'role' => 'supervisor',
                 'branch_id' => null, // No branch assignment - manages central inventory

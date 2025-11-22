@@ -186,6 +186,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add first row on page load
     addItemRow();
     
+    // Handle row addition when Tab key is pressed on quantity input
+    itemsTableBody.addEventListener('keydown', function(e) {
+        if (e.target.classList.contains('transfer-qty') && e.key === 'Tab' && !e.shiftKey) {
+            const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
+            const currentRow = e.target.closest('.item-row');
+            const isLastRow = rows[rows.length - 1] === currentRow;
+            const transferQtyValue = parseFloat(e.target.value) || 0;
+            const availableQty = parseFloat(currentRow.querySelector('.available-qty').value) || 0;
+            const itemSelect = currentRow.querySelector('.item-select');
+            const hiddenItemInput = currentRow.querySelector('input[type="hidden"][name*="[item_id]"]');
+            const hasItemSelected = (itemSelect && itemSelect.value) || (hiddenItemInput && hiddenItemInput.value);
+
+            // If this is the last row and has valid quantity and item selected, add a new row
+            if (isLastRow && transferQtyValue > 0 && transferQtyValue <= availableQty && hasItemSelected) {
+                e.preventDefault(); // Prevent default tab behavior
+                addItemRow();
+                
+                // Focus on the item select dropdown of the new row
+                setTimeout(() => {
+                    const newRows = itemsTableBody.querySelectorAll('.item-row');
+                    const newRow = newRows[newRows.length - 1];
+                    const newItemSelect = newRow.querySelector('.item-select');
+                    if (newItemSelect) {
+                        newItemSelect.focus();
+                    }
+                }, 10);
+            }
+        }
+    }, true);
+    
     // Add All Items button handler
     document.getElementById('addAllItemsBtn').addEventListener('click', function() {
         const btn = this;
@@ -291,22 +321,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         transferQty.addEventListener('input', function() {
             validateTransferQuantity(this);
-        });
-
-        // When quantity is entered on the last row (on blur), auto-append a new empty row
-        transferQty.addEventListener('blur', function() {
-            // If this row is the last one and has a valid quantity, add a new row
-            const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
-            const isLastRow = rows[rows.length - 1] === row;
-            const val = parseFloat(this.value) || 0;
-            const availableQty = parseFloat(row.querySelector('.available-qty').value) || 0;
-
-            if (isLastRow && val > 0 && val <= availableQty && row.querySelector('.item-select').value) {
-                // Small timeout to allow any validation classes to settle
-                setTimeout(() => {
-                    addItemRow();
-                }, 50);
-            }
         });
         
         removeBtn.addEventListener('click', function() {

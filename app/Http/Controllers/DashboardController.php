@@ -16,16 +16,22 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        $user = Auth::user();
+        
+        // If user is not authenticated, let middleware handle it
+        if (!$user) {
+            abort(401);
+        }
+
         // Redirect supervisors to their own dashboard
-        if (Auth::check() && Auth::user()->role === 'supervisor') {
+        if ($user->role === 'supervisor') {
             return redirect()->route('supervisor.dashboard');
         }
 
         // Redirect admins to the user management page
-        if (Auth::check() && Auth::user()->role === 'admin') {
+        if ($user->role === 'admin') {
             return redirect()->route('users.index');
         }
-        $user = Auth::user();
 
         // If staff, scope statistics to their branch
         if ($user && $user->role === 'staff' && $user->branch_id) {

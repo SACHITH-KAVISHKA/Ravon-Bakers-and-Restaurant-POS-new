@@ -25,7 +25,7 @@ Route::get('/', function () {
 
 // Dashboard route
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth'])
     ->name('dashboard');
 
 // Authenticated routes
@@ -68,7 +68,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // POS System - ONLY staff members can access
-    Route::middleware(['auth', 'verified'])->prefix('pos')->name('pos.')->group(function () {
+    Route::middleware(['auth'])->prefix('pos')->name('pos.')->group(function () {
         Route::get('/', [POSController::class, 'index'])->name('index');
         Route::post('/process-sale', [POSController::class, 'processSale'])->name('process-sale');
         Route::get('/receipt/{sale}', [POSController::class, 'receipt'])->name('receipt');

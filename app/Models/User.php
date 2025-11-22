@@ -19,7 +19,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'email',
+        'username',
         'password',
         'role',
         'branch_id',
@@ -45,7 +45,6 @@ class User extends Authenticatable
     {
         return [
             'id' => 'integer',
-            'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
@@ -57,6 +56,16 @@ class User extends Authenticatable
         'status' => 'boolean',
         'branch_id' => 'integer',
     ];
+
+    /**
+     * Get the name of the unique identifier for the user.
+     *
+     * @return string
+     */
+    public function username()
+    {
+        return 'username';
+    }
 
     /**
      * Scope a query to only include active users.

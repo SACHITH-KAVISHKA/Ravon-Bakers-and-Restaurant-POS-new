@@ -19,7 +19,7 @@
                 <tr>
 
                     <th>Name</th>
-                    <th>Email</th>
+                    <th>Username</th>
                     <th>Role</th>
                     <th>Branch</th>
                     <th>Created Date</th>
@@ -37,7 +37,7 @@
                             {{ $user->name }}
                         </div>
                     </td>
-                    <td>{{ $user->email }}</td>
+                    <td>{{ $user->username }}</td>
                     <td>
                         @if($user->role === 'admin')
                         <span class="badge bg-danger">

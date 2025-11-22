@@ -1,6 +1,6 @@
 <x-guest-layout>
     <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
+        {{ __('Password reset is disabled. Please contact your administrator to reset your password.') }}
     </div>
 
     <!-- Session Status -->
@@ -9,12 +9,14 @@
     <form method="POST" action="{{ route('password.email') }}">
         @csrf
 
-        <!-- Email Address -->
+        <!-- Email Address - Disabled (using username authentication) -->
+        <!--
         <div>
             <x-input-label for="email" :value="__('Email')" />
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
+        -->
 
         <div class="flex items-center justify-end mt-4">
             <x-primary-button>

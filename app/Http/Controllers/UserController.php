@@ -51,7 +51,7 @@ class UserController extends Controller
         
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'in:admin,staff,supervisor']
         ];
@@ -65,7 +65,7 @@ class UserController extends Controller
 
         $userData = [
             'name' => $request->name,
-            'username' => $request->username,
+            'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
         ];
@@ -117,7 +117,7 @@ class UserController extends Controller
         
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'role' => ['required', 'in:admin,staff,supervisor'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
@@ -131,7 +131,7 @@ class UserController extends Controller
 
         $updateData = [
             'name' => $request->name,
-            'username' => $request->username,
+            'email' => $request->email,
             'role' => $request->role,
         ];
 

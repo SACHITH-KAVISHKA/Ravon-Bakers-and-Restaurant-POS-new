@@ -35,18 +35,18 @@
                         </div>
                     </div>
 
-                    <!-- Username Field -->
+                    <!-- Email Field -->
                     <div class="row mb-4">
-                        <label for="username" class="col-md-3 col-form-label text-md-end fw-semibold">
-                            Username
+                        <label for="email" class="col-md-3 col-form-label text-md-end fw-semibold">
+                            Email Address
                         </label>
                         <div class="col-md-7">
-                            <input id="username" type="text" 
-                                   class="form-control @error('username') is-invalid @enderror" 
-                                   name="username" value="{{ old('username') }}" 
-                                   required autocomplete="username"
-                                   placeholder="Enter username">
-                            @error('username')
+                            <input id="email" type="email" 
+                                   class="form-control @error('email') is-invalid @enderror" 
+                                   name="email" value="{{ old('email') }}" 
+                                   required autocomplete="email"
+                                   placeholder="Enter email address">
+                            @error('email')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
                                 </span>

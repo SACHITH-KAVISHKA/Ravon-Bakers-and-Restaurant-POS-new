@@ -62,9 +62,9 @@
                                 </tr>
                                 <tr>
                                     <td class="text-muted">
-                                        <i class="bi bi-person-badge"></i> Username:
+                                        <i class="bi bi-envelope"></i> Email:
                                     </td>
-                                    <td>{{ $user->username }}</td>
+                                    <td>{{ $user->email }}</td>
                                 </tr>
                                 <tr>
                                     <td class="text-muted">
@@ -90,7 +90,31 @@
                                     </td>
                                     <td>{{ $user->updated_at->format('F d, Y \a\t g:i A') }}</td>
                                 </tr>
-
+                                @if($user->email_verified_at)
+                                <tr>
+                                    <td class="text-muted">
+                                        <i class="bi bi-check-circle"></i> Email Verified:
+                                    </td>
+                                    <td>
+                                        <span class="text-success">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                            {{ $user->email_verified_at->format('F d, Y \a\t g:i A') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @else
+                                <tr>
+                                    <td class="text-muted">
+                                        <i class="bi bi-exclamation-circle"></i> Email Verified:
+                                    </td>
+                                    <td>
+                                        <span class="text-warning">
+                                            <i class="bi bi-exclamation-circle-fill"></i>
+                                            Not verified
+                                        </span>
+                                    </td>
+                                </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>

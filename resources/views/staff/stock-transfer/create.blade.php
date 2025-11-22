@@ -195,6 +195,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add first row on page load
     addItemRow();
     
+    // Handle row addition when Tab key is pressed on quantity input
+    itemsTableBody.addEventListener('keydown', function(e) {
+        if (e.target.classList.contains('transfer-qty') && e.key === 'Tab' && !e.shiftKey) {
+            const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
+            const currentRow = e.target.closest('.item-row');
+            const isLastRow = rows[rows.length - 1] === currentRow;
+
+            // Add new row when Tab is pressed on the last row
+            if (isLastRow) {
+                e.preventDefault();
+                addItemRow();
+                
+                // Focus on the item select dropdown of the new row
+                setTimeout(() => {
+                    const newRows = itemsTableBody.querySelectorAll('.item-row');
+                    const newRow = newRows[newRows.length - 1];
+                    const newItemSelect = newRow.querySelector('.item-select');
+                    if (newItemSelect) {
+                        newItemSelect.focus();
+                    }
+                }, 10);
+            }
+        }
+    }, true);
+    
     // Add All Available Items button handler
     document.getElementById('addAllItemsBtn').addEventListener('click', function() {
         const btn = this;
@@ -223,8 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         addItemRowWithData(item.item_id, item.item_name, item.available_quantity);
                     });
                     
-                    // Add one empty row at the end
-                    addItemRow();
+                    // Don't add empty row after loading all items
                 } else {
                     showInfoModal('<i class="bi bi-inbox"></i> No items found in your branch inventory.<br><small class="text-muted">Please check if your branch has any items with stock.</small>');
                 }
@@ -299,20 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
         transferQty.addEventListener('input', function() {
             validateTransferQuantity(this);
         });
-
-        // When quantity is entered on the last row, auto-append a new empty row
-        transferQty.addEventListener('blur', function() {
-            const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
-            const isLastRow = rows[rows.length - 1] === row;
-            const val = parseFloat(this.value) || 0;
-            const availableQty = parseFloat(row.querySelector('.available-qty').value) || 0;
-
-            if (isLastRow && val > 0 && val <= availableQty && row.querySelector('.item-select').value) {
-                setTimeout(() => {
-                    addItemRow();
-                }, 50);
-            }
-        });
         
         removeBtn.addEventListener('click', function() {
             if (itemsTableBody.children.length > 1) {
@@ -382,7 +392,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const rows = itemsTableBody.querySelectorAll('.item-row');
         let hasValidItem = false;
         
+        // Remove empty rows (rows without item selected)
         rows.forEach(row => {
+            const itemSelect = row.querySelector('.item-select');
+            const hiddenItemInput = row.querySelector('input[type="hidden"][name*="[item_id]"]');
+            const hasItem = (itemSelect && itemSelect.value) || (hiddenItemInput && hiddenItemInput.value);
+            
+            if (!hasItem) {
+                row.remove();
+            }
+        });
+        
+        // Re-query rows after removing empty ones
+        const validRows = itemsTableBody.querySelectorAll('.item-row');
+        
+        validRows.forEach(row => {
             const itemSelect = row.querySelector('.item-select');
             const hiddenItemInput = row.querySelector('input[type="hidden"][name*="[item_id]"]');
             const transferQty = row.querySelector('.transfer-qty');

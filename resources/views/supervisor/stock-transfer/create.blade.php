@@ -186,6 +186,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add first row on page load
     addItemRow();
     
+    // Handle row addition when Tab key is pressed on quantity input
+    itemsTableBody.addEventListener('keydown', function(e) {
+        if (e.target.classList.contains('transfer-qty') && e.key === 'Tab' && !e.shiftKey) {
+            const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
+            const currentRow = e.target.closest('.item-row');
+            const isLastRow = rows[rows.length - 1] === currentRow;
+
+            // Add new row when Tab is pressed on the last row
+            if (isLastRow) {
+                e.preventDefault();
+                addItemRow();
+                
+                // Focus on the item select dropdown of the new row
+                setTimeout(() => {
+                    const newRows = itemsTableBody.querySelectorAll('.item-row');
+                    const newRow = newRows[newRows.length - 1];
+                    const newItemSelect = newRow.querySelector('.item-select');
+                    if (newItemSelect) {
+                        newItemSelect.focus();
+                    }
+                }, 10);
+            }
+        }
+    }, true);
+    
     // Add All Items button handler
     document.getElementById('addAllItemsBtn').addEventListener('click', function() {
         const btn = this;
@@ -214,8 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.items.forEach(item => {
                         addItemRowWithData(item);
                     });
-                    // Add one empty row at the end
-                    addItemRow();
+                    // Don't add empty row after loading all items
                 } else {
                     showInfoModal('<i class="bi bi-inbox"></i> No items found in the main branch inventory.<br><small class="text-muted">Please add items to inventory first or check if items have stock.</small>');
                     addItemRow();
@@ -370,15 +394,29 @@ document.addEventListener('DOMContentLoaded', function() {
         const items = document.querySelectorAll('.item-row');
         let isValid = true;
         
+        // Remove empty rows (rows without item selected)
+        items.forEach(row => {
+            const itemSelect = row.querySelector('.item-select');
+            const hiddenItemInput = row.querySelector('input[type="hidden"][name*="[item_id]"]');
+            const hasItem = (itemSelect && itemSelect.value) || (hiddenItemInput && hiddenItemInput.value);
+            
+            if (!hasItem) {
+                row.remove();
+            }
+        });
+        
+        // Re-query items after removing empty rows
+        const validItems = document.querySelectorAll('.item-row');
+        
         // Check if at least one item is added
-        if (!items || items.length === 0) {
+        if (!validItems || validItems.length === 0) {
             showWarningModal('Please add at least one item to transfer.');
             e.preventDefault();
             return;
         }
         
         // Validate each item row
-        items.forEach(row => {
+        validItems.forEach(row => {
             const itemSelect = row.querySelector('.item-select');
             const hiddenItemInput = row.querySelector('input[type="hidden"][name*="[item_id]"]');
             const transferQty = row.querySelector('.transfer-qty');

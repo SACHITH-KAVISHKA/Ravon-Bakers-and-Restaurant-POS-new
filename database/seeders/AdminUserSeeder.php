@@ -16,7 +16,7 @@ class AdminUserSeeder extends Seeder
     {
         // Create admin user
         User::updateOrCreate(
-            ['email' => 'admin@revon.com'],
+            ['username' => 'admin'],
             [
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
@@ -26,7 +26,7 @@ class AdminUserSeeder extends Seeder
 
         // Create supervisor user
         User::updateOrCreate(
-            ['email' => 'supervisor@revon.com'],
+            ['username' => 'supervisor'],
             [
                 'name' => 'Supervisor User',
                 'password' => Hash::make('password'),

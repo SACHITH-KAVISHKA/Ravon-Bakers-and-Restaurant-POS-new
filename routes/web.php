@@ -112,6 +112,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/store-wastage', [SupervisorController::class, 'storeWastage'])->name('store-wastage');
         Route::get('/wastage-view', [SupervisorController::class, 'wastageView'])->name('wastage-view');
 
+        Route::get('/reports/item-transaction', [SupervisorController::class, 'itemTransactionDetails'])
+             ->name('reports.item-transaction');
+
         // Production (Inventory Requests added by supervisor to main stock)
         Route::prefix('productions')->name('productions.')->group(function () {
             Route::get('/', [SupervisorController::class, 'productions'])->name('index');
@@ -135,6 +138,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/api/all-inventory', [StockTransferController::class, 'getAllInventory'])->name('api.all-inventory');
         });
     });
+
 
     // Staff routes for inventory management
     Route::middleware(['auth'])->prefix('staff')->name('staff.')->group(function () {

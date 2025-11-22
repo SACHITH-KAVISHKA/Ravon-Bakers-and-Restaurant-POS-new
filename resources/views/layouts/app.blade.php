@@ -576,7 +576,11 @@
                 </li>
 
                 @php
-                $reportsActive = request()->routeIs('supervisor.wastage-view') || request()->routeIs('stock-transfer.transfers') || request()->routeIs('supervisor.inventory-history') || request()->routeIs('supervisor.productions.*');
+                $reportsActive = request()->routeIs('supervisor.wastage-view') ||
+                                request()->routeIs('stock-transfer.transfers') ||
+                                request()->routeIs('supervisor.inventory-history') ||
+                                request()->routeIs('supervisor.productions.*') ||
+                                request()->routeIs('supervisor.reports.item-transaction');
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link d-flex justify-content-between align-items-center {{ $reportsActive ? 'active' : '' }}"
@@ -619,6 +623,12 @@
                                 <a class="nav-link {{ request()->routeIs('supervisor.productions.*') ? 'active' : '' }}" href="{{ route('supervisor.productions.index') }}">
                                     <i class="bi bi-clipboard-data"></i>
                                     <span>View Production</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('supervisor.reports.item-transaction') ? 'active' : '' }}" href="{{ route('supervisor.reports.item-transaction') }}">
+                                    <i class="bi bi-journal-text"></i>
+                                    <span>Item Transaction Details</span>
                                 </a>
                             </li>
                         </ul>

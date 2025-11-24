@@ -526,7 +526,7 @@ class SalesReportController extends Controller
 
         // Set headers
         $headers = [
-            'A1' => 'Receipt No',
+            // 'A1' => 'Receipt No',
             'B1' => 'Branch Name',
             'C1' => 'Subtotal',
             'D1' => 'Payment Method',
@@ -571,7 +571,7 @@ class SalesReportController extends Controller
                 $cardAmount = 0;
             }
 
-            $sheet->setCellValue('A' . $row, $sale->receipt_no);
+            // $sheet->setCellValue('A' . $row, $sale->receipt_no);
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
             $sheet->setCellValue('C' . $row, $sale->subtotal);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
@@ -583,8 +583,8 @@ class SalesReportController extends Controller
         }
 
         // Add totals row
-        $sheet->setCellValue('A' . $row, 'TOTAL');
-        $sheet->setCellValue('B' . $row, '');
+        // $sheet->setCellValue('A' . $row, 'TOTAL');
+        $sheet->setCellValue('B' . $row, 'TOTAL');
         $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
         $sheet->setCellValue('D' . $row, '');
         $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);

@@ -26,7 +26,7 @@
                     <input type="date" class="form-control form-control-lg" id="end_date" name="end_date"
                         value="{{ $endDate }}">
                 </div>
-                <div class="col-12 col-md-8 col-lg-4">
+                {{-- <div class="col-12 col-md-8 col-lg-4">
                     <label for="branch_id" class="form-label fw-semibold">Branch</label>
                     <select class="form-select form-select-lg" id="branch_id" name="branch_id">
                         <option value="">All Branches</option>
@@ -37,7 +37,7 @@
                             </option>
                         @endforeach
                     </select>
-                </div>
+                </div> --}}
                 <div class="col-12 col-md-4 col-lg-2">
                     <label class="form-label">&nbsp;</label>
                     <div class="d-grid gap-2">
@@ -68,7 +68,7 @@
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
-                            <th class="d-none d-sm-table-cell">Receipt No</th>
+                            {{-- <th class="d-none d-sm-table-cell">Receipt No</th> --}}
                             <th>Branch name</th>
                             <th class="d-none d-md-table-cell">Total</th>
                             <th class="d-none d-lg-table-cell">Payment</th>
@@ -82,9 +82,9 @@
                     <tbody>
                         @foreach($sales as $sale)
                         <tr>
-                            <td class="d-none d-sm-table-cell">
+                            {{-- <td class="d-none d-sm-table-cell">
                                 <span class="badge bg-primary">{{ $sale->receipt_no }}</span>
-                            </td>
+                            </td> --}}
                             <td>
                                 <div class="d-flex flex-column">
                                     <strong>{{ $sale->branch->name ?? 'N/A' }}</strong>

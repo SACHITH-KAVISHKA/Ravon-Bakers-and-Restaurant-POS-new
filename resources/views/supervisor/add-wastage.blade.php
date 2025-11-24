@@ -44,7 +44,12 @@
 
                     <!-- Items Table Section -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold">Items Table</label>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="form-label fw-semibold mb-0">Items Table</label>
+                            <button type="button" class="btn btn-success" id="addAllItemsBtn">
+                                <i class="bi bi-plus-circle"></i> Add All Available Items
+                            </button>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-bordered" id="itemsTable">
                                 <thead class="table-light">
@@ -243,6 +248,58 @@
                 updateRemoveButtons();
                 updateRowIndices();
             }
+        });
+
+        // Add All Available Items button handler
+        document.getElementById('addAllItemsBtn').addEventListener('click', function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
+
+            // Check if items data is available
+            if (window.wastageItems && Array.isArray(window.wastageItems) && window.wastageItems.length > 0) {
+                // Clear existing rows
+                itemsTableBody.innerHTML = '';
+                rowIndex = 0;
+
+                // Add all items with their available stock
+                window.wastageItems.forEach((item, index) => {
+                    if (parseFloat(item.available_stock) > 0) {
+                        const newRow = createNewRow(rowIndex);
+                        itemsTableBody.appendChild(newRow);
+                        
+                        // Set the item value and trigger change event
+                        const itemSelect = newRow.querySelector('.item-select');
+                        itemSelect.value = item.id;
+                        const changeEvent = new Event('change', { bubbles: true });
+                        itemSelect.dispatchEvent(changeEvent);
+                        
+                        // Fill the wasted quantity with available stock
+                        const quantityInput = newRow.querySelector('.quantity-input');
+                        if (quantityInput) {
+                            quantityInput.value = item.available_stock;
+                        }
+                        
+                        rowIndex++;
+                    }
+                });
+
+                // If no items with stock, show message
+                if (rowIndex === 0) {
+                    alert('No items found with available stock.');
+                    // Add one empty row
+                    const newRow = createNewRow(0);
+                    itemsTableBody.appendChild(newRow);
+                    rowIndex = 1;
+                }
+
+                updateRemoveButtons();
+            } else {
+                alert('No items available. Please check if items exist in the inventory.');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-plus-circle"></i> Add All Available Items';
         });
 
         function createNewRow(index) {

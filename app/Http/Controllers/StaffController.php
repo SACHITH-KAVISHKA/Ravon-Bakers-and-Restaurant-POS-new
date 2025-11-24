@@ -352,10 +352,19 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
-        $userBranchId = (int) $user->branch_id;
+
+        // Check authentication first
+        if (!$user) {
+            Log::warning('Unauthorized access attempt to createStockTransfer - no authenticated user');
+            return redirect()->route('login')->with('error', 'You must be logged in.');
+        }
+
+        // Cast branch_id to int and check if valid
+        $userBranchId = $user->branch_id ? (int) $user->branch_id : null;
 
         // Ensure user has a branch
-        if (!$user || !$userBranchId) {
+        if (!$userBranchId) {
+            Log::warning('User ' . $user->id . ' attempted to create stock transfer without branch assignment');
             return redirect()->back()->with('error', 'You must be assigned to a branch to create stock transfers.');
         }
 
@@ -387,11 +396,20 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
+
+        // Check authentication first
+        if (!$user) {
+            Log::warning('Unauthorized access attempt to storeStockTransfer - no authenticated user');
+            return redirect()->route('login')->with('error', 'You must be logged in.');
+        }
+
         $userId = (int) $user->id;
-        $userBranchId = (int) $user->branch_id;
+        // Cast branch_id to int and check if valid
+        $userBranchId = $user->branch_id ? (int) $user->branch_id : null;
 
         // Ensure user has a branch
-        if (!$user || !$userBranchId) {
+        if (!$userBranchId) {
+            Log::warning('User ' . $user->id . ' attempted to store stock transfer without branch assignment');
             return redirect()->back()->with('error', 'You must be assigned to a branch to create stock transfers.');
         }
 
@@ -498,10 +516,19 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
-        $userBranchId = (int) $user->branch_id;
+
+        // Check authentication first
+        if (!$user) {
+            Log::warning('Unauthorized access attempt to getStaffInventory - no authenticated user');
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // Cast branch_id to int and check if valid
+        $userBranchId = $user->branch_id ? (int) $user->branch_id : null;
 
         // Ensure user has a branch
-        if (!$user || !$userBranchId) {
+        if (!$userBranchId) {
+            Log::warning('User ' . $user->id . ' attempted to access inventory without branch assignment');
             return response()->json(['error' => 'You must be assigned to a branch.'], 403);
         }
 
@@ -522,10 +549,19 @@ class StaffController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
-        $userBranchId = (int) $user->branch_id;
+
+        // Check authentication first
+        if (!$user) {
+            Log::warning('Unauthorized access attempt to getAllStaffInventory - no authenticated user');
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // Cast branch_id to int and check if valid
+        $userBranchId = $user->branch_id ? (int) $user->branch_id : null;
 
         // Ensure user has a branch
-        if (!$user || !$userBranchId) {
+        if (!$userBranchId) {
+            Log::warning('User ' . $user->id . ' attempted to access all inventory without branch assignment');
             return response()->json(['error' => 'You must be assigned to a branch.'], 403);
         }
 

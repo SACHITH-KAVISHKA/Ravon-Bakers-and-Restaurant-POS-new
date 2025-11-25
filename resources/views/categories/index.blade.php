@@ -21,7 +21,7 @@
     <!-- Main Content Row -->
     <div class="row">
         <!-- Add Category Form (Left Panel) -->
-        @can('create', App\Models\Category::class)
+        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
         <div class="col-lg-4 mb-4">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-primary text-white">
@@ -60,7 +60,7 @@
         @endif
 
         <!-- Categories List (Right Panel) -->
-        <div class="@can('create', App\Models\Category::class) col-lg-8 @else col-12 @endcan">
+        <div class="@if(Auth::user()->role === 'admin' || Auth::user()->role === 'director') col-lg-8 @else col-12 @endif">
             <div class="card shadow-sm border-0">
 
                 <div class="card-body p-0">
@@ -73,9 +73,9 @@
                                     <th class="px-4 py-3">Name</th>
                                     <th class="px-4 py-3">Status</th>
                                     <th class="px-4 py-3">Created</th>
-                                    @canany(['update', 'delete'], App\Models\Category::class)
+                                    @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
                                     <th class="px-4 py-3 text-center">Actions</th>
-                                    @endcanany
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -97,27 +97,23 @@
                                             {{ $category->created_at->format('M d, Y') }}
                                         </small>
                                     </td>
-                                    @canany(['update', 'delete'], $category)
+                                    @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
                                     <td class="px-4 py-3">
                                         <div class="d-flex justify-content-center gap-1">
-                                            @can('update', $category)
                                             <button class="btn btn-sm btn-outline-primary"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#editCategoryModal{{ $category->id }}">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
-                                            @endcan
 
-                                            @can('delete', $category)
                                             <button class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#deleteCategoryModal{{ $category->id }}">
                                                 <i class="bi bi-trash3"></i>
                                             </button>
-                                            @endcan
                                         </div>
                                     </td>
-                                    @endcanany
+                                    @endif
                                 </tr>
                                 @endforeach
                             </tbody>
@@ -128,12 +124,12 @@
                         <i class="bi bi-tags text-muted" style="font-size: 3rem;"></i>
                         <h5 class="mt-3 text-muted">No Categories Found</h5>
                         <p class="text-muted">Start by creating your first category.</p>
-                        @can('create', App\Models\Category::class)
+                        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
                             <i class="bi bi-plus-lg me-1"></i>
                             Add First Category
                         </button>
-                        @endcan
+                        @endif
                     </div>
                     @endif
                 </div>
@@ -144,7 +140,7 @@
 
 <!-- Edit Category Modals -->
 @foreach($categories as $category)
-@can('update', $category)
+@if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
 <div class="modal fade" id="editCategoryModal{{ $category->id }}" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -174,12 +170,12 @@
         </div>
     </div>
 </div>
-@endcan
+@endif
 @endforeach
 
 <!-- Delete Category Modals -->
 @foreach($categories as $category)
-@can('delete', $category)
+@if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
 <div class="modal fade" id="deleteCategoryModal{{ $category->id }}" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -209,7 +205,7 @@
         </div>
     </div>
 </div>
-@endcan
+@endif
 @endforeach
 
 @endsection

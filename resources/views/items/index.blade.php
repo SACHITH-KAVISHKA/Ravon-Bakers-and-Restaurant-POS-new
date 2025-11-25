@@ -4,11 +4,12 @@
             <i class="bi bi-box-seam me-2"></i>
             Item Management
         </h1>
-        @can('create', App\Models\Item::class)
+        {{-- Allow Admin and Director to Add Items --}}
+        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
         <a href="{{ route('items.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add New Item
         </a>
-        @endcan
+        @endif
     </div>
 
     <!-- Search Form -->
@@ -97,20 +98,19 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-1 flex-wrap">
-                                    {{-- Eye icon and view prices link removed as requested --}}
-                                    @can('update', $item)
+                                    {{-- Allow Admin and Director to Edit/Delete --}}
+                                    @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
                                     <a href="{{ route('items.edit', $item) }}" class="btn btn-outline-warning btn-sm" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    @endcan
-                                    @can('delete', $item)
+
                                     <button type="button" class="btn btn-outline-danger btn-sm"
                                         data-bs-toggle="modal"
                                         data-bs-target="#deleteItemModal{{ $item->id }}"
                                         title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </button>
-                                    @endcan
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -125,11 +125,11 @@
                                 </small>
                                 @else
                                 <div>No items found</div>
-                                @can('create', App\Models\Item::class)
+                                @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
                                 <small>
                                     <a href="{{ route('items.create') }}">Add your first item</a>
                                 </small>
-                                @endcan
+                                @endif
                                 @endif
                             </td>
                         </tr>
@@ -148,7 +148,7 @@
 
     <!-- Delete Confirmation Modals -->
     @foreach($items as $item)
-    @can('delete', $item)
+    @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
     <div class="modal fade" id="deleteItemModal{{ $item->id }}" tabindex="-1" aria-labelledby="deleteItemModalLabel{{ $item->id }}" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -196,6 +196,6 @@
             </div>
         </div>
     </div>
-    @endcan
+    @endif
     @endforeach
 </x-app-layout>

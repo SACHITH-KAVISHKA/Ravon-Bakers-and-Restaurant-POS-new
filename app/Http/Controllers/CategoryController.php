@@ -15,17 +15,17 @@ class CategoryController extends Controller
      * Apply 'manage-users' gate to all controller methods.
      * This will allow 'admin' and 'director' roles.
      */
-    public function __construct()
-    {
-        $this->middleware('can:manage-users');
-    }
+    // public function __construct()
+    // {
+    //     $this->middleware('can:manage-users');
+    // }
 
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $this->authorize('viewAny', Category::class);
+        // $this->authorize('viewAny', Category::class);
 
         $categories = Category::active()->orderBy('name')->get();
 
@@ -37,7 +37,7 @@ class CategoryController extends Controller
      */
     public function create()
     {
-        $this->authorize('create', Category::class);
+        // $this->authorize('create', Category::class);
 
         $categories = Category::active()->orderBy('name')->get();
 
@@ -49,7 +49,7 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorize('create', Category::class);
+        // $this->authorize('create', Category::class);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -76,7 +76,7 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
-        $this->authorize('view', $category);
+        // $this->authorize('view', $category);
 
         return view('categories.show', compact('category'));
     }
@@ -86,7 +86,7 @@ class CategoryController extends Controller
      */
     public function edit(Category $category)
     {
-        $this->authorize('update', $category);
+        // $this->authorize('update', $category);
 
         $categories = Category::active()->where('id', '!=', $category->id)->orderBy('name')->get();
 
@@ -98,7 +98,7 @@ class CategoryController extends Controller
      */
     public function update(Request $request, Category $category)
     {
-        $this->authorize('update', $category);
+        // $this->authorize('update', $category);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:categories,name,' . $category->id . ',id,status,1',
@@ -115,7 +115,7 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        $this->authorize('delete', $category);
+        // $this->authorize('delete', $category);
 
         $category->softDelete();
 
@@ -128,7 +128,7 @@ class CategoryController extends Controller
      */
     public function restore(Category $category)
     {
-        $this->authorize('delete', $category);
+        // $this->authorize('delete', $category);
 
         $category->restore();
 

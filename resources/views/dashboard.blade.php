@@ -11,8 +11,9 @@
     </div>
 
     <!-- Stats Cards Row -->
+    @if(auth()->user()->role == 'director')
     <div class="row g-3 mb-4">
-        <!-- <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-3">
             <div class="card stats-card h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="flex-grow-1">
@@ -25,9 +26,9 @@
                     </div>
                 </div>
             </div>
-        </div> -->
+        </div>
 
-        <!-- <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-3">
             <div class="card stats-card h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="flex-grow-1">
@@ -40,9 +41,9 @@
                     </div>
                 </div>
             </div>
-        </div> -->
+        </div>
 
-        <!-- <div class="col-12 col-sm-6 col-xl-3">
+        <div class="col-12 col-sm-6 col-xl-3">
             <div class="card stats-card h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="flex-grow-1">
@@ -55,9 +56,8 @@
                     </div>
                 </div>
             </div>
-        </div> -->
+        </div>
 
-        @if(auth()->user()->role !== 'staff')
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card stats-card h-100">
                 <div class="card-body d-flex align-items-center">

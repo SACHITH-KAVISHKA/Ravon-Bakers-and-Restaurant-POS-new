@@ -527,7 +527,7 @@
                     <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
                 </a>
                 @else
-                @if(auth()->user()->role !== 'admin')
+                @if(auth()->user()->role !== 'staff')
                 <a href="{{ route('dashboard') }}" style="text-decoration: none;">
                     <img src="{{ asset('images/logo.jpg') }}" alt="Ravon Bakers Logo" class="sidebar-logo">
                 </a>
@@ -635,7 +635,7 @@
                     </div>
                 </li>
                 @else
-                @if(auth()->user()->role !== 'admin')
+                @if(auth()->user()->role !== 'admin' && auth()->user()->role !== 'staff' && auth()->user()->role !== 'office')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
                         href="{{ route('dashboard') }}">
@@ -681,7 +681,9 @@
                         <span>Item Management</span>
                     </a>
                 </li>
+                @endif
 
+                @if(auth()->user()->role === 'admin' || auth()->user()->role === 'director' || auth()->user()->role === 'office')
                 @php
                     $adminReportsActive = false; // Default
                     if (auth()->user()->role === 'director') {
@@ -690,6 +692,9 @@
                     } elseif (auth()->user()->role === 'admin') {
                         // Admin sees sales-report2.* and reports.*
                         $adminReportsActive = request()->routeIs('sales-report2.*') || request()->routeIs('reports.*');
+                    } elseif (auth()->user()->role === 'office') {
+                        // Office sees ONLY sales-report2.*
+                        $adminReportsActive = request()->routeIs('sales-report2.*');
                     }
                 @endphp
                 <li class="nav-item">
@@ -714,17 +719,18 @@
                             </li>
                             @endif
 
-                            {{-- Show "Daily Sales Report" ONLY to admin --}}
-                            @if(auth()->user()->role === 'admin')
+                            {{-- Show "Daily Sales Report" ONLY to admin and office --}}
+                            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'office')
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('sales-report2.*') ? 'active' : '' }}" href="{{ route('sales-report2.index2') }}">
                                     <i class="bi bi-cash-coin"></i>
-                                    <span>Daily Sales Report</span>
+                                    <span>Daily Sales Report-2</span>
                                 </a>
                             </li>
                             @endif
 
                             {{-- Show these reports to BOTH admin and director --}}
+                            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'director')
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('reports.stock-report') ? 'active' : '' }}" href="{{ route('reports.stock-report') }}">
                                     <i class="bi bi-boxes"></i>
@@ -737,6 +743,7 @@
                                     <span>Item Sales</span>
                                 </a>
                             </li>
+                            @endif
                         </ul>
                     </div>
                 </li>
@@ -1094,7 +1101,7 @@
             mobileNavLinks.forEach(link => {
                 link.addEventListener('click', function() {
                     if (window.innerWidth <= 768) {
-                        closeMobileSidebar();
+                        closeSidebar();
                     }
                 });
             });
@@ -1102,7 +1109,7 @@
             // Handle window resize
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
-                    closeMobileSidebar();
+                    closeSidebar();
                     document.body.style.overflow = '';
                 }
             });

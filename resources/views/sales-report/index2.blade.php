@@ -152,7 +152,7 @@
                                         title="Print Receipt">
                                         <i class="bi bi-printer"></i>
                                     </button>
-
+                                    @if(auth()->user()->role == 'admin' && auth()->user()->role == 'director')
                                     @if($sale->status ?? 1)
                                     <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn"
                                             data-sale-id="{{ $sale->id }}"
@@ -161,6 +161,7 @@
                                     </button>
                                     @else
                                     <span class="badge bg-secondary ms-1">Deleted</span>
+                                    @endif
                                     @endif
                                 </div>
                             </td>
@@ -416,7 +417,7 @@
             // Handle direct print receipt button
             $(document).on('click', '.print-receipt-btn', function() {
                 const receiptUrl = $(this).data('receipt-url');
-                
+
                 // Create or reuse hidden iframe
                 let printFrame = document.getElementById('print-receipt-frame');
                 if (!printFrame) {
@@ -425,7 +426,7 @@
                     printFrame.style.display = 'none';
                     document.body.appendChild(printFrame);
                 }
-                
+
                 // Load receipt and print
                 printFrame.src = receiptUrl;
                 printFrame.onload = function() {

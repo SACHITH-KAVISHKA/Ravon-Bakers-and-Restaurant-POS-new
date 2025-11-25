@@ -163,7 +163,7 @@
 
                         <!-- Totals Row -->
                         <tr class="table-info fw-bold">
-                            <td colspan="2" class="text-end">TOTAL :</td>
+                            <td colspan="1" class="text-end">TOTAL :</td>
                             <td class="d-none d-md-table-cell">LKR {{ number_format($totals->total_subtotal ?? 0, 2) }}</td>
                             <td class="d-none d-lg-table-cell">-</td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_cash ?? 0, 2) }}</td>

@@ -104,9 +104,6 @@
                             <th>Item Name</th>
                             <th>Category</th>
                             <th>Current Stock</th>
-                            <th>Low Stock Alert</th>
-                            <th>Status</th>
-                            <th>Price</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -131,23 +128,6 @@
                                     {{ $inventory->current_stock }}
                                 </span>
                             </td>
-                            <td>{{ $inventory->low_stock_alert }}</td>
-                            <td>
-                                @if($inventory->current_stock == 0)
-                                <span class="badge bg-danger">
-                                    <i class="bi bi-x-circle"></i> Out of Stock
-                                </span>
-                                @elseif($inventory->isLowStock())
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-exclamation-triangle"></i> Low Stock
-                                </span>
-                                @else
-                                <span class="badge bg-success">
-                                    <i class="bi bi-check-circle"></i> In Stock
-                                </span>
-                                @endif
-                            </td>
-                            <td>LKR {{ number_format($inventory->item->price, 2) }}</td>
                         </tr>
                         @endforeach
                     </tbody>

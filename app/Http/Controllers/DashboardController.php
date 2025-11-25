@@ -43,7 +43,7 @@ class DashboardController extends Controller
             $totalValue = Inventory::where('inventories.branch_id', $branchId)
                 ->leftJoin('item_branch_prices as bp', function ($join) use ($branchId) {
                     $join->on('inventories.item_id', '=', 'bp.item_id')
-                         ->where('bp.branch_id', '=', $branchId);
+                        ->where('bp.branch_id', '=', $branchId);
                 })
                 ->selectRaw('COALESCE(SUM(inventories.current_stock * COALESCE(bp.price, 0)), 0) as total')
                 ->value('total');

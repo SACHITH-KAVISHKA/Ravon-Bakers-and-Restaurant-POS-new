@@ -10,6 +10,7 @@ use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ItemController extends Controller
@@ -90,9 +91,10 @@ class ItemController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($request) {
-            // Check if an inactive item with the same name already exists
-            $existingItem = Item::where('item_name', $request->item_name)
+        try {
+            DB::transaction(function () use ($request) {
+                // Check if an inactive item with the same name already exists
+                $existingItem = Item::where('item_name', $request->item_name)
                                   ->where('is_active', false)
                                   ->first();
 
@@ -135,9 +137,36 @@ class ItemController extends Controller
                     );
                 }
             }
+
+            // Automatically create inventory record for Main Branch only (branch_id = 1)
+            $existingInventory = Inventory::where('item_id', $item->id)
+                                          ->where('branch_id', 1)
+                                          ->first();
+            
+            if (!$existingInventory) {
+                Inventory::create([
+                    'item_id' => $item->id,
+                    'branch_id' => 1, // Main Branch
+                    'current_stock' => 0,
+                    'low_stock_alert' => 10,
+                ]);
+            }
         });
 
         return redirect()->route('items.index')->with('success', 'Item created successfully.');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Item Store Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while creating item. Please contact support.')
+                ->withInput();
+
+        } catch (\Exception $e) {
+            Log::error('Item Store Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while creating item. Please try again.')
+                ->withInput();
+        }
     }
 
     /**
@@ -187,9 +216,10 @@ class ItemController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        DB::transaction(function () use ($request, $item) {
-            $item->update([
-                'item_name' => $request->item_name,
+        try {
+            DB::transaction(function () use ($request, $item) {
+                $item->update([
+                    'item_name' => $request->item_name,
                 // item_code is not updated - it stays the same
                 'category' => $request->category,
                 //'price' => moved to branch prices
@@ -212,10 +242,23 @@ class ItemController extends Controller
                 \App\Models\ItemBranchPrice::where('item_id', $item->id)
                     ->whereNotIn('branch_id', array_keys($incoming))
                     ->delete();
-            }
-        });
+                }
+            });
 
-        return redirect()->route('items.index')->with('success', 'Item updated successfully.');
+            return redirect()->route('items.index')->with('success', 'Item updated successfully.');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Item Update Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while updating item. Please contact support.')
+                ->withInput();
+
+        } catch (\Exception $e) {
+            Log::error('Item Update Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while updating item. Please try again.')
+                ->withInput();
+        }
     }
 
     /**

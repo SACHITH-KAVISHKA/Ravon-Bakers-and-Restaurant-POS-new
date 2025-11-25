@@ -148,6 +148,11 @@
                 <!-- Branch Name -->
                 <div class="restaurant-name">{{ $sale->branch->display_name ?? $sale->branch->name }}</div>
                 
+                <!-- Company Name (if exists) -->
+                @if($sale->branch->company_name)
+                    <div style="font-size: 12px; margin-top: 3px;">{{ $sale->branch->company_name }}</div>
+                @endif
+                
                 <!-- Branch Address and Phone -->
                 <div style="font-size: 10px; margin-top: 3px;">
                     @if($sale->branch->address)

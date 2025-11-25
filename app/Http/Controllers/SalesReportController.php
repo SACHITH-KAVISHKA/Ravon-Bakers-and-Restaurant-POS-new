@@ -747,4 +747,16 @@ class SalesReportController extends Controller
             'message' => 'Check logs for detailed information'
         ]);
     }
+
+    /**
+     * Display receipt for a sale from sales report
+     */
+    public function receipt(Sale $sale)
+    {
+        // Load the sale with its related items and branch
+        $sale->load(['saleItems', 'branch']);
+        
+        // Return the sales report receipt view
+        return view('sales-report.receipt', compact('sale'));
+    }
 }

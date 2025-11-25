@@ -12,11 +12,17 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class POSController extends Controller
 {
     public function index()
     {
+        // Only staff members can access POS
+        if (Auth::user()->role !== 'staff') {
+            abort(403, 'Only staff members can access POS system.');
+        }
+        
         // Clear any previous sale session when starting new POS session
         if (request()->has('clear') || !session()->has('pos_initialized')) {
             session()->forget(['sale_id', 'pos_cart', 'pos_customer_payment', 'pos_payment_method']);
@@ -77,6 +83,11 @@ class POSController extends Controller
 
     public function processSale(Request $request)
     {
+        // Only staff members can process sales
+        if (Auth::user()->role !== 'staff') {
+            abort(403, 'Only staff members can access POS system.');
+        }
+        
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.id' => 'required|exists:items,id',
@@ -202,12 +213,13 @@ class POSController extends Controller
 
         $saleId = null;
 
-        DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $cardPayment, $balance, $creditBalance, &$saleId) {
-            $user = Auth::user();
-            $userId = (int) ($user->id ?? null);
-            $userBranchId = (int) ($user->branch_id ?? null);
+        try {
+            DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $cardPayment, $balance, $creditBalance, &$saleId) {
+                $user = Auth::user();
+                $userId = (int) ($user->id ?? null);
+                $userBranchId = (int) ($user->branch_id ?? null);
 
-            // Determine order type based on items
+                // Determine order type based on items
             $hasKitchenItems = false;
             $hasBarItems = false;
             
@@ -427,20 +439,35 @@ class POSController extends Controller
             }
 
             session(['sale_id' => $sale->id]);
-        });
+            });
 
-        return response()->json([
-            'success' => true,
-            'receipt_no' => $receiptNo,
-            'user_name' => Auth::user()->name,
-            'subtotal' => number_format($subtotal, 2),
-            'total' => number_format($total, 2),
-            'customer_payment' => number_format($customerPayment, 2),
-            'card_payment' => number_format($cardPayment, 2),
-            'balance' => number_format($balance, 2),
-            'payment_method' => $request->payment_method,
-            'redirect_url' => route('pos.receipt', $saleId)
-        ]);
+            return response()->json([
+                'success' => true,
+                'receipt_no' => $receiptNo,
+                'user_name' => Auth::user()->name,
+                'subtotal' => number_format($subtotal, 2),
+                'total' => number_format($total, 2),
+                'customer_payment' => number_format($customerPayment, 2),
+                'card_payment' => number_format($cardPayment, 2),
+                'balance' => number_format($balance, 2),
+                'payment_method' => $request->payment_method,
+                'redirect_url' => route('pos.receipt', $saleId)
+            ]);
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('POS Sale Database Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Database error occurred while processing sale. Please contact support.'
+            ], 500);
+
+        } catch (\Exception $e) {
+            Log::error('POS Sale Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'An error occurred while processing sale. Please try again.'
+            ], 500);
+        }
     }
 
     public function receipt(Sale $sale)

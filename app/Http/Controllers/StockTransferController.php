@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class StockTransferController extends Controller
 {
@@ -58,13 +59,18 @@ class StockTransferController extends Controller
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:items,id',
-            'items.*.quantity' => 'required|numeric|min:0.01',
+            'items.*.quantity' => ['required', 'numeric', function ($attribute, $value, $fail) {
+                if ($value == 0) {
+                    $fail('The quantity cannot be zero.');
+                }
+            }],
         ]);
 
-        DB::transaction(function () use ($request, $userId) {
-            // Create the stock transfer (from central inventory to branch)
-            // Explicitly set from_branch_id to 1 for supervisor transfers (main/central inventory)
-            $transfer = StockTransfer::create([
+        try {
+            DB::transaction(function () use ($request, $userId) {
+                // Create the stock transfer (from central inventory to branch)
+                // Explicitly set from_branch_id to 1 for supervisor transfers (main/central inventory)
+                $transfer = StockTransfer::create([
                 'from_branch_id' => 1, // Main/Central inventory branch
                 'to_branch_id' => $request->to_branch_id,
                 'date_time' => $request->date_time,
@@ -80,7 +86,13 @@ class StockTransferController extends Controller
                     ->where('branch_id', 1) // Main branch inventory
                     ->first();
 
-                if (!$inventory || $inventory->current_stock < $itemData['quantity']) {
+                if (!$inventory) {
+                    throw new \Exception("Inventory not found for item ID: {$itemData['item_id']}");
+                }
+
+                // Allow negative quantities for negative stock transfers
+                // Only check if transferring more positive stock than available
+                if ($itemData['quantity'] > 0 && $inventory->current_stock < $itemData['quantity']) {
                     throw new \Exception("Insufficient stock in main branch inventory for item ID: {$itemData['item_id']}");
                 }
 
@@ -91,11 +103,24 @@ class StockTransferController extends Controller
                     'quantity' => $itemData['quantity'],
                     'available_quantity' => $inventory->current_stock,
                 ]);
-            }
-        });
+                }
+            });
 
-        return redirect()->route('supervisor.stock-transfer.by-status')
-            ->with('success', 'Stock transfer request has been sent successfully!');
+            return redirect()->route('supervisor.stock-transfer.by-status')
+                ->with('success', 'Stock transfer request has been sent successfully!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Stock Transfer Store Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while creating stock transfer. Please contact support.')
+                ->withInput();
+
+        } catch (\Exception $e) {
+            Log::error('Stock Transfer Store Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', $e->getMessage())
+                ->withInput();
+        }
     }
 
     /**
@@ -251,9 +276,10 @@ class StockTransferController extends Controller
             return redirect()->back()->with('error', 'This transfer has already been processed.');
         }
 
-        DB::transaction(function () use ($stockTransfer, $userId) {
-            // Update transfer status
-            $stockTransfer->update([
+        try {
+            DB::transaction(function () use ($stockTransfer, $userId) {
+                // Update transfer status
+                $stockTransfer->update([
                 'status' => 'accepted',
                 'processed_by' => $userId,
                 'processed_at' => now(),
@@ -294,10 +320,21 @@ class StockTransferController extends Controller
                     $destInventory->low_stock_alert = $defaultLowAlert;
                     $destInventory->save();
                 }
-            }
-        });
+                }
+            });
 
-        return redirect()->back()->with('success', 'Stock transfer has been accepted successfully!');
+            return redirect()->back()->with('success', 'Stock transfer has been accepted successfully!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Stock Transfer Accept Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while accepting transfer. Please contact support.');
+
+        } catch (\Exception $e) {
+            Log::error('Stock Transfer Accept Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while accepting transfer. Please try again.');
+        }
     }
 
     /**
@@ -354,16 +391,28 @@ class StockTransferController extends Controller
             return redirect()->back()->with('error', 'Only pending transfers can be deleted.');
         }
 
-        DB::transaction(function () use ($stockTransfer) {
-            // Delete transfer items first
-            $stockTransfer->transferItems()->delete();
+        try {
+            DB::transaction(function () use ($stockTransfer) {
+                // Delete transfer items first
+                $stockTransfer->transferItems()->delete();
 
-            // Delete the transfer itself
-            $stockTransfer->delete();
-        });
+                // Delete the transfer itself
+                $stockTransfer->delete();
+            });
 
-        return redirect()->route('supervisor.stock-transfer.by-status')
-            ->with('success', 'Pending stock transfer has been deleted.');
+            return redirect()->route('supervisor.stock-transfer.by-status')
+                ->with('success', 'Pending stock transfer has been deleted.');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Stock Transfer Delete Database Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Database error occurred while deleting transfer. Please contact support.');
+
+        } catch (\Exception $e) {
+            Log::error('Stock Transfer Delete Error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'An error occurred while deleting transfer. Please try again.');
+        }
     }
 
     /**
@@ -382,6 +431,33 @@ class StockTransferController extends Controller
 
         return response()->json([
             'available_quantity' => $inventory ? $inventory->current_stock : 0,
+        ]);
+    }
+
+    /**
+     * Get all available inventory items from main branch
+     */
+    public function getAllInventory()
+    {
+        if (!Gate::allows('supervisor-access')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Get all inventory items from main branch including negative stock
+        $inventoryItems = Inventory::where('branch_id', 1)
+            ->where('current_stock', '!=', 0)
+            ->with('item')
+            ->get()
+            ->map(function($inventory) {
+                return [
+                    'item_id' => $inventory->item_id,
+                    'item_name' => $inventory->item->item_name,
+                    'available_quantity' => $inventory->current_stock,
+                ];
+            });
+
+        return response()->json([
+            'items' => $inventoryItems,
         ]);
     }
 }

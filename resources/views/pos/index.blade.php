@@ -122,7 +122,29 @@
             background: #fff;
             border-right: 2px solid #dee2e6;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 0;
+            max-height: calc(100vh - 60px);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Custom scrollbar for categories panel */
+        .categories-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .categories-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .categories-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .categories-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         /* Middle Panel - Items */
@@ -131,6 +153,28 @@
             background: #f8f9fa;
             padding: 20px;
             overflow-y: auto;
+            overflow-x: hidden;
+            max-height: calc(100vh - 60px);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Custom scrollbar for items panel */
+        .items-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .items-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .items-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .items-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
 
         /* Right Panel - Cart & Payment */
@@ -199,6 +243,8 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 15px;
+            width: 100%;
+            padding-bottom: 20px;
         }
 
         .item-card {
@@ -1187,6 +1233,21 @@
                 border-bottom: 2px solid #dee2e6;
                 overflow-x: auto;
                 overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Custom scrollbar for categories panel on mobile */
+            .categories-panel::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .categories-panel::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+
+            .categories-panel::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 3px;
             }
 
             .category-list {
@@ -1214,11 +1275,15 @@
                 flex: 1;
                 padding: 15px;
                 overflow-y: auto;
+                overflow-x: hidden;
+                max-height: calc(100vh - 470px);
+                -webkit-overflow-scrolling: touch;
             }
 
             .items-grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
                 gap: 10px;
+                padding-bottom: 20px;
             }
 
             .item-card {
@@ -1607,6 +1672,9 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Prevent Double Submit Protection -->
+    <script src="{{ asset('js/prevent-double-submit.js') }}"></script>
 
     <script>
 
@@ -1616,26 +1684,26 @@
             qz.security.setCertificatePromise(function(resolve, reject) {
 
                 resolve(`-----BEGIN CERTIFICATE-----
-                    MIIDqzCCApOgAwIBAgIURnXllt3WhlgxHc/qdr8XWeD7ltIwDQYJKoZIhvcNAQEL
-                    BQAwZTELMAkGA1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0Nv
-                    bG9tYm8xFTATBgNVBAoMDFJhdm9uIEJha2VyczEbMBkGA1UEAwwScG9zLnJhdm9u
-                    YmFrZXJzLmxrMB4XDTI1MTExNzA1NTUyNVoXDTM1MTExNTA1NTUyNVowZTELMAkG
-                    A1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0NvbG9tYm8xFTAT
-                    BgNVBAoMDFJhdm9uIEJha2VyczEbMBkGA1UEAwwScG9zLnJhdm9uYmFrZXJzLmxr
-                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvotPw8d6nHoLpJWDa+Vf
-                    i7ZD/ZpWS8RnuIFx4SYmJFyutLzGyheEsSiTrQhNk1Ksjm1g7CHpgyssPzRvCcrg
-                    ImyzZCt4jrXILj+XrtQjVCdyiB1l28BSOBfpLUChV+6lRYwAGemSYNN9cO2jNyWC
-                    Yumbkxgc94B7bkqvddSZPDqi+cLfANMhVA3RAUTufnpVkjDO0T+ugG7K87LBk0P3
-                    rotox1PGkUgEu0bAugSO+2QC5EKf+ZdpFI04Y6w6zS8hCKbAvVu16D2Xf85AvdDO
-                    5gyBco1mj1eSOzMkolal5jr5JnzInERpDKtdKJwb46EM9VJEzC0vcNgdaQNxyhm8
-                    JwIDAQABo1MwUTAdBgNVHQ4EFgQUZXXP8k120487MmNlFYvJg6AvL/UwHwYDVR0j
-                    BBgwFoAUZXXP8k120487MmNlFYvJg6AvL/UwDwYDVR0TAQH/BAUwAwEB/zANBgkq
-                    hkiG9w0BAQsFAAOCAQEAAzZYvMCHdUc2M5S9q6sLhKwPQv7w/3WZKobRMYnrl3V7
-                    4wW6UU1wrOpz6QOl7Nq4n7Z0EYIBUvhAyxAwx189ywA2NWdoMlEIB2nXZ0BJHyCU
-                    THA9n3V7MF8SZ8qKosoWoE5BqxZaTNeQEY0//l+hjQau5rLsiYRMjuaS9Nt9cjJO
-                    cChQypBt1H+amVz03uamFmtH1sc7l/x0qD2FUVYnOkfQkR1N6kGDaX3zdsi/Vqwf
-                    ZCma1ck8SnCgJ8G5yezmIB/NKu0uWLY6hVtBJoqfUETVCH6HkUC5UChpu3WBv23p
-                    74SE0hBNngWCKrEEdepr2sI4F919lmlgSHcrauaVvA==
+                    MIIDozCCAougAwIBAgIUWJpvpJOkleU6lWsqrMKfsq9u6OowDQYJKoZIhvcNAQEL
+                    BQAwYTELMAkGA1UEBhMCTEsxEDAOBgNVBAgMB1dlc3Rlcm4xEDAOBgNVBAcMB0Nv
+                    bG9tYm8xFTATBgNVBAoMDFJhdm9uIEJha2VyczEXMBUGA1UEAwwOMTI3LjAuMC4x
+                    OjgwMDAwHhcNMjUxMTE3MTgwNzI0WhcNMzUxMTE1MTgwNzI0WjBhMQswCQYDVQQG
+                    EwJMSzEQMA4GA1UECAwHV2VzdGVybjEQMA4GA1UEBwwHQ29sb21ibzEVMBMGA1UE
+                    CgwMUmF2b24gQmFrZXJzMRcwFQYDVQQDDA4xMjcuMC4wLjE6ODAwMDCCASIwDQYJ
+                    KoZIhvcNAQEBBQADggEPADCCAQoCggEBANF0JduabBoiZ1M7R28FmCmvUEDYy+2z
+                    uz+zQZiBGT3pm3gD2HgZfvhooGywwX2lmEn5Q5wvq3dodcqpd+Nr7xDE6U2QEcGS
+                    UEi0aDbTCBY2VIRP5HNP33hDqNOq06akEtJRxGQ43hOLxoSWZjYxe7hIstVfp2fU
+                    4j+uycPv9E8Cxo6eIM6NCFfRN1mIbkIIjgVfAmOaJb1y+TbD8z5NxXAfPf31GvXi
+                    7AJ3gnr6khs6XyW5umcesBeOijBL+lUyTRU26GQWiduoaeoTToN9UkX3ZEvfPlR7
+                    YLYqfRHnT4RJxRs+BcTDMsy0JHI5MGD/Ur/u8uXNgK2mqrfPLado9y0CAwEAAaNT
+                    MFEwHQYDVR0OBBYEFMSl/4RhhGD0mRYBD2bH4n+t/cNBMB8GA1UdIwQYMBaAFMSl
+                    /4RhhGD0mRYBD2bH4n+t/cNBMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQEL
+                    BQADggEBADlwDYAu7LGzj+pGROVavOeVczrb8RibbIbXrIViV31iKC1uwXRmtTY1
+                    amAX+oEfMry3TIy//BHsJzGkAd6ozfosez33G4bbN8/y1Q9ZvcuaaHPT4DIBYrdR
+                    GX/B6TtAm63VxXyjfwrV4OUbbqwdgMtKuviRprB9A+oCE1QPa74p33hgy8UHYOCK
+                    g9lFgnRkyrLOb4fh2SmtjHhRV4aZf5CM+UbqBQAMiiuhHLAbqbmhBP3BYzVVZ066
+                    9moVkpDvvNADqW3FH6epeBDL8RyQXj2yikCyD3xXJIAih815xLJMh/pOmuqEjHdd
+                    NESCtDma6uLcth74mGaBwU3G3KsOCP4=
                 -----END CERTIFICATE-----`);
             });
 
@@ -1676,7 +1744,7 @@
          * @param {string|null} printerName - Printer name or null for default printer
          * @param {string} jobType - Print job type description
          */
-        async function printPDFwithQZ(pdfBlob, printerName = null, jobType = "POS Print") {
+        async function printPDFwithQZ(pdfBlob, printerName = null, jobType = "POS Print", showErrorOnFail = true) {
             try {
                 // 1. Connect to QZ Tray websocket
                 if (!qz.websocket.isActive()) {
@@ -1711,17 +1779,17 @@
 
             } catch (err) {
                 console.error('QZ Tray Error:', err);
-                let errorMessage = 'Printing failed. Is the QZ Tray working?\n\n' + err.message;
-                if (err.message && err.message.includes('default printer')) {
-                    errorMessage = 'Printing failed. A default printer cannot be found. Please set it in the OS.';
-                } else if (err.message && err.message.includes('Failed to get signature')) {
-                    errorMessage = 'Printing failed. Server signature error. Check the backend.';
-                } else if (err.message && err.message.includes('websocket')) {
-                    errorMessage = 'Unable to connect to QZ Tray. Please run the QZ Tray software and try again.';
+                if (!showErrorOnFail) {
+                    let errorMessage = 'Printing failed. Is the QZ Tray working?\n\n' + err.message;
+                    if (err.message && err.message.includes('default printer')) {
+                        errorMessage = 'Printing failed. A default printer cannot be found. Please set it in the OS.';
+                    } else if (err.message && err.message.includes('Failed to get signature')) {
+                        errorMessage = 'Printing failed. Server signature error. Check the backend.';
+                    }
+                    showError(errorMessage);
+                }else{
+                    console.warn("Silent Print Failed (Ignored): " + err.message);
                 }
-
-                showError(errorMessage);
-
                 throw err;
             }
         }
@@ -1731,6 +1799,7 @@
         // Branch information for receipts
             const branchInfo = {
                 name: '{{ Auth::user()->branch->display_name ?? Auth::user()->branch->name ?? "RAVON BAKERS" }}',
+                companyName: '{{ Auth::user()->branch->company_name ?? "" }}',
                 address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
                 telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
             };
@@ -2660,10 +2729,16 @@
                 total: total
             };
 
-            // Process the payment
-            const printBtn = document.querySelector('.btn-success');
+            // Process the payment - Prevent double submission
+            const printBtn = document.getElementById('modal-print-btn');
+            
+            // Check if already processing
+            if (printBtn.disabled) {
+                return;
+            }
+            
             printBtn.disabled = true;
-            printBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+            printBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
             fetch('{{ route("pos.process-sale") }}', {
                     method: 'POST',
@@ -3077,6 +3152,16 @@
                 });
                 yPosition += 5;
 
+                // Company name (if exists)
+                if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
+                    pdf.setFontSize(9);
+                    pdf.setFont('courier', 'normal');
+                    pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
+                        align: 'center'
+                    });
+                    yPosition += 4;
+                }
+
                 // Branch address and phone
                 pdf.setFontSize(8);
                 pdf.setFont('courier', 'normal');
@@ -3328,7 +3413,7 @@
                 // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const receiptPrinterName = "OutletPOS";
+                const receiptPrinterName = "XP-80C"; // Set your receipt printer name here
                 await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
 
                 console.log("Receipt PDF has been sent to QZ Tray.");
@@ -3442,6 +3527,17 @@
                     align: 'center'
                 });
                 yPosition += 6;
+
+                // Company name (if exists)
+                if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
+                    pdf.setFontSize(9);
+                    pdf.setFont('courier', 'normal');
+                    pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
+                        align: 'center'
+                    });
+                    yPosition += 5;
+                }
+
                 pdf.setFontSize(9);
                 pdf.setFont('courier', 'bold');
                 pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
@@ -3571,7 +3667,7 @@
                   // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const botPrinterName = "BOT";
+                const botPrinterName = "printer01";
                 await printPDFwithQZ(pdfBase64, botPrinterName, "BOT");
 
                 // showSuccess("BOT sent to printer!");

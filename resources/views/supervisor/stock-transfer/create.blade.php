@@ -88,7 +88,9 @@
                                 <h5 class="fw-semibold mb-0">
                                     <i class="bi bi-box-seam"></i> Transfer Items
                                 </h5>
-                                <!-- Add Item button removed: rows will auto-append when quantity is entered -->
+                                <button type="button" class="btn btn-success" id="addAllItemsBtn">
+                                    <i class="bi bi-plus-circle"></i> Add All Available Items
+                                </button>
                             </div>
 
                             <div class="table-responsive">
@@ -147,7 +149,6 @@
                    class="form-control transfer-qty" 
                    name="items[INDEX][quantity]" 
                    step="0.01" 
-                   min="0.01" 
                    placeholder="0.00" 
                    required>
         </td>
@@ -166,8 +167,135 @@ document.addEventListener('DOMContentLoaded', function() {
     const itemsTableBody = document.getElementById('itemsTableBody');
     const itemRowTemplate = document.getElementById('itemRowTemplate');
 
+    // Modal helper functions
+    function showInfoModal(message) {
+        document.getElementById('infoModalBody').innerHTML = '<p class="mb-0">' + message + '</p>';
+        new bootstrap.Modal(document.getElementById('infoModal')).show();
+    }
+
+    function showErrorModal(message) {
+        document.getElementById('errorModalBody').innerHTML = '<p class="mb-0">' + message + '</p>';
+        new bootstrap.Modal(document.getElementById('errorModal')).show();
+    }
+
+    function showWarningModal(message) {
+        document.getElementById('warningModalBody').innerHTML = '<p class="mb-0">' + message + '</p>';
+        new bootstrap.Modal(document.getElementById('warningModal')).show();
+    }
+
     // Add first row on page load
     addItemRow();
+    
+    // Handle row addition when Tab key is pressed on quantity input
+    itemsTableBody.addEventListener('keydown', function(e) {
+        if (e.target.classList.contains('transfer-qty') && e.key === 'Tab' && !e.shiftKey) {
+            const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
+            const currentRow = e.target.closest('.item-row');
+            const isLastRow = rows[rows.length - 1] === currentRow;
+
+            // Add new row when Tab is pressed on the last row
+            if (isLastRow) {
+                e.preventDefault();
+                addItemRow();
+                
+                // Focus on the item select dropdown of the new row
+                setTimeout(() => {
+                    const newRows = itemsTableBody.querySelectorAll('.item-row');
+                    const newRow = newRows[newRows.length - 1];
+                    const newItemSelect = newRow.querySelector('.item-select');
+                    if (newItemSelect) {
+                        newItemSelect.focus();
+                    }
+                }, 10);
+            }
+        }
+    }, true);
+    
+    // Add All Items button handler
+    document.getElementById('addAllItemsBtn').addEventListener('click', function() {
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading...';
+        
+        // Clear existing rows
+        itemsTableBody.innerHTML = '';
+        itemIndex = 0;
+        
+        // Get all items with inventory from main branch
+        fetch('/supervisor/stock-transfer/api/all-inventory')
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    showErrorModal('Error: ' + data.error);
+                    addItemRow();
+                } else if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        addItemRowWithData(item);
+                    });
+                    // Don't add empty row after loading all items
+                } else {
+                    showInfoModal('<i class="bi bi-inbox"></i> No items found in the main branch inventory.<br><small class="text-muted">Please add items to inventory first or check if items have stock.</small>');
+                    addItemRow();
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching all inventory:', error);
+                showErrorModal('<strong>Failed to load inventory items</strong><br>' + error.message + '<br><small class="text-muted">Please try again or contact support if the issue persists.</small>');
+                addItemRow();
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-plus-circle"></i> Add All Available Items';
+            });
+    });
+    
+    function addItemRowWithData(itemData) {
+        const template = itemRowTemplate.content.cloneNode(true);
+        const row = template.querySelector('.item-row');
+        
+        // Replace INDEX placeholder with actual index
+        row.innerHTML = row.innerHTML.replace(/INDEX/g, itemIndex);
+        
+        // Get elements
+        const itemSelectTd = row.querySelector('td:first-child');
+        const availableQtyInput = row.querySelector('.available-qty');
+        const transferQty = row.querySelector('.transfer-qty');
+        const removeBtn = row.querySelector('.remove-item');
+        
+        // Replace select with item name display and hidden input
+        itemSelectTd.innerHTML = `
+            <input type="hidden" name="items[${itemIndex}][item_id]" value="${itemData.item_id}">
+            <div class="form-control" readonly style="background-color: #e9ecef;">${itemData.item_name}</div>
+        `;
+        
+        // Set values
+        availableQtyInput.value = itemData.available_quantity;
+        transferQty.value = itemData.available_quantity;
+        transferQty.max = itemData.available_quantity;
+        
+        // Add event listeners
+        transferQty.addEventListener('input', function() {
+            validateTransferQuantity(this);
+        });
+        
+        removeBtn.addEventListener('click', function() {
+            if (itemsTableBody.children.length > 1) {
+                row.remove();
+            } else {
+                showWarningModal('At least one item is required for the transfer.');
+            }
+        });
+        
+        itemsTableBody.appendChild(row);
+        itemIndex++;
+    }
     
     function addItemRow() {
         const template = itemRowTemplate.content.cloneNode(true);
@@ -209,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (itemsTableBody.children.length > 1) {
                 row.remove();
             } else {
-                alert('At least one item is required.');
+                showWarningModal('At least one item is required for the transfer.');
             }
         });
         
@@ -266,30 +394,42 @@ document.addEventListener('DOMContentLoaded', function() {
         const items = document.querySelectorAll('.item-row');
         let isValid = true;
         
+        // Remove empty rows (rows without item selected)
+        items.forEach(row => {
+            const itemSelect = row.querySelector('.item-select');
+            const hiddenItemInput = row.querySelector('input[type="hidden"][name*="[item_id]"]');
+            const hasItem = (itemSelect && itemSelect.value) || (hiddenItemInput && hiddenItemInput.value);
+            
+            if (!hasItem) {
+                row.remove();
+            }
+        });
+        
+        // Re-query items after removing empty rows
+        const validItems = document.querySelectorAll('.item-row');
+        
         // Check if at least one item is added
-        if (items.length === 0) {
-            alert('Please add at least one item to transfer.');
+        if (!validItems || validItems.length === 0) {
+            showWarningModal('Please add at least one item to transfer.');
             e.preventDefault();
             return;
         }
         
         // Validate each item row
-        items.forEach(row => {
+        validItems.forEach(row => {
             const itemSelect = row.querySelector('.item-select');
+            const hiddenItemInput = row.querySelector('input[type="hidden"][name*="[item_id]"]');
             const transferQty = row.querySelector('.transfer-qty');
             const availableQty = parseFloat(row.querySelector('.available-qty').value) || 0;
             
-            if (!itemSelect.value) {
+            // Check if item is selected (either via select or hidden input)
+            const hasItem = (itemSelect && itemSelect.value) || (hiddenItemInput && hiddenItemInput.value);
+            if (!hasItem) {
                 isValid = false;
-                if (!itemSelect.classList.contains('is-invalid')) itemSelect.classList.add('is-invalid');
+                if (itemSelect && !itemSelect.classList.contains('is-invalid')) itemSelect.classList.add('is-invalid');
             }
 
-            if (!transferQty.value || parseFloat(transferQty.value) <= 0) {
-                isValid = false;
-                if (!transferQty.classList.contains('is-invalid')) transferQty.classList.add('is-invalid');
-            }
-
-            if (parseFloat(transferQty.value) > availableQty) {
+            if (!transferQty.value || isNaN(parseFloat(transferQty.value))) {
                 isValid = false;
                 if (!transferQty.classList.contains('is-invalid')) transferQty.classList.add('is-invalid');
             }
@@ -297,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!isValid) {
             e.preventDefault();
-            alert('Please fix the validation errors before submitting.');
+            showErrorModal('<strong>Validation Error</strong><br>Please fix the highlighted errors before submitting the form.');
         }
     });
 });
@@ -339,4 +479,63 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 </style>
+<!-- Info Modal -->
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="infoModalLabel">
+                    <i class="bi bi-info-circle"></i> Information
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="infoModalBody">
+                <!-- Message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Error
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="errorModalBody">
+                <!-- Error message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Warning Modal -->
+<div class="modal fade" id="warningModal" tabindex="-1" aria-labelledby="warningModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="warningModalLabel">
+                    <i class="bi bi-exclamation-circle"></i> Warning
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="warningModalBody">
+                <!-- Warning message will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

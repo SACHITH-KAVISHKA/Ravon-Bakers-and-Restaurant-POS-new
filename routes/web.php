@@ -39,7 +39,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('items', ItemController::class);
     // Item branch prices management (admin)
     Route::prefix('items')->name('items.')->group(function () {
-    // Branch price management routes removed as requested
+        // Branch price management routes removed as requested
     });
 
     // Category Management - All users can view, only admin can modify
@@ -86,7 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/sale/{sale}/status', [SalesReportController::class, 'updateStatus'])->name('sale.update-status');
     });
 
-        // Sales Report - All authenticated users can access
+    // Sales Report - All authenticated users can access
     Route::prefix('sales-report2')->name('sales-report2.')->group(function () {
         Route::get('/', [SalesReportController::class, 'index2'])->name('index2');
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
@@ -102,7 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/add-inventory', [SupervisorController::class, 'addInventory'])->name('add-inventory');
         Route::post('/store-inventory', [SupervisorController::class, 'storeInventory'])->name('store-inventory');
         Route::get('/inventory-history', [SupervisorController::class, 'inventoryHistory'])->name('inventory-history');
-    Route::get('/inventory-history/export', [SupervisorController::class, 'exportInventoryHistory'])->name('inventory-history.export');
+        Route::get('/inventory-history/export', [SupervisorController::class, 'exportInventoryHistory'])->name('inventory-history.export');
         Route::get('/create-department', [SupervisorController::class, 'createDepartment'])->name('create-department');
         Route::post('/store-department', [SupervisorController::class, 'storeDepartment'])->name('store-department');
         Route::get('/api/items', [SupervisorController::class, 'getItems'])->name('api.items');
@@ -113,7 +113,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/wastage-view', [SupervisorController::class, 'wastageView'])->name('wastage-view');
 
         Route::get('/reports/item-transaction', [SupervisorController::class, 'itemTransactionDetails'])
-             ->name('reports.item-transaction');
+            ->name('reports.item-transaction');
 
         // Production (Inventory Requests added by supervisor to main stock)
         Route::prefix('productions')->name('productions.')->group(function () {
@@ -133,7 +133,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [StockTransferController::class, 'create'])->name('create');
             Route::post('/', [StockTransferController::class, 'store'])->name('store');
             Route::get('/{stockTransfer}', [StockTransferController::class, 'show'])->name('show');
-                Route::delete('/{stockTransfer}', [StockTransferController::class, 'destroy'])->name('destroy');
+            Route::delete('/{stockTransfer}', [StockTransferController::class, 'destroy'])->name('destroy');
             Route::get('/api/inventory/{item}', [StockTransferController::class, 'getInventory'])->name('api.inventory');
             Route::get('/api/all-inventory', [StockTransferController::class, 'getAllInventory'])->name('api.all-inventory');
         });

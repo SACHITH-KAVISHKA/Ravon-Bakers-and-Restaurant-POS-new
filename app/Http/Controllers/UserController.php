@@ -21,9 +21,13 @@ class UserController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
-        
+
         // Only show active users (status = 1)
-        $users = User::with('branch')->where('status', 1)->orderBy('created_at', 'desc')->paginate(15);
+        $users = User::with('branch')
+                    ->where('status', 1)
+                    ->where('role', '!=', 'director')
+                    ->orderBy('created_at', 'desc')
+                    ->paginate(15);
         return view('users.index', compact('users'));
     }
 
@@ -35,7 +39,7 @@ class UserController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
-        
+
         $branches = Branch::active()->orderBy('name')->get();
         return view('users.create', compact('branches'));
     }
@@ -48,7 +52,7 @@ class UserController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
-        
+
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users'],
@@ -89,7 +93,7 @@ class UserController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
-        
+
         return view('users.show', compact('user'));
     }
 
@@ -101,7 +105,7 @@ class UserController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
-        
+
         $branches = Branch::active()->orderBy('name')->get();
         return view('users.edit', compact('user', 'branches'));
     }
@@ -114,7 +118,7 @@ class UserController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
-        
+
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
@@ -160,9 +164,9 @@ class UserController extends Controller
         if (!Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
-        
+
         $currentUserId = (int) Auth::id();
-        
+
         // Prevent admin from deleting themselves
         if ($user->id === $currentUserId) {
             return redirect()->route('users.index')

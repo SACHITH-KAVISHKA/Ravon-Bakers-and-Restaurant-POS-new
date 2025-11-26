@@ -26,7 +26,7 @@
                     <input type="date" class="form-control form-control-lg" id="end_date" name="end_date"
                         value="{{ $endDate }}">
                 </div>
-                {{-- <div class="col-12 col-md-8 col-lg-4">
+                <div class="col-12 col-md-8 col-lg-4">
                     <label for="branch_id" class="form-label fw-semibold">Branch</label>
                     <select class="form-select form-select-lg" id="branch_id" name="branch_id">
                         <option value="">All Branches</option>
@@ -37,7 +37,7 @@
                             </option>
                         @endforeach
                     </select>
-                </div> --}}
+                </div>
                 <div class="col-12 col-md-4 col-lg-2">
                     <label class="form-label">&nbsp;</label>
                     <div class="d-grid gap-2">

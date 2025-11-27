@@ -75,6 +75,22 @@
                                 @enderror
                             </div>
 
+                            <div class="mb-3">
+                                <label for="stock_count" class="form-label">Include in Stock Count *</label>
+                                <select class="form-control @error('stock_count') is-invalid @enderror"
+                                    id="stock_count" name="stock_count" required>
+                                    <option value="1" @selected(old('stock_count', $item->stock_count))>Yes - Include in stock reports</option>
+                                    <option value="0" @selected(old('stock_count', $item->stock_count)==='0' || old('stock_count', $item->stock_count)===false)>No - Exclude from stock reports</option>
+                                </select>
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle"></i>
+                                    Select "No" for items like fresh juices or smoothies that don't need stock tracking
+                                </small>
+                                @error('stock_count')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
                             {{-- Branch Prices Section --}}
                             @php
                             $bps = $item->branchPrices()->with('branch')->get()->map(function($b){ return ['branch_id'=>$b->branch_id,'price'=>$b->price]; });

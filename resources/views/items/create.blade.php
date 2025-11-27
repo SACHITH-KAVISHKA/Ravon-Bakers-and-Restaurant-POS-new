@@ -71,6 +71,22 @@
                             @enderror
                         </div>
 
+                        <div class="row mt-2 align-items-center">
+                            <div class="col-auto">
+                                <label for="stock_count" class="form-label fw-semibold">Include in Stock Count <span class="text-danger">*</span></label>
+                            </div>
+                            <div class="col-auto">
+                                <select class="form-select @error('stock_count') is-invalid @enderror"
+                                    id="stock_count" name="stock_count" required>
+                                    <option value="1" @selected(old('stock_count', true))>Yes</option>
+                                    <option value="0" @selected(old('stock_count')==='0')>No</option>
+                                </select>
+                                @error('stock_count')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
                         {{-- Branch Prices Section --}}
                         @php
                         // Pass empty array for create view

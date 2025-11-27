@@ -89,6 +89,7 @@ class ItemController extends Controller
             'category' => 'required|string|exists:categories,name,status,1',
             // 'price' moved to branch-specific pricing
             'description' => 'nullable|string',
+            'stock_count' => 'required|boolean',
         ]);
 
         try {
@@ -105,6 +106,7 @@ class ItemController extends Controller
                         //'price' => moved to branch prices
                     'description' => $request->description,
                     'is_active' => true,
+                    'stock_count' => $request->stock_count ?? true,
                 ]);
                 $item = $existingItem;
             } else {
@@ -117,6 +119,7 @@ class ItemController extends Controller
                     'category' => $request->category,
                     'description' => $request->description,
                     'is_active' => true,
+                    'stock_count' => $request->stock_count ?? true,
                 ]);
             }
 
@@ -214,6 +217,7 @@ class ItemController extends Controller
             'category' => 'required|string|exists:categories,name,status,1',
             // 'price' moved to branch-specific pricing
             'description' => 'nullable|string',
+            'stock_count' => 'required|boolean',
         ]);
 
         try {
@@ -224,6 +228,7 @@ class ItemController extends Controller
                 'category' => $request->category,
                 //'price' => moved to branch prices
                 'description' => $request->description,
+                'stock_count' => $request->stock_count ?? true,
             ]);
 
             // Update branch-specific prices if provided

@@ -60,7 +60,40 @@
                                     @enderror
                                 </div>
 
-                                <!-- Price moved to branch-specific pricing. Use Branch Prices section below to set per-branch rates. -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Include in Stock Count *</label>
+                                    <div class="d-flex gap-4 mt-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input @error('stock_count') is-invalid @enderror" 
+                                                   type="radio" 
+                                                   name="stock_count" 
+                                                   id="stock_count_yes" 
+                                                   value="1" 
+                                                   @checked(old('stock_count', $item->stock_count) == 1)>
+                                            <label class="form-check-label" for="stock_count_yes">
+                                                Yes
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input @error('stock_count') is-invalid @enderror" 
+                                                   type="radio" 
+                                                   name="stock_count" 
+                                                   id="stock_count_no" 
+                                                   value="0" 
+                                                   @checked(old('stock_count', $item->stock_count) == 0)>
+                                            <label class="form-check-label" for="stock_count_no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle"></i>
+                                        Select "No" for items like fresh juices or smoothies
+                                    </small>
+                                    @error('stock_count')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -71,22 +104,6 @@
                                     rows="3"
                                     placeholder="Enter item description">{{ old('description', $item->description) }}</textarea>
                                 @error('description')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="stock_count" class="form-label">Include in Stock Count *</label>
-                                <select class="form-control @error('stock_count') is-invalid @enderror"
-                                    id="stock_count" name="stock_count" required>
-                                    <option value="1" @selected(old('stock_count', $item->stock_count))>Yes - Include in stock reports</option>
-                                    <option value="0" @selected(old('stock_count', $item->stock_count)==='0' || old('stock_count', $item->stock_count)===false)>No - Exclude from stock reports</option>
-                                </select>
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle"></i>
-                                    Select "No" for items like fresh juices or smoothies that don't need stock tracking
-                                </small>
-                                @error('stock_count')
                                 <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

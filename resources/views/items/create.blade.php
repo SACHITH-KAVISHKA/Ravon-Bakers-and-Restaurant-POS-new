@@ -58,7 +58,36 @@
                                 @enderror
                             </div>
 
-                            <!-- Price moved to branch-specific pricing. See Branch Prices section below. -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold">Include in Stock Count <span class="text-danger">*</span></label>
+                                <div class="d-flex gap-4 mt-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input @error('stock_count') is-invalid @enderror"
+                                            type="radio"
+                                            name="stock_count"
+                                            id="stock_count_yes"
+                                            value="1"
+                                            @checked(old('stock_count', '1' )=='1' )>
+                                        <label class="form-check-label" for="stock_count_yes">
+                                            Yes
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input @error('stock_count') is-invalid @enderror"
+                                            type="radio"
+                                            name="stock_count"
+                                            id="stock_count_no"
+                                            value="0"
+                                            @checked(old('stock_count')=='0' )>
+                                        <label class="form-check-label" for="stock_count_no">
+                                            No
+                                        </label>
+                                    </div>
+                                </div>
+                                @error('stock_count')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
 
                         <div class="mt-3">
@@ -69,22 +98,6 @@
                             @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                        </div>
-
-                        <div class="row mt-2 align-items-center">
-                            <div class="col-auto">
-                                <label for="stock_count" class="form-label fw-semibold">Include in Stock Count <span class="text-danger">*</span></label>
-                            </div>
-                            <div class="col-auto">
-                                <select class="form-select @error('stock_count') is-invalid @enderror"
-                                    id="stock_count" name="stock_count" required>
-                                    <option value="1" @selected(old('stock_count', true))>Yes</option>
-                                    <option value="0" @selected(old('stock_count')==='0')>No</option>
-                                </select>
-                                @error('stock_count')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
                         </div>
 
                         {{-- Branch Prices Section --}}

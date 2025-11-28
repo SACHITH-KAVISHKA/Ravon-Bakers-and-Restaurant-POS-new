@@ -12,11 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Add username column
-            $table->string('username')->unique()->after('name');
+            // Add username column only if it doesn't exist
+            if (!Schema::hasColumn('users', 'username')) {
+                $table->string('username')->unique()->after('name');
+            }
             
-            // Drop email columns
-            $table->dropColumn(['email', 'email_verified_at']);
+            // Drop email columns only if they exist
+            if (Schema::hasColumn('users', 'email')) {
+                $table->dropColumn(['email', 'email_verified_at']);
+            }
         });
         
         // Drop password_reset_tokens table as it uses email

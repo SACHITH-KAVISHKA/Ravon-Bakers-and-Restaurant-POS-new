@@ -58,7 +58,36 @@
                                 @enderror
                             </div>
 
-                            <!-- Price moved to branch-specific pricing. See Branch Prices section below. -->
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-semibold">Include in Stock Count <span class="text-danger">*</span></label>
+                                <div class="d-flex gap-4 mt-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input @error('stock_count') is-invalid @enderror"
+                                            type="radio"
+                                            name="stock_count"
+                                            id="stock_count_yes"
+                                            value="1"
+                                            @checked(old('stock_count', '1' )=='1' )>
+                                        <label class="form-check-label" for="stock_count_yes">
+                                            Yes
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input @error('stock_count') is-invalid @enderror"
+                                            type="radio"
+                                            name="stock_count"
+                                            id="stock_count_no"
+                                            value="0"
+                                            @checked(old('stock_count')=='0' )>
+                                        <label class="form-check-label" for="stock_count_no">
+                                            No
+                                        </label>
+                                    </div>
+                                </div>
+                                @error('stock_count')
+                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
 
                         <div class="mt-3">

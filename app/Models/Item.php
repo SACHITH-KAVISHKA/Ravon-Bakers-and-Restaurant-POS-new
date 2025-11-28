@@ -14,10 +14,12 @@ class Item extends Model
         'item_type',
         'description',
         'is_active',
+        'stock_count',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'stock_count' => 'boolean',
     ];
 
     /**

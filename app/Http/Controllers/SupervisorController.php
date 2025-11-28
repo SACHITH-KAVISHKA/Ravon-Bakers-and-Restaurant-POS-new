@@ -319,6 +319,7 @@ class SupervisorController extends Controller
                 ON inventories.branch_id = branches.id
                 AND branches.status = 1
             WHERE items.is_active = 1
+                AND items.stock_count = 1
                 AND branches.id IS NOT NULL
             ORDER BY items.item_name, branches.id
         ");
@@ -411,6 +412,7 @@ class SupervisorController extends Controller
                 ON items.id = transactions.item_id
                 AND branches.id = transactions.branch_id
             WHERE items.is_active = 1
+                AND items.stock_count = 1
                 AND branches.status = 1
             GROUP BY items.id, items.item_name, items.item_code, branches.id, branches.name, inventories.current_stock
             ORDER BY items.item_name ASC, branches.name ASC

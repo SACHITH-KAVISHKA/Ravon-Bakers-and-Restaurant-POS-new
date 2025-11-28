@@ -204,7 +204,20 @@
                 </div>
 
                 <!-- Action Buttons for Pending Transfers -->
-                @if($stockTransfer->status === 'pending' && !auth()->user()->isSupervisor() && $stockTransfer->to_branch_id === auth()->user()->branch_id)
+                @php
+                    $user = auth()->user();
+                    $isSupervisor = $user->isSupervisor();
+                    $userBranchId = $user->branch_id;
+                    $transferToBranch = $stockTransfer->to_branch_id;
+
+                    // Allow action if:
+                    // 1. Pending AND
+                    // 2. (User belongs to destination branch OR (User is Supervisor AND Destination is Main Branch [ID 1]))
+                    $canTakeAction = $stockTransfer->status === 'pending' &&
+                                     ( ($transferToBranch == $userBranchId) || ($isSupervisor && $transferToBranch == 1) );
+                @endphp
+
+                @if($canTakeAction)
                 <div class="row mt-4">
                     <div class="col-12">
                         <div class="d-flex justify-content-end gap-2">

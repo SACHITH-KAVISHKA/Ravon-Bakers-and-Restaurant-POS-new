@@ -81,7 +81,7 @@ class StockTransferController extends Controller
 
             // Process each item
             foreach ($request->items as $itemData) {
-                
+
                 $inventory = Inventory::where('item_id', $itemData['item_id'])
                     ->where('branch_id', 1) // Main branch inventory
                     ->first();
@@ -134,7 +134,7 @@ class StockTransferController extends Controller
 
         $user = Auth::user();
         $userId = (int) $user->id;
-        
+
         $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'transferItems.item'])
             ->where('created_by', $userId)
             ->orderBy('date_time', 'desc')
@@ -241,17 +241,17 @@ class StockTransferController extends Controller
         $userId = (int) $user->id;
         $userBranchId = (int) $user->branch_id;
 
-        // Allow access if:
-        // 1. User created this transfer, OR
-        // 2. Transfer is sent to user's branch (for accepting/rejecting), OR
-        // 3. Transfer is from user's branch (staff transfer they initiated)
-        $canView = (int)$stockTransfer->created_by === $userId 
-                || (int)$stockTransfer->to_branch_id === $userBranchId
-                || (int)$stockTransfer->from_branch_id === $userBranchId;
+        // // Allow access if:
+        // // 1. User created this transfer, OR
+        // // 2. Transfer is sent to user's branch (for accepting/rejecting), OR
+        // // 3. Transfer is from user's branch (staff transfer they initiated)
+        // $canView = (int)$stockTransfer->created_by === $userId
+        //         || (int)$stockTransfer->to_branch_id === $userBranchId
+        //         || (int)$stockTransfer->from_branch_id === $userBranchId;
 
-        if (!$canView) {
-            abort(403, 'Unauthorized access to this transfer.');
-        }
+        // if (!$canView) {
+        //     abort(403, 'Unauthorized access to this transfer.');
+        // }
 
         $stockTransfer->load(['fromBranch', 'toBranch', 'creator', 'processor', 'transferItems.item']);
 
@@ -266,10 +266,17 @@ class StockTransferController extends Controller
         $user = Auth::user();
         $userId = (int) $user->id;
         $userBranchId = (int) $user->branch_id;
+        $isSupervisor = Gate::allows('supervisor-access');
 
         // Verify user can process this transfer
-        if ($stockTransfer->to_branch_id !== $userBranchId) {
-            abort(403, 'You can only accept transfers sent to your branch.');
+        // Allow if:
+        // 1. Transfer is to user's assigned branch
+        // 2. User is Supervisor AND destination is Main Branch (ID 1)
+        $isDestinedToUser = ($stockTransfer->to_branch_id === $userBranchId);
+        $isSupervisorToMain = ($isSupervisor && $stockTransfer->to_branch_id === 1);
+
+        if (!$isDestinedToUser && !$isSupervisorToMain) {
+            abort(403, 'You can only accept transfers sent to your branch (or Main Branch if you are a Supervisor).');
         }
 
         if (!$stockTransfer->isPending()) {
@@ -345,10 +352,17 @@ class StockTransferController extends Controller
         $user = Auth::user();
         $userId = (int) $user->id;
         $userBranchId = (int) $user->branch_id;
+        $isSupervisor = Gate::allows('supervisor-access');
 
         // Verify user can process this transfer
-        if ($stockTransfer->to_branch_id !== $userBranchId) {
-            abort(403, 'You can only reject transfers sent to your branch.');
+        // Allow if:
+        // 1. Transfer is to user's assigned branch
+        // 2. User is Supervisor AND destination is Main Branch (ID 1)
+        $isDestinedToUser = ($stockTransfer->to_branch_id === $userBranchId);
+        $isSupervisorToMain = ($isSupervisor && $stockTransfer->to_branch_id === 1);
+
+        if (!$isDestinedToUser && !$isSupervisorToMain) {
+            abort(403, 'You can only reject transfers sent to your branch (or Main Branch if you are a Supervisor).');
         }
 
         if (!$stockTransfer->isPending()) {
@@ -445,7 +459,7 @@ class StockTransferController extends Controller
 
         // Get all inventory items from main branch including negative stock
         $inventoryItems = Inventory::where('branch_id', 1)
-            ->where('current_stock', '!=', 0)
+            ->where('current_stock', '>', 0)
             ->with('item')
             ->get()
             ->map(function($inventory) {

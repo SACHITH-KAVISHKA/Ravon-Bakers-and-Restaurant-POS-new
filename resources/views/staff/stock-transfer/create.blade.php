@@ -60,11 +60,11 @@
                                 required>
                                 <option value="">Select Destination Branch</option>
                                 @foreach($branches as $branch)
-                                @if($branch->id != 1)
+                                {{-- @if($branch->id != 1) --}}
                                 <option value="{{ $branch->id }}" {{ old('to_branch_id') == $branch->id ? 'selected' : '' }}>
                                     {{ $branch->name }}
                                 </option>
-                                @endif
+                                {{-- @endif --}}
                                 @endforeach
                             </select>
                             @error('to_branch_id')

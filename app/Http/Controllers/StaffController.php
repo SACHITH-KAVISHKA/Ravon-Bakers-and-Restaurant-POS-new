@@ -41,7 +41,7 @@ class StaffController extends Controller
     public function showInventoryRequest(InventoryRequest $inventoryRequest)
     {
         $inventoryRequest->load(['department', 'user', 'inventoryRequestItems.item']);
-        
+
         return view('staff.show-inventory-request', compact('inventoryRequest'));
     }
 
@@ -68,7 +68,7 @@ class StaffController extends Controller
         try {
             DB::transaction(function () use ($request, $inventoryRequest, $userId, $userBranchId) {
                 $itemIds = $request->items;
-            
+
             // Get the inventory request items to be accepted
             $itemsToAccept = InventoryRequestItem::with('item')
                 ->whereIn('id', $itemIds)
@@ -104,7 +104,7 @@ class StaffController extends Controller
             });
 
             $acceptedCount = count($request->items);
-            
+
             return redirect()->route('staff.pending-inventory-requests')
                 ->with('success', "Successfully accepted {$acceptedCount} items and added them to your branch inventory!");
 
@@ -567,7 +567,7 @@ class StaffController extends Controller
 
         // Get all inventory items from staff's branch including negative stock
         $inventoryItems = Inventory::where('branch_id', $userBranchId)
-            ->where('current_stock', '!=', 0)
+            ->where('current_stock', '>', 0)
             ->with('item')
             ->get()
             ->map(function ($inventory) {

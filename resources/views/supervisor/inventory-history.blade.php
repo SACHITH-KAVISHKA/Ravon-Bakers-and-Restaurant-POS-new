@@ -24,15 +24,15 @@
                             <label for="date" class="form-label fw-bold">
                                 <i class="bi bi-calendar3"></i> Select Date
                             </label>
-                            <input type="date" class="form-control" id="date" name="date" value="{{ $fromDate ?? '' }}">
-                           
+                            <input type="date" class="form-control" id="date" name="date" value="{{ $fromDate ?? date('Y-m-d') }}">
+
                         </div>
                         <div class="col-12 col-md-3">
                             <label for="time" class="form-label fw-bold">
                                 <i class="bi bi-clock"></i> Time
                             </label>
-                            <input type="time" class="form-control" id="time" name="time" value="{{ $fromTime ?? '' }}">
-                            
+                            <input type="time" class="form-control" id="time" name="time" value="{{ $fromTime ?? date('H:i') }}">
+
                         </div>
                         <div class="col-12 col-md-5 d-flex flex-column flex-md-row align-items-stretch align-items-md-end gap-2">
                             <button type="submit" class="btn btn-primary flex-fill flex-md-grow-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
@@ -57,7 +57,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                         <h5 class="card-title mb-0">
-                            <i class="bi bi-box-seam"></i> 
+                            <i class="bi bi-box-seam"></i>
                             @if($fromDate ?? false)
                                 Historical Stock - {{ date('M d, Y', strtotime($fromDate)) }}
                             @else
@@ -116,7 +116,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- Pagination -->
         <div class="d-flex justify-content-center mt-4">
             {{ $allItems->links() }}
@@ -214,16 +214,16 @@ code {
     .inventory-table {
         font-size: 0.85rem;
     }
-    
+
     .inventory-table thead th {
         padding: 0.5rem !important;
         font-size: 0.75rem;
     }
-    
+
     .inventory-table tbody td {
         padding: 0.5rem !important;
     }
-    
+
     .badge {
         font-size: 0.75rem !important;
         padding: 0.25rem 0.5rem !important;

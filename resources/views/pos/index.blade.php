@@ -1672,7 +1672,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Prevent Double Submit Protection -->
     <script src="{{ asset('js/prevent-double-submit.js') }}"></script>
 
@@ -2731,12 +2731,12 @@
 
             // Process the payment - Prevent double submission
             const printBtn = document.getElementById('modal-print-btn');
-            
+
             // Check if already processing
             if (printBtn.disabled) {
                 return;
             }
-            
+
             printBtn.disabled = true;
             printBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
@@ -3509,50 +3509,50 @@
                 // Header - BAR ORDER TICKET (logo removed for faster generation)
                 pdf.setFont('courier', 'bold');
                 pdf.setFontSize(18);
-                pdf.text('BAR ORDER TICKET', pageWidth / 2, yPosition, {
+                pdf.text('BOT', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
                 yPosition += 8;
 
-                pdf.setFontSize(14);
-                pdf.text('(BOT)', pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 10;
+                // pdf.setFontSize(14);
+                // pdf.text('(BOT)', pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
+                // yPosition += 10;
 
-                // Branch information
-                pdf.setFontSize(11);
-                pdf.setFont('courier', 'bold');
-                pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 6;
+                // // Branch information
+                // pdf.setFontSize(11);
+                // pdf.setFont('courier', 'bold');
+                // pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
+                // yPosition += 6;
 
-                // Company name (if exists)
-                if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
-                    pdf.setFontSize(9);
-                    pdf.setFont('courier', 'normal');
-                    pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
-                        align: 'center'
-                    });
-                    yPosition += 5;
-                }
+                // // Company name (if exists)
+                // if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
+                //     pdf.setFontSize(9);
+                //     pdf.setFont('courier', 'normal');
+                //     pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
+                //         align: 'center'
+                //     });
+                //     yPosition += 5;
+                // }
 
-                pdf.setFontSize(9);
-                pdf.setFont('courier', 'bold');
-                pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 5;
-                pdf.text('Phone: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 10;
+                // pdf.setFontSize(9);
+                // pdf.setFont('courier', 'bold');
+                // pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
+                // yPosition += 5;
+                // pdf.text('Phone: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
+                // yPosition += 10;
 
-                // Separator line
-                pdf.setLineWidth(0.5);
-                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-                yPosition += 6;
+                // // Separator line
+                // pdf.setLineWidth(0.5);
+                // pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                // yPosition += 6;
 
                 // BOT information
                 pdf.setFontSize(11);
@@ -3587,16 +3587,16 @@
                 // Items section header
                 checkPageBreak(15);
 
-                pdf.setLineWidth(0.5);
-                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-                yPosition += 8;
+                // pdf.setLineWidth(0.5);
+                // pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                // yPosition += 8;
 
-                pdf.setFont('courier', 'bold');
-                pdf.setFontSize(14);
-                pdf.text('BEVERAGE ITEMS', pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 8;
+                // pdf.setFont('courier', 'bold');
+                // pdf.setFontSize(14);
+                // pdf.text('BEVERAGE ITEMS', pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
+                // yPosition += 8;
 
                 pdf.setLineWidth(0.5);
                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
@@ -3641,24 +3641,24 @@
                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
                 yPosition += 8;
 
-                // Prepare immediately message
-                pdf.setFont('courier', 'bold');
-                pdf.setFontSize(16);
-                pdf.text('PREPARE IMMEDIATELY', pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 10;
-                // Footer
-                pdf.setFont('courier', 'bold');
-                pdf.setFontSize(10);
-                pdf.text('Thank you!', pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
-                yPosition += 5;
+                // // Prepare immediately message
+                // pdf.setFont('courier', 'bold');
+                // pdf.setFontSize(16);
+                // pdf.text('PREPARE IMMEDIATELY', pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
+                // yPosition += 10;
+                // // Footer
+                // pdf.setFont('courier', 'bold');
+                // pdf.setFontSize(10);
+                // pdf.text('Thank you!', pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
+                // yPosition += 5;
 
-                pdf.text(new Date().toLocaleString('en-GB'), pageWidth / 2, yPosition, {
-                    align: 'center'
-                });
+                // pdf.text(new Date().toLocaleString('en-GB'), pageWidth / 2, yPosition, {
+                //     align: 'center'
+                // });
 
 
                 // --- QZ TRAY MODIFICATION ---
@@ -3667,7 +3667,7 @@
                   // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const botPrinterName = "printer01";
+                const botPrinterName = "XP-80C";
                 await printPDFwithQZ(pdfBase64, botPrinterName, "BOT");
 
                 // showSuccess("BOT sent to printer!");

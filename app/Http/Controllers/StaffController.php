@@ -148,7 +148,10 @@ class StaffController extends Controller
         }
 
         $inventoryItems = Inventory::with(['item'])
+            ->join('items', 'items.id', '=', 'inventories.item_id')
             ->where('branch_id', $userBranchId)
+            ->where('items.is_active','=','1')
+            ->where('items.stock_count','=','1') // Only items that track stock
             ->orderBy('current_stock', 'asc')
             ->paginate(100);
 

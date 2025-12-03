@@ -18,6 +18,7 @@ use Mike42\Escpos\Printer;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 use Mike42\Escpos\Exception\Exception as EscposException;
 use App\Http\Controllers\PrinterController;
+use App\Http\Controllers\StockAdjustmentController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -137,7 +138,24 @@ Route::middleware('auth')->group(function () {
             Route::get('/api/inventory/{item}', [StockTransferController::class, 'getInventory'])->name('api.inventory');
             Route::get('/api/all-inventory', [StockTransferController::class, 'getAllInventory'])->name('api.all-inventory');
         });
+
+            Route::get('/stock-adjustment', [StockAdjustmentController::class, 'index'])
+            ->name('stock-adjustment.index'); // List View
+
+            // --- ADD STOCK ADJUSTMENT ROUTES HERE ---
+            Route::get('/stock-adjustment/create', [StockAdjustmentController::class, 'create'])
+                ->name('stock-adjustment.create');
+
+            Route::post('/stock-adjustment/store', [StockAdjustmentController::class, 'store'])
+                ->name('stock-adjustment.store');
+
+            Route::get('/stock-adjustment/{id}', [StockAdjustmentController::class, 'show'])
+                ->name('stock-adjustment.show'); // Detail View
     });
+
+
+
+
 
 
     // Staff routes for inventory management

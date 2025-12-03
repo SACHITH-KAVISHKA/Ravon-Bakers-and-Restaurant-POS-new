@@ -20,6 +20,7 @@ class StockAdjustmentController extends Controller
         // Load 'inventory' (your relationship) and 'branchPrices' to get accurate data
         $items = Item::where('is_active', true)
                      ->with(['inventory', 'branchPrices'])
+                     ->orderBy('item_name', 'asc')
                      ->get();
 
         return view('stock_adjustment.create', compact('branches', 'items'));

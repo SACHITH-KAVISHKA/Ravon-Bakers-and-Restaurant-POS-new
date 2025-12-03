@@ -325,6 +325,127 @@ class SupervisorController extends Controller
         ");
     }
 
+    // /**
+    //  * Calculate historical stock by working backwards from current stock
+    //  * Current Stock - (Transactions from selected date to now) = Stock at selected date
+    //  */
+    // private function getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime)
+    // {
+    //     try {
+    //         return DB::select("
+    //         SELECT
+    //             items.id as item_id,
+    //             items.item_name as item_name,
+    //             items.item_code as item_code,
+    //             branches.id as branch_id,
+    //             branches.name as branch_name,
+    //             COALESCE(inventories.current_stock, 0) - COALESCE(SUM(transactions.quantity_change), 0) as calculated_stock
+    //         FROM items
+    //         CROSS JOIN branches
+    //         LEFT JOIN inventories
+    //             ON items.id = inventories.item_id
+    //             AND branches.id = inventories.branch_id
+    //         LEFT JOIN (
+    //             -- 1. PURCHASES: SUBTRACT (reverse operation - these happened after selected date)
+    //             SELECT
+    //                 iri.item_id,
+    //                 ? as branch_id,
+    //                 iri.quantity as quantity_change
+    //             FROM inventory_requests ir
+    //             INNER JOIN inventory_request_items iri ON ir.id = iri.inventory_request_id
+    //             WHERE ir.status = 'completed'
+    //                 AND ir.date_time >= ?
+    //                 AND ir.date_time <= ?
+
+    //             UNION ALL
+
+    //             -- 2. TRANSFERS OUT: ADD BACK (reverse - these reduced stock after selected date)
+    //             SELECT
+    //                 sti.item_id,
+    //                 COALESCE(st.from_branch_id, ?) as branch_id,
+    //                 -sti.quantity as quantity_change
+    //             FROM stock_transfers st
+    //             INNER JOIN stock_transfer_items sti ON st.id = sti.transfer_id
+    //             WHERE st.status = 'accepted'
+    //                 AND st.date_time >= ?
+    //                 AND st.date_time <= ?
+
+    //             UNION ALL
+
+    //             -- 3. TRANSFERS IN: SUBTRACT (reverse - these added stock after selected date)
+    //             SELECT
+    //                 sti.item_id,
+    //                 st.to_branch_id as branch_id,
+    //                 sti.quantity as quantity_change
+    //             FROM stock_transfers st
+    //             INNER JOIN stock_transfer_items sti ON st.id = sti.transfer_id
+    //             WHERE st.status = 'accepted'
+    //                 AND st.date_time >= ?
+    //                 AND st.date_time <= ?
+
+    //             UNION ALL
+
+    //             -- 4. WASTAGES: ADD BACK (reverse - these reduced stock after selected date)
+    //             SELECT
+    //                 wi.item_id,
+    //                 w.branch_id,
+    //                 -wi.wasted_quantity as quantity_change
+    //             FROM wastages w
+    //             INNER JOIN wastage_items wi ON w.id = wi.wastage_id
+    //             WHERE w.date_time >= ?
+    //                 AND w.date_time <= ?
+
+    //             UNION ALL
+
+    //             -- 5. SALES: ADD BACK (reverse - these reduced stock after selected date)
+    //             SELECT
+    //                 si.item_id,
+    //                 s.branch_id,
+    //                 -si.quantity as quantity_change
+    //             FROM sales s
+    //             INNER JOIN sale_items si ON s.id = si.sale_id
+    //             WHERE s.status = 1
+    //                 AND s.created_at >= ?
+    //                 AND s.created_at <= ?
+
+    //         ) AS transactions
+    //             ON items.id = transactions.item_id
+    //             AND branches.id = transactions.branch_id
+    //         WHERE items.is_active = 1
+    //             AND items.stock_count = 1
+    //             AND branches.status = 1
+    //         GROUP BY items.id, items.item_name, items.item_code, branches.id, branches.name, inventories.current_stock
+    //         ORDER BY items.item_name ASC, branches.name ASC
+    //     ", [
+    //         // Bindings order must match the ? placeholders above
+    //         $mainBranchId,       // purchases -> ? as branch_id
+    //         $fromDateTime,       // purchases start
+    //         $toDateTime,         // purchases end
+
+    //         $mainBranchId,       // transfers out COALESCE(..., ?) fallback
+    //         $fromDateTime,       // transfers out start
+    //         $toDateTime,         // transfers out end
+
+    //         $fromDateTime,       // transfers in start
+    //         $toDateTime,         // transfers in end
+
+    //         $fromDateTime,       // wastages start
+    //         $toDateTime,         // wastages end
+
+    //         $fromDateTime,       // sales start
+    //         $toDateTime          // sales end
+    //     ]);
+
+    //     } catch (\Illuminate\Database\QueryException $e) {
+    //         Log::error('Forward Calculated Stock Database Error: ' . $e->getMessage());
+    //         return [];
+
+    //     } catch (\Exception $e) {
+    //         Log::error('Forward Calculated Stock Error: ' . $e->getMessage());
+    //         return [];
+    //     }
+    // }
+
     /**
      * Calculate historical stock by working backwards from current stock
      * Current Stock - (Transactions from selected date to now) = Stock at selected date
@@ -339,6 +460,7 @@ class SupervisorController extends Controller
                 items.item_code as item_code,
                 branches.id as branch_id,
                 branches.name as branch_name,
+                -- Main Formula: Current Stock MINUS Calculated Changes
                 COALESCE(inventories.current_stock, 0) - COALESCE(SUM(transactions.quantity_change), 0) as calculated_stock
             FROM items
             CROSS JOIN branches
@@ -346,7 +468,7 @@ class SupervisorController extends Controller
                 ON items.id = inventories.item_id
                 AND branches.id = inventories.branch_id
             LEFT JOIN (
-                -- 1. PURCHASES: SUBTRACT (reverse operation - these happened after selected date)
+                -- 1. PURCHASES (Stock Added): Return Positive Value (so it gets Subtracted)
                 SELECT
                     iri.item_id,
                     ? as branch_id,
@@ -359,7 +481,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 2. TRANSFERS OUT: ADD BACK (reverse - these reduced stock after selected date)
+                -- 2. TRANSFERS OUT (Stock Removed): Return Negative Value (so it gets Added back)
                 SELECT
                     sti.item_id,
                     COALESCE(st.from_branch_id, ?) as branch_id,
@@ -372,7 +494,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 3. TRANSFERS IN: SUBTRACT (reverse - these added stock after selected date)
+                -- 3. TRANSFERS IN (Stock Added): Return Positive Value (so it gets Subtracted)
                 SELECT
                     sti.item_id,
                     st.to_branch_id as branch_id,
@@ -385,7 +507,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 4. WASTAGES: ADD BACK (reverse - these reduced stock after selected date)
+                -- 4. WASTAGES (Stock Removed): Return Negative Value (so it gets Added back)
                 SELECT
                     wi.item_id,
                     w.branch_id,
@@ -397,7 +519,7 @@ class SupervisorController extends Controller
 
                 UNION ALL
 
-                -- 5. SALES: ADD BACK (reverse - these reduced stock after selected date)
+                -- 5. SALES (Stock Removed): Return Negative Value (so it gets Added back)
                 SELECT
                     si.item_id,
                     s.branch_id,
@@ -408,6 +530,21 @@ class SupervisorController extends Controller
                     AND s.created_at >= ?
                     AND s.created_at <= ?
 
+                UNION ALL
+
+                -- 6. STOCK ADJUSTMENTS [CORRECTED]
+                -- +Variance (Stock Added) -> Returns Positive -> Subtracted from Current
+                -- -Variance (Stock Removed) -> Returns Negative -> Added to Current (Minus Minus = Plus)
+                SELECT
+                    sad.item_id,
+                    sa.branch_id,
+                    sad.variance as quantity_change  -- Removed the minus sign here
+                FROM stock_adjustments sa
+                INNER JOIN stock_adjustment_details sad ON sa.id = sad.stock_adjustment_id
+                WHERE sa.status = 1
+                    AND sa.adjustment_date >= ?
+                    AND sa.adjustment_date <= ?
+
             ) AS transactions
                 ON items.id = transactions.item_id
                 AND branches.id = transactions.branch_id
@@ -417,23 +554,13 @@ class SupervisorController extends Controller
             GROUP BY items.id, items.item_name, items.item_code, branches.id, branches.name, inventories.current_stock
             ORDER BY items.item_name ASC, branches.name ASC
         ", [
-            // Bindings order must match the ? placeholders above
-            $mainBranchId,       // purchases -> ? as branch_id
-            $fromDateTime,       // purchases start
-            $toDateTime,         // purchases end
-
-            $mainBranchId,       // transfers out COALESCE(..., ?) fallback
-            $fromDateTime,       // transfers out start
-            $toDateTime,         // transfers out end
-
-            $fromDateTime,       // transfers in start
-            $toDateTime,         // transfers in end
-
-            $fromDateTime,       // wastages start
-            $toDateTime,         // wastages end
-
-            $fromDateTime,       // sales start
-            $toDateTime          // sales end
+            // Bindings (No changes here, just keeping order)
+            $mainBranchId, $fromDateTime, $toDateTime, // Purchases
+            $mainBranchId, $fromDateTime, $toDateTime, // Transfers Out
+            $fromDateTime, $toDateTime,                // Transfers In
+            $fromDateTime, $toDateTime,                // Wastages
+            $fromDateTime, $toDateTime,                // Sales
+            $fromDateTime, $toDateTime                 // Adjustments
         ]);
 
         } catch (\Illuminate\Database\QueryException $e) {
@@ -1267,6 +1394,16 @@ class SupervisorController extends Controller
                 ->where('stock_transfers.date_time', '<', $fromDate)
                 ->sum('stock_transfer_items.quantity');
 
+            // Stock Adjustments (Before) - [NEW ADDITION]
+            // We sum the variance. Positive variance increases stock, Negative decreases it.
+            $adjustmentsBefore = DB::table('stock_adjustment_details')
+                ->join('stock_adjustments', 'stock_adjustments.id', '=', 'stock_adjustment_details.stock_adjustment_id')
+                ->where('stock_adjustment_details.item_id', $itemId)
+                ->where('stock_adjustments.branch_id', $branchId)
+                ->where('stock_adjustments.status', 1)
+                ->where('stock_adjustments.adjustment_date', '<', $fromDate)
+                ->sum('stock_adjustment_details.variance');
+
             // Production In (Before) - Main Branch Only
             $productionInBefore = 0;
             if ($branchId == 1) {
@@ -1279,7 +1416,7 @@ class SupervisorController extends Controller
             }
 
             // Net Opening Balance Calculation
-            $openingBalance = ($transfersInBefore + $productionInBefore) - ($salesOutBefore + $wastageOutBefore + $transfersOutBefore);
+            $openingBalance = ($transfersInBefore + $productionInBefore + $adjustmentsBefore) - ($salesOutBefore + $wastageOutBefore + $transfersOutBefore);
 
 
             // --- 2. GET REPORT TRANSACTIONS (Between dates) ---
@@ -1322,7 +1459,25 @@ class SupervisorController extends Controller
                 ->whereBetween('stock_transfers.date_time', [$fromDate, $toDate])
                 ->select('stock_transfers.date_time as transaction_date', DB::raw("'Transfer In' as type"), 'stock_transfer_items.quantity as quantity', DB::raw("CONCAT('TRF-', stock_transfers.id) as reference"), 'users.name as performed_by');
 
-            $query = $sales->unionAll($wastage)->unionAll($transfersOut)->unionAll($transfersIn);
+
+            // Stock Adjustments [NEW ADDITION]
+            $adjustments = DB::table('stock_adjustment_details')
+                ->join('stock_adjustments', 'stock_adjustments.id', '=', 'stock_adjustment_details.stock_adjustment_id')
+                ->join('users', 'users.id', '=', 'stock_adjustments.supervisor_id')
+                ->where('stock_adjustment_details.item_id', $itemId)
+                ->where('stock_adjustments.branch_id', $branchId)
+                ->where('stock_adjustments.status', 1)
+                ->whereBetween('stock_adjustments.adjustment_date', [$fromDate, $toDate])
+                ->select(
+                    'stock_adjustments.adjustment_date as transaction_date',
+                    DB::raw("'Stock Adjustment' as type"),
+                    'stock_adjustment_details.variance as quantity', // Variance directly indicates + or -
+                    DB::raw("CONCAT('ADJ-', stock_adjustments.id) as reference"),
+                    'users.name as performed_by'
+                );
+
+            // Add $adjustments to the union
+            $query = $sales->unionAll($wastage)->unionAll($transfersOut)->unionAll($transfersIn)->unionAll($adjustments);
 
             // Production (In) - Main Branch Only
             if ($branchId == 1) {

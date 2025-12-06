@@ -175,6 +175,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/api/inventory/{item}', [App\Http\Controllers\StaffController::class, 'getStaffInventory'])->name('api.inventory');
             Route::get('/api/all-inventory', [App\Http\Controllers\StaffController::class, 'getAllStaffInventory'])->name('api.all-inventory');
         });
+
+        // --- NEW ORDER ROUTES ---
+        Route::prefix('orders')->name('orders.')->group(function () {
+            Route::get('/', [App\Http\Controllers\OrderController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\OrderController::class, 'create'])->name('create');
+            Route::post('/store', [App\Http\Controllers\OrderController::class, 'store'])->name('store');
+            Route::get('/{order}', [App\Http\Controllers\OrderController::class, 'show'])->name('show');
+        });
     });
 
     // Stock Transfer routes for all branch staff (to receive transfers)

@@ -788,6 +788,13 @@
                         <span>Create Transfer</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('staff.orders.*') ? 'active' : '' }}"
+                        href="{{ route('staff.orders.index') }}">
+                        <i class="bi bi-cart"></i>
+                        <span>Orders</span>
+                    </a>
+                </li>
                 @endif
 
                 @if(auth()->user()->role === 'staff')

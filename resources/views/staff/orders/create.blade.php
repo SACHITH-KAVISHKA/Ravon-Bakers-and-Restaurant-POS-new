@@ -14,49 +14,78 @@
     </div>
 </div>
 
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
+@if($errors->any())
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <ul class="mb-0">
+        @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
 <div class="row">
     <div class="col-12">
-        <div class="card border-0 shadow-sm">
+        <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-cart-plus"></i>
-                    Order Details
-                </h5>
+                <i class="bi bi-cart-plus"></i> Order Details
             </div>
             <div class="card-body">
-                <form action="{{ route('staff.orders.store') }}" method="POST" id="orderForm">
-                    @csrf
 
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <label for="date_time" class="form-label fw-semibold">
-                                <i class="bi bi-calendar"></i> Date & Time
-                            </label>
+                <form action="{{ route('staff.orders.store') }}" method="POST">
+                    @csrf
+                <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="date_time" class="form-label">Collect Date & Time</label>
                             <input type="datetime-local"
-                                   class="form-control @error('date_time') is-invalid @enderror"
-                                   name="date_time"
-                                   value="{{ old('date_time', now()->format('Y-m-d\TH:i')) }}"
-                                   required>
+                                class="form-control @error('date_time') is-invalid @enderror"
+                                id="date_time"
+                                name="date_time"
+                                value="{{ old('date_time', now()->format('Y-m-d\TH:i')) }}"
+                                required>
+                            @error('date_time')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="form-label fw-semibold"><i class="bi bi-building"></i> Branch</label>
-                            <select class="form-select @error('branch_id') is-invalid @enderror" name="branch_id" required>
+                        <div class="col-md-4 mb-3">
+                            <label for="branch_id" class="form-label">Branch</label>
+                            <select class="form-select @error('branch_id') is-invalid @enderror"
+                                    id="branch_id"
+                                    name="branch_id"
+                                    required>
                                 @foreach($branches as $branch)
-                                <option value="{{ $branch->id }}" {{ (Auth::user()->branch_id == $branch->id) ? 'selected' : '' }}>
-                                    {{ $branch->name }}
-                                </option>
+                                    <option value="{{ $branch->id }}"
+                                        {{ (old('branch_id') == $branch->id || (Auth::user()->branch_id == $branch->id)) ? 'selected' : '' }}>
+                                        {{ $branch->name }}
+                                    </option>
                                 @endforeach
                             </select>
+                            @error('branch_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold"><i class="bi bi-person"></i> Customer Name</label>
+                        <div class="col-md-4 mb-3">
+                            <label for="customer_name" class="form-label">Customer Name</label>
                             <input type="text"
-                                   class="form-control @error('customer_name') is-invalid @enderror"
-                                   name="customer_name"
-                                   placeholder="Enter customer name"
-                                   required>
+                                class="form-control @error('customer_name') is-invalid @enderror"
+                                id="customer_name"
+                                name="customer_name"
+                                value="{{ old('customer_name') }}"
+                                placeholder="Enter customer name"
+                                required>
+                            @error('customer_name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
@@ -81,7 +110,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="itemsTableBody">
-                                        </tbody>
+                                    </tbody>
                                     <tfoot>
                                         <tr class="bg-light fw-bold">
                                             <td colspan="3" class="text-end align-middle">Total Amount:</td>
@@ -111,6 +140,7 @@
                                         <select class="form-select" name="payment_method" required>
                                             <option value="cash">Cash</option>
                                             <option value="card">Card</option>
+                                            <option value="Cash & Card">Cash & Card</option>
                                             <option value="online">Online Transfer</option>
                                         </select>
                                     </div>
@@ -145,8 +175,7 @@
                             <i class="bi bi-check-circle"></i> Create Order
                         </button>
                     </div>
-                </form>
-            </div>
+                </form> </div>
         </div>
     </div>
 </div>
@@ -186,23 +215,19 @@
         const itemsTableBody = document.getElementById('itemsTableBody');
         const itemRowTemplate = document.getElementById('itemRowTemplate');
 
-        // පිටුව පූරණය වූ විට පළමු පේළිය එක් කරන්න
+        // Add first row on load
         addItemRow();
 
-        // --- KEY FEATURE: Tab Key Logic ---
+        // Key Feature: Tab Key Logic
         itemsTableBody.addEventListener('keydown', function(e) {
-            // Check if TAB is pressed on a Qty input field
             if (e.key === 'Tab' && !e.shiftKey && e.target.classList.contains('qty-input')) {
                 const rows = Array.from(itemsTableBody.querySelectorAll('.item-row'));
                 const currentRow = e.target.closest('.item-row');
                 const isLastRow = rows[rows.length - 1] === currentRow;
 
-                // If it's the last row, prevent default tab behavior and add a new row
                 if (isLastRow) {
                     e.preventDefault();
                     addItemRow();
-
-                    // Focus on the new row's item select
                     setTimeout(() => {
                         const newRows = itemsTableBody.querySelectorAll('.item-row');
                         const newRow = newRows[newRows.length - 1];
@@ -234,10 +259,9 @@
             itemIndex++;
         }
 
-        // Global functions to handle inline events
+        // Global functions
         window.updateRowPrice = function(select) {
             const row = select.closest('tr');
-            // Fetch price from data attribute
             const price = parseFloat(select.options[select.selectedIndex].getAttribute('data-price')) || 0;
             row.querySelector('.price-input').value = price.toFixed(2);
             calculateRow(row.querySelector('.qty-input'));
@@ -258,7 +282,6 @@
             document.querySelectorAll('.subtotal-input').forEach(inp => {
                 total += parseFloat(inp.value) || 0;
             });
-
             document.getElementById('grand_total').value = total.toFixed(2);
             calculateBalance();
         }
@@ -267,11 +290,9 @@
             const total = parseFloat(document.getElementById('grand_total').value) || 0;
             const paid = parseFloat(document.getElementById('paid_amount').value) || 0;
             const balance = total - paid;
-
             document.getElementById('balance_amount').value = balance.toFixed(2);
         }
 
-        // Listen for changes in Paid Amount
         document.getElementById('paid_amount').addEventListener('input', calculateBalance);
     });
 </script>

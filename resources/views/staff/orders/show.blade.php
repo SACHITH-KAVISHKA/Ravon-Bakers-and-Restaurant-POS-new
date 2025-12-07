@@ -65,7 +65,7 @@
         </div>
     </div>
 
-    <div class="col-lg-4">
+    {{-- <div class="col-lg-4">
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-primary text-white">
                 <h5 class="card-title mb-0">Summary</h5>
@@ -126,6 +126,79 @@
                 </div>
             </div>
         </div>
+    </div> --}}
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 border-bottom pb-2">
+                    <label class="text-muted small">Customer Name</label>
+                    <div class="fw-bold fs-5">{{ $order->customer_name }}</div>
+                </div>
+
+                <div class="mb-3 border-bottom pb-2">
+                    <label class="text-muted small">Branch</label>
+                    <div class="fw-bold">{{ $order->branch->name }}</div>
+                </div>
+
+                <div class="mb-3 border-bottom pb-2">
+                    <label class="text-muted small">Placed On</label>
+                    <div class="fw-bold">
+                        {{ $order->created_at->format('Y-M-d') }}
+                        <span class="text-muted small">({{ $order->created_at->format('h:i A') }})</span>
+                    </div>
+                </div>
+
+                <div class="mb-3 border-bottom pb-2">
+                    <label class="text-muted small text-primary fw-bold">Collect Date & Time</label>
+                    <div class="fw-bold text-dark">
+                        {{ $order->date_time->format('Y-M-d') }}
+                        <span class="text-muted small">({{ $order->date_time->format('h:i A') }})</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-muted small">Staff Member</label>
+                    <div>{{ $order->user->name }}</div>
+                </div>
+
+                @if($order->notes)
+                <div class="alert alert-secondary mt-3 mb-0">
+                    <i class="bi bi-info-circle"></i> <strong>Note:</strong> {{ $order->notes }}
+                </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Payment Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Payment Method:</span>
+                    <span class="fw-bold text-uppercase">{{ str_replace('_', ' ', $order->payment_method) }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Paid Amount:</span>
+                    <span class="fw-bold text-success">Rs. {{ number_format($order->paid_amount, 2) }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 pt-2 border-top">
+                    <span class="fw-bold">Balance Due:</span>
+                    <span class="fw-bold text-danger fs-5">Rs. {{ number_format($order->balance_amount, 2) }}</span>
+                </div>
+
+                <div class="mt-3 text-center">
+                    @if($order->status == 2)
+                        <span class="badge bg-success w-100 py-2">PAYMENT COMPLETE</span>
+                    @else
+                        <span class="badge bg-warning text-dark w-100 py-2">PARTIAL / UNPAID</span>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -135,8 +208,9 @@
         // Updated Label: Order No
         orderNo: "#{{ str_pad($order->id, 5, '0', STR_PAD_LEFT) }}",
         userName: "{{ $order->user->name }}",
-        date: "{{ $order->date_time->format('d/m/Y') }}",
-        time: "{{ $order->date_time->format('H:i:s') }}",
+        date: "{{ $order->created_at->format('d/m/Y') }}",
+        time: "{{ $order->created_at->format('h:i:A') }}",
+        collectDate: "{{ $order->date_time->format('d/m/Y h:i A') }}",
         customerName: "{{ $order->customer_name }}",
         items: [
             @foreach($order->items as $item)
@@ -278,6 +352,10 @@
             pdf.text(orderData.date + ' ' + orderData.time, pageWidth - rightMargin, yPosition, { align: 'right' });
             yPosition += 5;
 
+            pdf.text('COLLECT DATE:', leftMargin, yPosition);
+            pdf.text(orderData.collectDate, pageWidth - rightMargin, yPosition, { align: 'right' });
+            yPosition += 5;
+
             pdf.text('CUSTOMER:', leftMargin, yPosition);
             pdf.text(orderData.customerName, pageWidth - rightMargin, yPosition, { align: 'right' });
             yPosition += 5;
@@ -335,7 +413,7 @@
 
             pdf.text(label, leftMargin, yPosition);
             pdf.text(`LKR ${displayBal}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-            yPosition += 10;
+            yPosition += 5;
 
             // --- FOOTER ---
             pdf.setLineDashPattern([1, 1], 0);

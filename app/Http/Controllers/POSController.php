@@ -9,6 +9,7 @@ use App\Models\Kot;
 use App\Models\InventoryRequestItem;
 use App\Models\Inventory;
 use App\Models\User;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -16,32 +17,28 @@ use Illuminate\Support\Facades\Log;
 
 class POSController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Only staff members can access POS
+        // Staff members only validation
         if (Auth::user()->role !== 'staff') {
             abort(403, 'Only staff members can access POS system.');
         }
-        
-        // Clear any previous sale session when starting new POS session
-        if (request()->has('clear') || !session()->has('pos_initialized')) {
+
+        // Clear session logic
+        if ($request->has('clear') || !session()->has('pos_initialized')) {
             session()->forget(['sale_id', 'pos_cart', 'pos_customer_payment', 'pos_payment_method']);
             session()->put('pos_initialized', true);
         }
-        
+
         $user = User::with('branch')->find(Auth::id());
-        
-        // Show all active items regardless of stock availability
-        // Staff can sell items even without stock in their branch
-        // Always eager load branchPrices (and branch) and inventory for efficiency
         $userBranchId = (int) $user->branch_id;
-        
+
+        // Fetch Items Logic
         $query = Item::where('is_active', true)
             ->with(['branchPrices.branch'])
             ->orderBy('item_name', 'asc');
 
         if ($user && $user->role === 'staff' && $userBranchId) {
-            // For staff, also eager-load inventory for their branch
             $query = $query->with(['inventory' => function($q) use ($userBranchId) {
                 $q->where('branch_id', $userBranchId);
             }]);
@@ -51,10 +48,9 @@ class POSController extends Controller
 
         $allItems = $query->get();
 
-        // Attach pos_price to all items first
+        // Attach Price Logic
         $allItems = $allItems->map(function ($item) use ($user, $userBranchId) {
             $posPrice = 0;
-            // If staff with branch, prefer that branch's price
             if ($user && $user->role === 'staff' && $userBranchId) {
                 $bp = $item->branchPrices->firstWhere('branch_id', $userBranchId);
                 if ($bp) {
@@ -62,32 +58,55 @@ class POSController extends Controller
                 }
             }
 
-            // fallback to first branch price if none found
             if ($posPrice === 0 || $posPrice === 0.0) {
                 $firstBp = $item->branchPrices->first();
                 $posPrice = $firstBp ? $firstBp->price : 0;
             }
 
-            // Attach attribute
             $item->setAttribute('pos_price', $posPrice);
             return $item;
         });
 
-        // Group by category for category filtering (each category sorted alphabetically)
+        // Group by category
         $items = $allItems->groupBy('category')->sortKeys()->map(function ($categoryItems) {
             return $categoryItems->sortBy('item_name')->values();
         });
-            
-        return view('pos.index', compact('items'));
+
+        // --- IMPORT ORDER LOGIC (UPDATED) ---
+        $importedCart = [];
+        $importedOrderId = null; // To store the Order ID
+
+        if ($request->has('import_order')) {
+            $order = Order::with('items.item')->find($request->import_order);
+
+            if ($order) {
+                $importedOrderId = $order->id;
+
+                foreach ($order->items as $oItem) {
+                    // item එක null නොවන බව තහවුරු කරගැනීම
+                    if ($oItem->item) {
+                        $importedCart[] = [
+                            'id' => $oItem->item_id,
+                            'name' => $oItem->item->item_name,
+                            'price' => (float)$oItem->price, // පැරණි ඇණවුමේ මිලම භාවිතා කිරීම
+                            'quantity' => (float)$oItem->quantity,
+                            'itemType' => $oItem->item->item_type ?? 'Kitchen', // Default value එකක් දීම
+                            'category' => $oItem->item->category ?? 'Other',
+                        ];
+                    }
+                }
+            }
+        }
+
+        return view('pos.index', compact('items', 'importedCart', 'importedOrderId'));
     }
 
     public function processSale(Request $request)
     {
-        // Only staff members can process sales
         if (Auth::user()->role !== 'staff') {
             abort(403, 'Only staff members can access POS system.');
         }
-        
+
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.id' => 'required|exists:items,id',
@@ -95,18 +114,18 @@ class POSController extends Controller
             'payment_method' => 'required|in:CASH,CARD,CARD & CASH,CREDIT,COMPLIMENTARY,ONLINE',
             'customer_payment' => 'nullable|numeric|min:0',
             'card_payment' => 'nullable|numeric|min:0',
+            'order_id' => 'nullable|exists:orders,id',
         ]);
 
-        // Generate a unique receipt number safely.
-        // Format: RCP + yymmdd + 4-digit counter (0001-9999). If collision occurs, retry with incremented counter.
+        // 1. Receipt Number Generation
         $today = now();
         $datePrefix = $today->format('ymd');
         $counter = Sale::whereDate('created_at', $today->toDateString())->count() + 1;
         $maxAttempts = 5;
         $attempt = 0;
+
         do {
             $receiptNo = 'RCP' . $datePrefix . str_pad($counter, 4, '0', STR_PAD_LEFT);
-            // If exists, increment counter and retry
             $exists = Sale::where('receipt_no', $receiptNo)->exists();
             if ($exists) {
                 $counter++;
@@ -114,337 +133,286 @@ class POSController extends Controller
             $attempt++;
         } while ($exists && $attempt < $maxAttempts);
 
-        // If still exists after attempts, append a short random suffix to ensure uniqueness
         if (Sale::where('receipt_no', $receiptNo)->exists()) {
             $receiptNo = 'RCP' . $datePrefix . str_pad($counter, 4, '0', STR_PAD_LEFT) . '-' . substr(md5(uniqid('', true)), 0, 4);
         }
-        $subtotal = 0;
-        $saleItems = [];
 
-        // Calculate subtotal and prepare sale items
+        // 2. Data Preparation Variables
+        $subtotal = 0;
+        $saleItemsData = []; // SaleItem Table එකට දාන්න දත්ත
+        $kotItems = [];      // Kitchen එකට යවන්න
+        $botItems = [];      // Bar එකට යවන්න
+
+        // User Details
+        $user = Auth::user();
+        $userId = (int) ($user->id ?? null);
+        $userBranchId = (int) ($user->branch_id ?? null);
+
+        // 3. Loop Items ONLY ONCE to calculate totals and separate KOT/BOT
         foreach ($request->items as $requestItem) {
             $item = Item::find($requestItem['id']);
+            if (!$item) continue;
+
             $quantity = $requestItem['quantity'];
-            
-            // No stock validation here - allow sale even without stock
-            // Stock will be reduced only if available in the branch
-            
-            // Prefer branch price for the staff user's branch when processing a sale
-            $user = Auth::user();
-            $userId = (int) $user->id;
-            $userBranchId = (int) $user->branch_id;
-            
+
+            // Price Logic
             if ($user && $user->role === 'staff' && $userBranchId) {
-                $unitPrice = $item->branchPrices()->where('branch_id', $userBranchId)->first()?->price ?? ($item->branchPrices()->first()?->price ?? 0);
+                $unitPrice = $item->branchPrices()->where('branch_id', $userBranchId)->first()?->price
+                            ?? ($item->branchPrices()->first()?->price ?? 0);
             } else {
                 $unitPrice = $item->branchPrices()->first()?->price ?? 0;
             }
+
             $totalPrice = $unitPrice * $quantity;
-            
             $subtotal += $totalPrice;
-            
-            $saleItems[] = [
+
+            // Prepare Item Data for SaleItems Table
+            $saleItemsData[] = [
                 'item_id' => $item->id,
                 'item_name' => $item->item_name,
                 'quantity' => $quantity,
                 'unit_price' => $unitPrice,
                 'total_price' => $totalPrice,
             ];
+
+            // Separate into KOT and BOT Arrays
+            $itemType = $item->item_type ?? 'Kitchen';
+            $category = $item->category ?? '';
+
+            $itemDataForOrder = [
+                'item_id' => $item->id,
+                'item_name' => $item->item_name,
+                'quantity' => $quantity
+            ];
+
+            if ($itemType === 'Bar' || $itemType === 'Both' || $category === 'Beverages') {
+                $botItems[] = $itemDataForOrder;
+                // Both type items usually go to kitchen as well, or logic depends on your business.
+                // Assuming 'Both' implies it needs to be tracked in both or logic handled here.
+                // If 'Both' means it appears on both tickets, uncomment below:
+                // if ($itemType === 'Both') $kotItems[] = $itemDataForOrder;
+            }
+
+            // Note: Logic adjusted to ensure items are captured correctly
+            if ($itemType === 'Kitchen' || $itemType === 'Both' || ($itemType !== 'Bar' && $category !== 'Beverages')) {
+                $kotItems[] = $itemDataForOrder;
+            }
         }
 
-        $discount = 0; // No discount
-        $tax = 0; // No tax  
-        $total = $subtotal; // Simple total calculation
-        
-        // Initialize payment variables
+        // Determine Order Type String
+        $orderType = 'KOT';
+        if (!empty($botItems) && empty($kotItems)) {
+            $orderType = 'BOT';
+        } elseif (!empty($botItems) && !empty($kotItems)) {
+            $orderType = 'MIXED';
+        }
+
+        $discount = 0;
+        $tax = 0;
+        $total = $subtotal; // Add tax logic here if needed
+
+        // 4. Payment Logic
         $customerPayment = $request->customer_payment ?? 0;
         $cardPayment = $request->card_payment ?? 0;
         $balance = 0;
         $creditBalance = 0;
-        
-        // Handle payment calculations based on payment method
+
         switch ($request->payment_method) {
             case 'CASH':
-                // Allow partial payments - any unpaid amount becomes credit
                 if ($customerPayment < $total) {
                     $creditBalance = $total - $customerPayment;
-                    $balance = 0;
                 } else {
                     $balance = $customerPayment - $total;
                 }
                 break;
-                
             case 'CARD':
-                // Allow partial card payments - any unpaid amount becomes credit
                 if ($cardPayment < $total) {
                     $creditBalance = $total - $cardPayment;
-                    $balance = 0;
                 } else {
-                    $balance = $cardPayment - $total; // Calculate overpayment balance
+                    $balance = $cardPayment - $total;
                 }
-                $customerPayment = 0; // No cash involved
+                $customerPayment = 0;
                 break;
-                
             case 'CARD & CASH':
-                // Allow partial combined payments - any unpaid amount becomes credit
                 $totalPaid = $customerPayment + $cardPayment;
                 if ($totalPaid < $total) {
                     $creditBalance = $total - $totalPaid;
-                    $balance = 0;
                 } else {
                     $balance = $totalPaid - $total;
                 }
                 break;
-                
             case 'CREDIT':
-                // For credit, no payment made, entire amount as credit
                 $customerPayment = 0;
                 $cardPayment = 0;
-                $balance = 0;
                 $creditBalance = $total;
                 break;
-                
             default:
-                // For complimentary and online payments
                 $customerPayment = $total;
-                $cardPayment = 0;
-                $balance = 0;
         }
 
         $saleId = null;
+        $orderId = $request->order_id; // Capture outside closure
+
+        Log::info('POS Sale Processing', [
+            'order_id' => $orderId,
+            'payment' => $request->payment_method,
+            'total' => $total
+        ]);
 
         try {
-            DB::transaction(function () use ($receiptNo, $subtotal, $discount, $tax, $total, $request, $saleItems, $customerPayment, $cardPayment, $balance, $creditBalance, &$saleId) {
-                $user = Auth::user();
-                $userId = (int) ($user->id ?? null);
-                $userBranchId = (int) ($user->branch_id ?? null);
+            DB::transaction(function () use (
+                $receiptNo, $subtotal, $discount, $tax, $total, $request,
+                $saleItemsData, $kotItems, $botItems, $orderType,
+                $customerPayment, $cardPayment, $balance, $creditBalance,
+                &$saleId, $orderId, $user, $userId, $userBranchId
+            ) {
 
-                // Determine order type based on items
-            $hasKitchenItems = false;
-            $hasBarItems = false;
-            
-            foreach ($request->items as $requestItem) {
-                $item = Item::find($requestItem['id']);
-                
-                if (!$item) {
-                    continue; // Skip if item not found
-                }
-                
-                $itemType = $item->item_type ?? 'Kitchen';
-                $category = $item->category ?? '';
-                
-                // Check if item is a beverage (Bar item)
-                if ($itemType === 'Bar' || $itemType === 'Both' || $category === 'Beverages') {
-                    $hasBarItems = true;
-                }
-                // Check if item is a kitchen item
-                if ($itemType === 'Kitchen' || $itemType === 'Both' || ($itemType !== 'Bar' && $category !== 'Beverages')) {
-                    $hasKitchenItems = true;
-                }
-            }
-            
-            // Determine order type
-            $orderType = 'KOT'; // Default
-            if ($hasBarItems && !$hasKitchenItems) {
-                $orderType = 'BOT'; // Only bar items
-            } elseif ($hasBarItems && $hasKitchenItems) {
-                $orderType = 'MIXED'; // Both kitchen and bar items
-            }
+                // A. Create Sale Record
+                $sale = Sale::create([
+                    'receipt_no' => $receiptNo,
+                    'terminal' => '01',
+                    'user_id' => $userId ?: null,
+                    'branch_id' => $userBranchId ?: null,
+                    'user_name' => $user->name ?? null,
+                    'subtotal' => $subtotal,
+                    'discount' => $discount,
+                    'tax' => $tax,
+                    'total' => $total,
+                    'payment_method' => match($request->payment_method) {
+                        'CASH' => 'cash',
+                        'CARD' => 'card',
+                        'CARD & CASH' => 'card_and_cash',
+                        'CREDIT' => 'credit',
+                        'COMPLIMENTARY' => 'complimentary',
+                        'ONLINE' => 'online',
+                        default => 'cash'
+                    },
+                    'customer_payment' => $customerPayment,
+                    'card_payment' => $cardPayment,
+                    'balance' => $balance,
+                    'credit_balance' => $creditBalance,
+                    'order_type' => $orderType,
+                ]);
 
-            // Create sale record, now storing user_id and branch_id for robustness
-            $sale = Sale::create([
-                'receipt_no' => $receiptNo,
-                'terminal' => '01',
-                'user_id' => $userId ?: null,
-                'branch_id' => $userBranchId ?: null,
-                'user_name' => $user->name ?? null,
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'tax' => $tax,
-                'total' => $total,
-                'payment_method' => match($request->payment_method) {
-                    'CASH' => 'cash',
-                    'CARD' => 'card', 
-                    'CARD & CASH' => 'card_and_cash',
-                    'CREDIT' => 'credit',
-                    'COMPLIMENTARY' => 'complimentary',
-                    'ONLINE' => 'online',
-                    default => 'cash'
-                },
-                'customer_payment' => $customerPayment,
-                'card_payment' => $cardPayment,
-                'balance' => $balance,
-                'credit_balance' => $creditBalance,
-                'order_type' => $orderType,
-            ]);
+                $saleId = $sale->id;
 
-            $saleId = $sale->id;
+                // B. Update Existing Order (If linked)
+                if ($orderId) {
+                    $order = Order::find($orderId);
+                    if ($order) {
+                        $totalTendered = ($customerPayment ?? 0) + ($cardPayment ?? 0);
 
-            // Create sale items and update inventory
-            foreach ($saleItems as $saleItem) {
-                $saleItem['sale_id'] = $sale->id;
-                SaleItem::create($saleItem);
-                
-                // Handle inventory for branch staff
-                if ($user->role === 'staff' && $userBranchId) {
-                    $inventory = Inventory::where('item_id', $saleItem['item_id'])
-                        ->where('branch_id', $userBranchId)
-                        ->first();
-                    
-                    if ($inventory) {
-                        // Scenario 1 & 2: Inventory exists - reduce stock (can go negative)
-                        $inventory->decrement('current_stock', $saleItem['quantity']);
-                    } else {
-                        // Scenario 3: No inventory record - create new with negative quantity
-                        // Get default low_stock_alert from central inventory if available
-                        $centralInventory = Inventory::where('item_id', $saleItem['item_id'])
-                            ->whereNull('branch_id')
-                            ->first();
-                        
-                        $defaultLowAlert = $centralInventory ? $centralInventory->low_stock_alert : 10;
-                        
-                        Inventory::create([
-                            'item_id' => $saleItem['item_id'],
-                            'branch_id' => $userBranchId,
-                            'current_stock' => -$saleItem['quantity'], // Negative to indicate deficit
-                            'low_stock_alert' => $defaultLowAlert,
+                        $amountProcessed = 0;
+                        if ($request->payment_method !== 'CREDIT') {
+                            $amountProcessed = ($totalTendered >= $total) ? $total : $totalTendered;
+                        }
+
+                        $newPaidAmount = $order->paid_amount + $amountProcessed;
+                        $newBalance = $order->total_amount - $newPaidAmount;
+                        if($newBalance < 0) $newBalance = 0;
+
+                        $newStatus = ($newBalance <= 0.01) ? 2 : 1; // 2=Paid, 1=Partial/Pending
+
+                        $order->update([
+                            'status' => $newStatus,
+                            'paid_amount' => $newPaidAmount,
+                            'balance_amount' => $newBalance,
+                            'order_status' => 2 // 2=Completed
                         ]);
-                    }
-                }
-            }
 
-            // Create KOT/BOT records based on order type
-            if ($orderType === 'BOT') {
-                // Create single BOT for all bar items
-                $botItems = [];
-                foreach ($request->items as $requestItem) {
-                    $item = Item::find($requestItem['id']);
-                    
-                    if (!$item) continue;
-                    
-                    $itemType = $item->item_type ?? 'Kitchen';
-                    $category = $item->category ?? '';
-                    
-                    if ($itemType === 'Bar' || $itemType === 'Both' || $category === 'Beverages') {
-                        $botItems[] = [
-                            'item_id' => $item->id,
-                            'item_name' => $item->item_name,
-                            'quantity' => $requestItem['quantity'],
-                        ];
+                        Log::info("Order Updated: ID {$order->id}, Status: {$newStatus}");
                     }
                 }
-                
-                if (!empty($botItems)) {
-                    $botNo = 'BOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'BOT')->count() + 1, 4, '0', STR_PAD_LEFT);
-                    
-                    Kot::create([
-                        'kot_no' => $botNo,
-                        'sale_id' => $sale->id,
-                        'branch_id' => $userBranchId,
-                        'user_id' => $userId,
-                        'user_name' => $user->name ?? null,
-                        'type' => 'BOT',
-                        'items' => $botItems,
-                        'status' => 'pending',
-                    ]);
+
+                // C. Create Sale Items & Update Inventory
+                foreach ($saleItemsData as $itemData) {
+                    $itemData['sale_id'] = $sale->id;
+                    SaleItem::create($itemData);
+
+                    // Inventory Update Logic
+                    if ($user->role === 'staff' && $userBranchId) {
+                        $inventory = Inventory::where('item_id', $itemData['item_id'])
+                            ->where('branch_id', $userBranchId)
+                            ->first();
+
+                        if ($inventory) {
+                            $inventory->decrement('current_stock', $itemData['quantity']);
+                        } else {
+                            // Handle missing inventory (Create new record with negative stock)
+                            $centralInventory = Inventory::where('item_id', $itemData['item_id'])
+                                ->whereNull('branch_id')->first();
+                            $defaultLowAlert = $centralInventory ? $centralInventory->low_stock_alert : 10;
+
+                            Inventory::create([
+                                'item_id' => $itemData['item_id'],
+                                'branch_id' => $userBranchId,
+                                'current_stock' => -$itemData['quantity'],
+                                'low_stock_alert' => $defaultLowAlert,
+                            ]);
+                        }
+                    }
                 }
-            } elseif ($orderType === 'KOT') {
-                // Create single KOT for all kitchen items
-                $kotItems = [];
-                foreach ($request->items as $requestItem) {
-                    $item = Item::find($requestItem['id']);
-                    
-                    if (!$item) continue;
-                    
-                    $kotItems[] = [
-                        'item_id' => $item->id,
-                        'item_name' => $item->item_name,
-                        'quantity' => $requestItem['quantity'],
-                    ];
-                }
-                
+
+                // D. Create KOT Record (If items exist)
                 if (!empty($kotItems)) {
-                    $kotNo = 'KOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'KOT')->count() + 1, 4, '0', STR_PAD_LEFT);
-                    
+                    $kotCount = Kot::whereDate('created_at', now()->toDateString())->where('type', 'KOT')->count() + 1;
+                    $kotNo = 'KOT' . now()->format('ymd') . str_pad($kotCount, 4, '0', STR_PAD_LEFT);
+
                     Kot::create([
                         'kot_no' => $kotNo,
                         'sale_id' => $sale->id,
                         'branch_id' => $userBranchId,
                         'user_id' => $userId,
-                        'user_name' => $user->name ?? null,
+                        'user_name' => $user->name,
                         'type' => 'KOT',
                         'items' => $kotItems,
-                        'status' => 'pending',
+                        'status' => 'pending'
                     ]);
                 }
-            } elseif ($orderType === 'MIXED') {
-                // Create separate KOT and BOT
-                $kotItems = [];
-                $botItems = [];
-                
-                foreach ($request->items as $requestItem) {
-                    $item = Item::find($requestItem['id']);
-                    
-                    if (!$item) continue;
-                    
-                    $itemType = $item->item_type ?? 'Kitchen';
-                    $category = $item->category ?? '';
-                    
-                    if ($itemType === 'Bar' || $itemType === 'Both' || $category === 'Beverages') {
-                        $botItems[] = [
-                            'item_id' => $item->id,
-                            'item_name' => $item->item_name,
-                            'quantity' => $requestItem['quantity'],
-                        ];
-                    } else {
-                        $kotItems[] = [
-                            'item_id' => $item->id,
-                            'item_name' => $item->item_name,
-                            'quantity' => $requestItem['quantity'],
-                        ];
-                    }
-                }
-                
-                // Create KOT if there are kitchen items
-                if (!empty($kotItems)) {
-                    $kotNo = 'KOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'KOT')->count() + 1, 4, '0', STR_PAD_LEFT);
-                    
-                    Kot::create([
-                        'kot_no' => $kotNo,
-                        'sale_id' => $sale->id,
-                        'branch_id' => $userBranchId,
-                        'user_id' => $userId,
-                        'user_name' => $user->name ?? null,
-                        'type' => 'KOT',
-                        'items' => $kotItems,
-                        'status' => 'pending',
-                    ]);
-                }
-                
-                // Create BOT if there are bar items
+
+                // E. Create BOT Record (If items exist)
                 if (!empty($botItems)) {
-                    $botNo = 'BOT' . now()->format('ymd') . str_pad(\App\Models\Kot::whereDate('created_at', now()->toDateString())->where('type', 'BOT')->count() + 1, 4, '0', STR_PAD_LEFT);
-                    
+                    $botCount = Kot::whereDate('created_at', now()->toDateString())->where('type', 'BOT')->count() + 1;
+                    $botNo = 'BOT' . now()->format('ymd') . str_pad($botCount, 4, '0', STR_PAD_LEFT);
+
                     Kot::create([
                         'kot_no' => $botNo,
                         'sale_id' => $sale->id,
                         'branch_id' => $userBranchId,
                         'user_id' => $userId,
-                        'user_name' => $user->name ?? null,
+                        'user_name' => $user->name,
                         'type' => 'BOT',
                         'items' => $botItems,
-                        'status' => 'pending',
+                        'status' => 'pending'
                     ]);
                 }
-            }
 
-            session(['sale_id' => $sale->id]);
+                session(['sale_id' => $sale->id]);
             });
+
+             // 1. Order විස්තර ලබා ගැනීම (JSON එකට යැවීමට)
+            $linkedOrder = null;
+            $formattedOrderId = null;
+            $customerName = null;
+
+            if ($orderId) {
+                $linkedOrder = Order::find($orderId);
+                if ($linkedOrder) {
+                    $formattedOrderId = '#' . str_pad($linkedOrder->id, 5, '0', STR_PAD_LEFT);
+                    $customerName = $linkedOrder->customer_name;
+                }
+            }
 
             return response()->json([
                 'success' => true,
                 'receipt_no' => $receiptNo,
                 'user_name' => Auth::user()->name,
+
+                // --- අලුතින් එක් කළ කොටස (START) ---
+                'order_id_display' => $formattedOrderId, // Order ID එක (#00005 ලෙස)
+                'customer_name' => $customerName,        // Customer Name එක
+                // --- අලුතින් එක් කළ කොටස (END) ---
+
                 'subtotal' => number_format($subtotal, 2),
                 'total' => number_format($total, 2),
                 'customer_payment' => number_format($customerPayment, 2),
@@ -455,17 +423,17 @@ class POSController extends Controller
             ]);
 
         } catch (\Illuminate\Database\QueryException $e) {
-            Log::error('POS Sale Database Error: ' . $e->getMessage());
+            Log::error('POS Sale DB Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'Database error occurred while processing sale. Please contact support.'
+                'error' => 'Database error occurred. Please contact support.'
             ], 500);
 
         } catch (\Exception $e) {
-            Log::error('POS Sale Error: ' . $e->getMessage());
+            Log::error('POS Sale General Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'error' => 'An error occurred while processing sale. Please try again.'
+                'error' => 'An error occurred while processing sale.'
             ], 500);
         }
     }
@@ -484,7 +452,7 @@ class POSController extends Controller
         // Clear all POS related session data
         session()->forget(['sale_id', 'pos_cart', 'pos_customer_payment', 'pos_payment_method']);
         session()->flush(); // Clear all session data
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Session cleared successfully'

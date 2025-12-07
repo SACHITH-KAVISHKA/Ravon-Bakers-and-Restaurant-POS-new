@@ -1678,8 +1678,9 @@
 
     <script>
 
-        // --- QZ TRAY SECURITY CONFIGURATION (START) ---
+        let currentImportedOrderId = {{ $importedOrderId ?? 'null' }};
 
+        // --- QZ TRAY SECURITY CONFIGURATION (START) ---
             // 1.Given Certificate
             qz.security.setCertificatePromise(function(resolve, reject) {
 
@@ -2726,7 +2727,8 @@
                 card_payment: modalCardPayment,
                 balance: balance,
                 credit_balance: creditBalance, // Store credit balance for CREDIT method
-                total: total
+                total: total,
+                order_id: currentImportedOrderId
             };
 
             // Process the payment - Prevent double submission
@@ -2999,8 +3001,440 @@
 
             updateCartDisplay();
         }
-        // MODIFIED: Changed to an async function to support 'await'
-        // Download receipt as PDF - DYNAMIC LENGTH VERSION
+        // // MODIFIED: Changed to an async function to support 'await'
+        // // Download receipt as PDF - DYNAMIC LENGTH VERSION
+        // async function downloadReceiptPDF() {
+        //     try {
+        //         const {
+        //             jsPDF
+        //         } = window.jspdf;
+
+        //         // Get stored cart data or use current cart
+        //         const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
+        //         const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
+        //         const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ?
+        //             parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) :
+        //             (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
+        //         const cardPaymentAmount = window.lastSaleData?.backendData?.card_payment ?
+        //             parseFloat(window.lastSaleData.backendData.card_payment.replace(/,/g, '')) :
+        //             (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
+
+        //         // Calculate totals from cart
+        //         const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+        //         // Calculate balance based on payment method
+        //         let balance = 0;
+        //         let totalPaid = 0;
+
+        //         if (paymentMethod === 'CASH') {
+        //             totalPaid = customerPaymentAmount;
+        //             balance = customerPaymentAmount - subtotal;
+        //         } else if (paymentMethod === 'CARD & CASH') {
+        //             totalPaid = customerPaymentAmount + cardPaymentAmount;
+        //             balance = totalPaid - subtotal;
+        //         } else if (paymentMethod === 'CARD') {
+        //             totalPaid = cardPaymentAmount; // Use actual card payment amount
+        //             balance = cardPaymentAmount - subtotal; // Could be negative (credit)
+        //         } else if (paymentMethod === 'CREDIT') {
+        //             totalPaid = 0;
+        //             balance = -subtotal; // Negative balance for credit
+        //         }
+
+        //         // Build receipt data object from cart
+        //         const receiptData = {
+        //             receiptNo: window.lastSaleData?.backendData?.receipt_no || document.getElementById('receipt-no').textContent,
+        //             userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
+        //             date: new Date().toLocaleDateString('en-GB'),
+        //             time: new Date().toLocaleTimeString('en-GB', {
+        //                 hour12: false
+        //             }),
+        //             subtotal: window.lastSaleData?.backendData?.subtotal || subtotal.toFixed(2),
+        //             total: window.lastSaleData?.backendData?.total || subtotal.toFixed(2),
+        //             paymentMethod: paymentMethod,
+        //             showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
+        //             showCardCashDetails: paymentMethod === 'CARD & CASH',
+        //             customerPayment: customerPaymentAmount.toFixed(2),
+        //             cardPayment: cardPaymentAmount.toFixed(2),
+        //             amountPaid: totalPaid.toFixed(2),
+        //             balance: window.lastSaleData?.backendData?.balance || balance.toFixed(2),
+        //             items: cartData.map(item => ({
+        //                 name: item.name,
+        //                 quantity: item.quantity,
+        //                 unitPrice: item.price.toFixed(2),
+        //                 totalPrice: (item.price * item.quantity).toFixed(2)
+        //             }))
+        //         };
+
+        //         // Create PDF with fixed width (80mm) and let height be dynamic
+        //         const pdf = new jsPDF({
+        //             orientation: 'portrait',
+        //             unit: 'mm',
+        //             format: [80, 297] // Start with A4 height, will extend if needed
+        //         });
+
+        //         let yPosition = 10;
+        //         const pageWidth = 80;
+        //         const pageHeight = 297; // A4 height in mm
+        //         const leftMargin = 5;
+        //         const rightMargin = 5;
+        //         const maxPageHeight = pageHeight - 20; // Leave margin at bottom
+
+        //         // Helper function to check if we need a new page
+        //         function checkPageBreak(requiredSpace) {
+        //             if (yPosition + requiredSpace > maxPageHeight) {
+        //                 pdf.addPage();
+        //                 yPosition = 10;
+
+        //                 // Add simplified header for continuation pages
+        //                 // Add circular logo if available
+        //                 if (circularLogoBase64) {
+        //                     try {
+        //                         const logoSize = 16;
+        //                         const logoX = pageWidth / 2 - logoSize / 2;
+        //                         const logoY = yPosition;
+
+        //                         pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
+        //                         yPosition += 20;
+        //                     } catch (e) {
+        //                         console.error('Error adding logo to continuation page:', e);
+        //                         yPosition += 20;
+        //                     }
+        //                 } else {
+        //                     yPosition += 20;
+        //                 }
+
+        //                 pdf.setFontSize(12);
+        //                 pdf.setFont('courier', 'bold');
+        //                 // Use branch display name for continuation pages
+        //                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
+        //                     align: 'center'
+        //                 });
+        //                 yPosition += 6;
+
+        //                 pdf.setFontSize(8);
+        //                 pdf.setFont('courier', 'normal');
+        //                 pdf.text('(Continued)', pageWidth / 2, yPosition, {
+        //                     align: 'center'
+        //                 });
+        //                 yPosition += 8;
+
+        //                 // Separator line
+        //                 pdf.setLineWidth(0.3);
+        //                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+        //                 yPosition += 6;
+
+        //                 return true;
+        //             }
+        //             return false;
+        //         }
+
+        //         // Header section - only on first page
+        //         // Add circular logo if available
+        //         if (circularLogoBase64) {
+        //             try {
+        //                 const logoSize = 16;
+        //                 const logoX = pageWidth / 2 - logoSize / 2;
+        //                 const logoY = yPosition;
+
+        //                 pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
+        //                 yPosition += 20;
+        //             } catch (e) {
+        //                 console.error('Error adding logo to PDF:', e);
+        //                 yPosition += 20;
+        //             }
+        //         } else {
+        //             yPosition += 20;
+        //         }
+
+        //         // Branch name
+        //         pdf.setFontSize(14);
+        //         pdf.setFont('courier', 'bold');
+        //         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
+        //             align: 'center'
+        //         });
+        //         yPosition += 5;
+
+        //         // Company name (if exists)
+        //         if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
+        //             pdf.setFontSize(9);
+        //             pdf.setFont('courier', 'normal');
+        //             pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
+        //                 align: 'center'
+        //             });
+        //             yPosition += 4;
+        //         }
+
+        //         // Branch address and phone
+        //         pdf.setFontSize(8);
+        //         pdf.setFont('courier', 'normal');
+        //         pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
+        //             align: 'center'
+        //         });
+        //         yPosition += 4;
+        //         pdf.text('Tel: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
+        //             align: 'center'
+        //         });
+        //         yPosition += 6;
+
+        //         // Separator line
+        //         pdf.setLineWidth(0.5);
+        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+        //         yPosition += 6;
+
+        //         // Receipt information
+        //         pdf.setFontSize(9);
+        //         pdf.setFont('courier', 'normal');
+
+        //         checkPageBreak(25); // Check space for receipt info block
+
+        //         pdf.text('RECEIPT NO:', leftMargin, yPosition);
+        //         pdf.text(receiptData.receiptNo, pageWidth - rightMargin, yPosition, {
+        //             align: 'right'
+        //         });
+        //         yPosition += 5;
+
+        //         pdf.text('USER:', leftMargin, yPosition);
+        //         pdf.text(receiptData.userName, pageWidth - rightMargin, yPosition, {
+        //             align: 'right'
+        //         });
+        //         yPosition += 5;
+
+        //         pdf.text('DATE:', leftMargin, yPosition);
+        //         pdf.text(receiptData.date, pageWidth - rightMargin, yPosition, {
+        //             align: 'right'
+        //         });
+        //         yPosition += 5;
+
+        //         pdf.text('TIME:', leftMargin, yPosition);
+        //         pdf.text(receiptData.time, pageWidth - rightMargin, yPosition, {
+        //             align: 'right'
+        //         });
+        //         yPosition += 8;
+
+        //         // Items section
+        //         checkPageBreak(15); // Check space for items header
+
+        //         pdf.setLineWidth(0.3);
+        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+        //         yPosition += 6;
+
+        //         // Process each item with automatic page breaks
+        //         receiptData.items.forEach((item, index) => {
+        //             checkPageBreak(12); // Each item needs about 12mm space
+
+        //             // Item name and total price
+        //             pdf.setFont('courier', 'bold');
+        //             pdf.setFontSize(9);
+
+        //             // Truncate long item names if necessary
+        //             let itemName = item.name;
+        //             if (itemName.length > 22) {
+        //                 itemName = itemName.substring(0, 19) + '...';
+        //             }
+
+        //             pdf.text(itemName, leftMargin, yPosition);
+        //             pdf.text(`LKR ${item.totalPrice}`, pageWidth - rightMargin, yPosition, {
+        //                 align: 'right'
+        //             });
+        //             yPosition += 4;
+
+        //             // Quantity and unit price
+        //             pdf.setFont('courier', 'normal');
+        //             pdf.setFontSize(8);
+        //             pdf.text(`${item.quantity} x LKR ${item.unitPrice}`, leftMargin + 2, yPosition);
+        //             yPosition += 6;
+        //         });
+
+        //         // Totals section
+        //         checkPageBreak(40); // Check space for totals and footer
+
+        //         yPosition += 2;
+        //         pdf.setLineDashPattern([1, 1], 0);
+        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+        //         pdf.setLineDashPattern([], 0);
+        //         yPosition += 6;
+
+        //         pdf.setFont('courier', 'normal');
+        //         pdf.setFontSize(9);
+        //         pdf.text('Sub Total:', leftMargin, yPosition);
+        //         pdf.text(`LKR ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
+        //             align: 'right'
+        //         });
+        //         yPosition += 6;
+
+        //         pdf.setFont('courier', 'bold');
+        //         pdf.setFontSize(11);
+        //         pdf.text('TOTAL:', leftMargin, yPosition);
+        //         pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
+        //             align: 'right'
+        //         });
+        //         yPosition += 8;
+
+        //         // Payment information
+        //         pdf.setFontSize(9);
+        //         pdf.setFont('courier', 'normal');
+        //         pdf.text('Payment Method:', leftMargin, yPosition);
+        //         pdf.text(receiptData.paymentMethod, pageWidth - rightMargin, yPosition, {
+        //             align: 'right'
+        //         });
+        //         yPosition += 6;
+
+        //         if (receiptData.showCashDetails) {
+        //             if (receiptData.showCardCashDetails) {
+        //                 // For CARD & CASH payment method
+        //                 pdf.text('Customer Payment:', leftMargin, yPosition);
+        //                 pdf.text(`LKR ${receiptData.customerPayment}`, pageWidth - rightMargin, yPosition, {
+        //                     align: 'right'
+        //                 });
+        //                 yPosition += 5;
+
+        //                 pdf.text('Card Payment:', leftMargin, yPosition);
+        //                 pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
+        //                     align: 'right'
+        //                 });
+        //                 yPosition += 5;
+
+        //                 // Remove commas before parsing to handle formatted numbers correctly
+        //                 const cashAmount = parseFloat(receiptData.customerPayment.replace(/,/g, '')) || 0;
+        //                 const cardAmount = parseFloat(receiptData.cardPayment.replace(/,/g, '')) || 0;
+        //                 const totalPaid = (cashAmount + cardAmount).toFixed(2);
+
+        //                 pdf.text('Total Paid:', leftMargin, yPosition);
+        //                 pdf.text(`LKR ${totalPaid}`, pageWidth - rightMargin, yPosition, {
+        //                     align: 'right'
+        //                 });
+        //                 yPosition += 5;
+
+        //                 // Use the balance value from backend (already calculated correctly)
+        //                 const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
+
+        //                 if (balanceValue > 0) {
+        //                     // Overpaid - show balance
+        //                     pdf.text('Balance:', leftMargin, yPosition);
+        //                     pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+        //                         align: 'right'
+        //                     });
+        //                     yPosition += 5;
+        //                 } else if (balanceValue < 0) {
+        //                     // Underpaid - show credit balance
+        //                     pdf.text('Credit Balance:', leftMargin, yPosition);
+        //                     pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
+        //                         align: 'right'
+        //                     });
+        //                     yPosition += 5;
+        //                 }
+        //                 yPosition += 1;
+        //             } else {
+        //                 // For CASH only payment method
+        //                 pdf.text('Amount Paid:', leftMargin, yPosition);
+        //                 pdf.text(`LKR ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
+        //                     align: 'right'
+        //                 });
+        //                 yPosition += 5;
+
+        //                 // Balance (common for CASH)
+        //                 pdf.text('Balance:', leftMargin, yPosition);
+        //                 pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+        //                     align: 'right'
+        //                 });
+        //                 yPosition += 6;
+        //             }
+        //         } else if (receiptData.paymentMethod === 'CARD') {
+        //             // For CARD only payment method
+        //             pdf.text('Card Payment:', leftMargin, yPosition);
+        //             pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
+        //                 align: 'right'
+        //             });
+        //             yPosition += 5;
+
+        //             // Show balance when overpaid or credit balance when underpaid
+        //             // Use the balance value from backend (already calculated correctly)
+        //             const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
+
+        //             if (balanceValue > 0) {
+        //                 // Overpaid - show balance (change)
+        //                 pdf.text('Balance:', leftMargin, yPosition);
+        //                 pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
+        //                     align: 'right'
+        //                 });
+        //                 yPosition += 5;
+        //             } else if (balanceValue < 0) {
+        //                 // Underpaid - show credit balance
+        //                 pdf.text('Credit Balance:', leftMargin, yPosition);
+        //                 pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
+        //                     align: 'right'
+        //                 });
+        //                 yPosition += 5;
+        //             }
+        //             yPosition += 1;
+        //         } else if (receiptData.paymentMethod === 'CREDIT') {
+        //             // For CREDIT payment method
+        //             pdf.text('Amount Due:', leftMargin, yPosition);
+        //             pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
+        //                 align: 'right'
+        //             });
+        //             yPosition += 5;
+
+        //             // For CREDIT payments we intentionally omit printing a 'Credit Balance' on the receipt.
+        //             yPosition += 6;
+        //         }
+
+        //         // Footer
+        //         yPosition += 4;
+        //         pdf.setLineDashPattern([1, 1], 0);
+        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+        //         pdf.setLineDashPattern([], 0);
+        //         yPosition += 8;
+
+        //         pdf.setFontSize(8);
+        //         pdf.setFont('courier', 'normal');
+        //         pdf.text('Thank you for visiting', pageWidth / 2, yPosition, {
+        //             align: 'center'
+        //         });
+        //         yPosition += 4;
+        //         pdf.setFont('courier', 'bold');
+        //         // Footer prints the branch display name
+        //         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
+        //             align: 'center'
+        //         });
+        //         yPosition += 4;
+        //         pdf.setFont('courier', 'normal');
+        //         pdf.text('Come again!', pageWidth / 2, yPosition, {
+        //             align: 'center'
+        //         });
+        //         yPosition += 8;
+        //         pdf.setFontSize(6);
+        //         pdf.text('System by SKM Labs', pageWidth / 2, yPosition, {
+        //             align: 'center'
+        //         });
+
+
+        //         // --- QZ TRAY MODIFICATION ---
+        //         // MODIFIED: 'iframe' logic REMOVED
+        //         // The PDF is now generated, get the blob
+        //         // Generate Base64 String
+        //         const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
+
+        //         const receiptPrinterName = "XP-80C"; // Set your receipt printer name here
+        //         await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
+
+        //         console.log("Receipt PDF has been sent to QZ Tray.");
+        //         // --- END QZ TRAY MODIFICATION ---
+
+        //     } catch (error) {
+        //         console.error('PDF Error:', error);
+
+        //         // --- QZ TRAY MODIFICATION ---
+        //         // QZ Tray errors (like "websocket") will be caught by printPDFwithQZ
+        //         // This catches jsPDF errors
+        //         if (!error.message || !error.message.includes('QZ')) {
+        //             alert('Failed to generate PDF: ' + error.message);
+        //         }
+        //         // Re-throw to be caught by processModalPayment
+        //         throw error;
+        //     }
+        // }
+
         async function downloadReceiptPDF() {
             try {
                 const {
@@ -3042,6 +3476,12 @@
                 const receiptData = {
                     receiptNo: window.lastSaleData?.backendData?.receipt_no || document.getElementById('receipt-no').textContent,
                     userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
+
+                    // --- orderIdDisplay and customerName added ---
+                    orderIdDisplay: window.lastSaleData?.backendData?.order_id_display || null,
+                    customerName: window.lastSaleData?.backendData?.customer_name || null,
+                    // ---------------------------------------------------
+
                     date: new Date().toLocaleDateString('en-GB'),
                     time: new Date().toLocaleTimeString('en-GB', {
                         hour12: false
@@ -3207,7 +3647,34 @@
                 pdf.text(receiptData.time, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
-                yPosition += 8;
+                yPosition += 5;
+
+                // --- ADDED: Order ID & Customer Name Printing ---
+
+                // 1. Order ID (if exists)
+                if (receiptData.orderIdDisplay) {
+                    pdf.text('ORDER ID:', leftMargin, yPosition);
+                    pdf.text(receiptData.orderIdDisplay, pageWidth - rightMargin, yPosition, { align: 'right' });
+                    yPosition += 5;
+                }
+
+                // 2. Customer Name (if exists)
+                if (receiptData.customerName) {
+                    pdf.text('CUSTOMER:', leftMargin, yPosition);
+
+                    // Optional formatting
+                    let cName = receiptData.customerName;
+                    if(cName.length > 20) {
+                        cName = cName.substring(0, 19) + '..';
+                    }
+
+                    pdf.text(cName, pageWidth - rightMargin, yPosition, { align: 'right' });
+                    yPosition += 5;
+                }
+
+                // Add extra space before the line
+                yPosition += 3;
+                // ------------------------------------------------
 
                 // Items section
                 checkPageBreak(15); // Check space for items header
@@ -3514,46 +3981,6 @@
                 });
                 yPosition += 8;
 
-                // pdf.setFontSize(14);
-                // pdf.text('(BOT)', pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-                // yPosition += 10;
-
-                // // Branch information
-                // pdf.setFontSize(11);
-                // pdf.setFont('courier', 'bold');
-                // pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-                // yPosition += 6;
-
-                // // Company name (if exists)
-                // if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
-                //     pdf.setFontSize(9);
-                //     pdf.setFont('courier', 'normal');
-                //     pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
-                //         align: 'center'
-                //     });
-                //     yPosition += 5;
-                // }
-
-                // pdf.setFontSize(9);
-                // pdf.setFont('courier', 'bold');
-                // pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-                // yPosition += 5;
-                // pdf.text('Phone: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-                // yPosition += 10;
-
-                // // Separator line
-                // pdf.setLineWidth(0.5);
-                // pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-                // yPosition += 6;
-
                 // BOT information
                 pdf.setFontSize(11);
                 pdf.setFont('courier', 'bold');
@@ -3586,17 +4013,6 @@
 
                 // Items section header
                 checkPageBreak(15);
-
-                // pdf.setLineWidth(0.5);
-                // pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-                // yPosition += 8;
-
-                // pdf.setFont('courier', 'bold');
-                // pdf.setFontSize(14);
-                // pdf.text('BEVERAGE ITEMS', pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-                // yPosition += 8;
 
                 pdf.setLineWidth(0.5);
                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
@@ -3641,26 +4057,6 @@
                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
                 yPosition += 8;
 
-                // // Prepare immediately message
-                // pdf.setFont('courier', 'bold');
-                // pdf.setFontSize(16);
-                // pdf.text('PREPARE IMMEDIATELY', pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-                // yPosition += 10;
-                // // Footer
-                // pdf.setFont('courier', 'bold');
-                // pdf.setFontSize(10);
-                // pdf.text('Thank you!', pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-                // yPosition += 5;
-
-                // pdf.text(new Date().toLocaleString('en-GB'), pageWidth / 2, yPosition, {
-                //     align: 'center'
-                // });
-
-
                 // --- QZ TRAY MODIFICATION ---
                 // MODIFIED: 'iframe' logic REMOVED
                 // Generate blob
@@ -3698,60 +4094,72 @@
             }
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize cart if not already done
-            if (!cart) {
-                cart = [];
-            }
+    document.addEventListener('DOMContentLoaded', function() {
+        if (!cart) cart = [];
 
-            // Check if this is a new order (coming from cleared session)
-            const urlParams = new URLSearchParams(window.location.search);
-            const isClearSession = urlParams.get('clear') === '1';
+        // --- IMPORT ORDER ITEMS AUTOMATICALLY ---
+        const importedItems = @json($importedCart ?? []);
 
-            if (isClearSession) {
-                // Clear all cart and payment data for fresh start
-                cart = [];
-                selectedPaymentMethod = null; // Reset to no selection
-                customerPayment = 0;
+        if (importedItems.length > 0) {
+            console.log('Importing order items:', importedItems);
+            cart = []; // Clear existing cart
 
-                // Clear browser storage
-                if (typeof(Storage) !== "undefined") {
-                    localStorage.removeItem('pos_cart');
-                    localStorage.removeItem('pos_customer_payment');
-                    localStorage.removeItem('pos_selected_payment_method');
-                    localStorage.removeItem('pos_receipt_no');
-                    sessionStorage.clear();
-                }
-
-                // Update the receipt number display with fresh number
-                const today = new Date();
-                const dateStr = today.getFullYear().toString().substr(-2) +
-                    String(today.getMonth() + 1).padStart(2, '0') +
-                    String(today.getDate()).padStart(2, '0');
-                document.getElementById('receipt-no').textContent = 'RCP' + dateStr + '0001';
-
-                // Clean URL by removing the clear parameter
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-
-            // Update time every second
-            setInterval(updateTime, 1000);
-            updateTime();
-
-            // Add event listener for modal payment amount input
-            const modalPaymentInput = document.getElementById('modal-payment-amount');
-            if (modalPaymentInput) {
-                modalPaymentInput.addEventListener('input', function() {
-                    modalCustomerPayment = parseFloat(this.value) || 0;
-                    updateModalTotals();
+            importedItems.forEach(item => {
+                cart.push({
+                    id: item.id,
+                    name: item.name,
+                    price: parseFloat(item.price),
+                    quantity: parseFloat(item.quantity),
+                    itemType: item.itemType,
+                    category: item.category
                 });
-            }
-
-            // Force initial update of cart display and totals
+            });
             updateCartDisplay();
-            updateTotals();
-        });
+
+            // Remove 'import_order' from URL to prevent re-import on refresh
+            const url = new URL(window.location.href);
+            url.searchParams.delete('import_order');
+            window.history.replaceState({}, document.title, url);
+        }
+        // ----------------------------------------
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('clear') === '1') {
+            cart = [];
+            selectedPaymentMethod = null;
+            modalCustomerPayment = 0;
+            currentImportedOrderId = null;
+            if (typeof(Storage) !== "undefined") {
+                localStorage.removeItem('pos_cart');
+                localStorage.removeItem('pos_customer_payment');
+            }
+            document.getElementById('receipt-no').textContent = 'RCP' + (new Date().toISOString().slice(2,10).replace(/-/g,"")) + '0001';
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+        updateCartDisplay();
+        updateTotals();
+
+        // Listeners for inputs
+        const cashInput = document.getElementById('modal-cash-input');
+        if (cashInput) {
+            cashInput.addEventListener('input', function() {
+                modalCustomerPayment = parseFloat(this.value) || 0;
+                updateModalTotals();
+                toggleModalPrintButton();
+            });
+        }
+        const cardInput = document.getElementById('modal-card-input');
+        if (cardInput) {
+            cardInput.addEventListener('input', function() {
+                modalCardPayment = parseFloat(this.value) || 0;
+                updateModalTotals();
+                toggleModalPrintButton();
+            });
+        }
+    });
     </script>
 </body>
 

@@ -34,7 +34,13 @@ class OrderController extends Controller
         }
 
         // Get the filtered and paginated orders
-        $orders = $query->where('status', '!=', 0)
+        $orders = $query->where('order_status', '!=', 0) // 1. order_status 0 නොවන ඒවා
+                        ->where(function ($q) {
+                            // 2. status සහ order_status දෙකම 2 වන අවස්ථා ඉවත් කිරීම
+                            // තර්කය: Status 2 නෙවෙයි හෝ Order Status 2 නෙවෙයි නම් ගන්න (De Morgan's Law)
+                            $q->where('status', '!=', 2)
+                              ->orWhere('order_status', '!=', 2);
+                        })
                         ->orderBy('date_time', 'desc')
                         ->paginate(15)
                         ->withQueryString();

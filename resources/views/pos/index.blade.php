@@ -3867,9 +3867,9 @@
                 pdf.text('Come again!', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 8;
+                yPosition += 5;
                 pdf.setFontSize(6);
-                pdf.text('System by SKM Labs', pageWidth / 2, yPosition, {
+                pdf.text('System by Jayawardena Group', pageWidth / 2, yPosition, {
                     align: 'center'
                 });
 

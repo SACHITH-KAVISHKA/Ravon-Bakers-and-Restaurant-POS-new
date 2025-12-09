@@ -707,7 +707,7 @@
                         $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('reports.*');
                     } elseif (auth()->user()->role === 'admin') {
                         // Admin sees sales-report2.* and reports.*
-                        $adminReportsActive = request()->routeIs('sales-report2.*') || request()->routeIs('reports.*');
+                        $adminReportsActive = request()->routeIs('sales-report2.*') || request()->routeIs('reports.*') || request()->routeIs('sales-report.deleted');
                     } elseif (auth()->user()->role === 'office') {
                         // Office sees ONLY sales-report2.*
                         $adminReportsActive = request()->routeIs('sales-report2.*');
@@ -757,6 +757,12 @@
                                 <a class="nav-link {{ request()->routeIs('reports.item-sales') ? 'active' : '' }}" href="{{ route('reports.item-sales') }}">
                                     <i class="bi bi-graph-up"></i>
                                     <span>Item Sales</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('sales-report.deleted') ? 'active' : '' }}" href="{{ route('sales-report.deleted') }}">
+                                    <i class="bi bi-trash"></i>
+                                    <span>Deleted Receipts</span>
                                 </a>
                             </li>
                             @endif

@@ -2,9 +2,9 @@
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
             <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
-                <i class="bi bi-bar-chart-fill me-2"></i> Daily Sales Report
+                <i class="bi bi-trash me-2"></i> Deleted / Cancelled Receipts
             </h1>
-            <p class="text-muted mb-0 d-none d-md-block">View and export sales transactions</p>
+            <p class="text-muted mb-0 d-none d-md-block">View cancelled transactions</p>
         </div>
         <div class="text-muted">
             <i class="bi bi-calendar3"></i>
@@ -12,10 +12,9 @@
         </div>
     </div>
 
-    <!-- Search and Filter Section -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" action="{{ route('sales-report2.index2') }}" class="row g-3">
+            <form method="GET" action="{{ route('sales-report.deleted') }}" class="row g-3">
                 <div class="col-12 col-md-6 col-lg-3">
                     <label for="start_date" class="form-label fw-semibold">Start Date</label>
                     <input type="date" class="form-control form-control-lg" id="start_date" name="start_date"
@@ -50,17 +49,13 @@
         </div>
     </div>
 
-    <!-- Summary Cards removed per admin view requirement -->
-
-    <!-- Export Section -->
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 gap-2">
-        <h5 class="mb-0">Sales Transactions</h5>
-        <a href="{{ route('sales-report2.export2', request()->query()) }}" class="btn btn-success btn-sm">
+        <h5 class="mb-0">Deleted Transactions</h5>
+        <a href="{{ route('sales-report.deleted.export', request()->query()) }}" class="btn btn-success btn-sm">
             <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
         </a>
     </div>
 
-    <!-- Sales Table -->
     <div class="card">
         <div class="card-body">
             @if($sales->count() > 0)
@@ -68,23 +63,24 @@
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
-                            {{-- <th class="d-none d-sm-table-cell">Receipt No</th> --}}
+                            <th class="d-none d-sm-table-cell">Receipt No</th>
                             <th>Branch name</th>
                             <th class="d-none d-md-table-cell">Total</th>
                             <th class="d-none d-lg-table-cell">Payment</th>
                             <th class="d-none d-xl-table-cell">Cash</th>
                             <th class="d-none d-xl-table-cell">Card</th>
                             <th class="d-none d-xl-table-cell">Credit</th>
-                            <th>Date/Time</th>
+                            <th>Created At</th>
+                            <th>Deleted At</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($sales as $sale)
                         <tr>
-                            {{-- <td class="d-none d-sm-table-cell">
-                                <span class="badge bg-primary">{{ $sale->receipt_no }}</span>
-                            </td> --}}
+                            <td class="d-none d-sm-table-cell">
+                                <span class="badge bg-danger">{{ $sale->receipt_no }}</span>
+                            </td>
                             <td>
                                 <div class="d-flex flex-column">
                                     <strong>{{ $sale->branch->name ?? 'N/A' }}</strong>
@@ -103,29 +99,22 @@
                                     $cardPayment = $sale->card_payment ?? 0;
                                     $total = $sale->subtotal ?? 0;
 
-                                    // Handle payments - PRIORITY: Card first, then Cash
                                     if ($paymentMethod === 'cash') {
-                                        // Pure cash payment
                                         $cashAmount = min($customerPayment, $total);
                                         $cardAmount = 0;
                                     } elseif ($paymentMethod === 'card') {
-                                        // Pure card payment - trim card to total if overpaid
                                         $cashAmount = 0;
                                         $cardAmount = min($cardPayment, $total);
                                     } elseif ($paymentMethod === 'card_and_cash') {
-                                        // Combined payment - PRIORITY: Card gets full amount first
                                         if ($cardPayment >= $total) {
-                                            // Card covers everything (or overpaid)
                                             $cardAmount = $total;
                                             $cashAmount = 0;
                                         } else {
-                                            // Card takes what it can, cash fills the rest
                                             $cardAmount = $cardPayment;
                                             $remaining = $total - $cardPayment;
                                             $cashAmount = min($customerPayment, $remaining);
                                         }
                                     } else {
-                                        // Credit, complimentary, etc.
                                         $cashAmount = 0;
                                         $cardAmount = 0;
                                     }
@@ -136,7 +125,11 @@
                                 LKR {{ number_format($cardAmount, 2) }}
                             </td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($sale->credit_balance ?? 0, 2) }}</td>
+
                             <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
+
+                            <td>{{ $sale->updated_at->format('M d, Y H:i') }}</td>
+
                             <td>
                                 <div class="d-flex gap-1 flex-wrap">
                                     <button class="btn btn-sm btn-outline-primary view-items-btn"
@@ -146,57 +139,37 @@
                                         title="View Items">
                                         <i class="bi bi-eye"></i>
                                     </button>
-
-                                    <button class="btn btn-sm btn-outline-success ms-1 print-receipt-btn"
-                                        data-receipt-url="{{ route('sales-report2.receipt', ['sale' => $sale->id]) }}"
-                                        title="Print Receipt">
-                                        <i class="bi bi-printer"></i>
-                                    </button>
-                                    @if(auth()->user()->role == 'admin' )
-                                    @if($sale->status ?? 1)
-                                    <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn"
-                                            data-sale-id="{{ $sale->id }}"
-                                            title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                    @else
-                                    <span class="badge bg-secondary ms-1">Deleted</span>
-                                    @endif
-                                    @endif
                                 </div>
                             </td>
                         </tr>
                         @endforeach
 
-                        <!-- Totals Row -->
                         <tr class="table-info fw-bold">
-                            <td colspan="1" class="text-end">TOTAL :</td>
+                            <td colspan="2" class="text-end">TOTAL DELETED:</td>
                             <td class="d-none d-md-table-cell">LKR {{ number_format($totals->total_subtotal ?? 0, 2) }}</td>
                             <td class="d-none d-lg-table-cell">-</td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_cash ?? 0, 2) }}</td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_card_payment ?? 0, 2) }}</td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_credit_balance ?? 0, 2) }}</td>
-                            <td colspan="2"></td>
+                            <td colspan="3"></td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Pagination -->
             <div class="d-flex justify-content-center mt-3">
                 {{ $sales->appends(request()->query())->links() }}
             </div>
             @else
             <div class="text-center py-5">
-                <i class="bi bi-inbox display-1 text-muted"></i>
-                <h4 class="text-muted mt-3">No sales found</h4>
-                <p class="text-muted">Try adjusting your search criteria or date range.</p>
+                <i class="bi bi-trash display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No deleted sales found</h4>
+                <p class="text-muted">There are no cancelled receipts for this period.</p>
             </div>
             @endif
         </div>
     </div>
 
-    <!-- Sale Items Modal -->
     <div class="modal fade" id="saleItemsModal" tabindex="-1" aria-labelledby="saleItemsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -211,7 +184,6 @@
                         </div>
                     </div>
                     <div id="saleDetailsContent" style="display: none;">
-                        <!-- Sale Information -->
                         <div class="card mb-3">
                             <div class="card-header">
                                 <h6 class="mb-0">Sale Information</h6>
@@ -234,7 +206,6 @@
                             </div>
                         </div>
 
-                        <!-- Items List -->
                         <div class="card">
                             <div class="card-header">
                                 <h6 class="mb-0">Items Purchased</h6>
@@ -251,8 +222,7 @@
                                             </tr>
                                         </thead>
                                         <tbody id="modal-items-list">
-                                            <!-- Items will be loaded here -->
-                                        </tbody>
+                                            </tbody>
                                     </table>
                                 </div>
                             </div>
@@ -266,40 +236,18 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to mark this sale as deleted?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="deleteConfirmBtn">Yes, Delete</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     @push('scripts')
     <script>
         $(document).ready(function() {
+            // VIEW ITEMS LOGIC
             $('.view-items-btn').on('click', function() {
                 const saleId = $(this).data('sale-id');
                 $('#saleDetailsLoading').show();
                 $('#saleDetailsContent').hide();
-
-                // Clear previous data
                 $('#modal-items-list').empty();
 
-                // Fetch sale details
                 $.get(`{{ url('sales-report/sale-items') }}/${saleId}`)
                     .done(function(response) {
-                        // Populate sale information
                         $('#modal-receipt-no').text(response.sale.receipt_no);
                         $('#modal-branch-name').text(response.sale.branch_name || 'N/A');
                         $('#modal-payment-method').text(response.sale.payment_method);
@@ -309,7 +257,6 @@
                         $('#modal-tax').text(parseFloat(response.sale.tax).toFixed(2));
                         $('#modal-total').text(parseFloat(response.sale.total).toFixed(2));
 
-                        // Populate items
                         let itemsHtml = '';
                         response.items.forEach(function(item) {
                             itemsHtml += `
@@ -322,7 +269,6 @@
                             `;
                         });
                         $('#modal-items-list').html(itemsHtml);
-
                         $('#saleDetailsLoading').hide();
                         $('#saleDetailsContent').show();
                     })
@@ -331,112 +277,6 @@
                         $('#modal-items-list').html('<tr><td colspan="4" class="text-center text-danger">Error loading sale details</td></tr>');
                         $('#saleDetailsContent').show();
                     });
-            });
-
-            // Helper to show a Bootstrap alert at the top of the card
-            function showAlert(type, message) {
-                const alertId = 'dynamic-alert';
-                // remove any existing
-                $('#' + alertId).remove();
-                const alertHtml = `\
-                    <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">\
-                        ${message}\
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>\
-                    </div>`;
-                $('.card-body').first().prepend(alertHtml);
-            }
-
-            // Delete sale (soft-delete via status = 0) using confirmation modal
-            $(document).on('click', '.delete-sale-btn', function() {
-                const saleId = $(this).data('sale-id');
-                // store sale id on confirm button
-                $('#deleteConfirmBtn').data('sale-id', saleId);
-                // show modal
-                const deleteModalEl = document.getElementById('deleteConfirmModal');
-                const deleteModal = new bootstrap.Modal(deleteModalEl);
-                deleteModal.show();
-            });
-
-            // Handle confirm button in modal
-            $('#deleteConfirmBtn').off('click').on('click', function() {
-                const button = $(this);
-                const saleId = button.data('sale-id');
-                if (!saleId) return;
-
-                // disable to prevent double clicks
-                button.prop('disabled', true);
-
-                $.ajax({
-                    url: `{{ url('sales-report/sale') }}/${saleId}/status`,
-                    method: 'POST',
-                    data: {
-                        _token: '{{ csrf_token() }}',
-                        status: 0
-                    }
-                }).done(function(resp) {
-                    if (resp.success) {
-                        // Remove the entire table row for this sale with a fade animation
-                        const row = $(`.action-cell[data-sale-id="${saleId}"]`).closest('tr');
-                        row.fadeOut(300, function() {
-                            $(this).remove();
-
-                            // If table body is empty after removal, show the empty state
-                            const tbody = $('table.table tbody');
-                            if (tbody.find('tr').length === 0) {
-                                // Replace the card body contents with the empty state
-                                const emptyHtml = `
-                                    <div class="text-center py-5">
-                                        <i class="bi bi-inbox display-1 text-muted"></i>
-                                        <h4 class="text-muted mt-3">No sales found</h4>
-                                        <p class="text-muted">Try adjusting your search criteria or date range.</p>
-                                    </div>`;
-                                // remove table and pagination and show empty
-                                $('table.table').closest('.table-responsive').remove();
-                                $('.d-flex.justify-content-center.mt-3').remove();
-                                $('.card-body').first().html(emptyHtml);
-                            }
-                        });
-
-                        showAlert('success', 'Sale marked as deleted.');
-                        // hide modal
-                        const deleteModalEl = document.getElementById('deleteConfirmModal');
-                        const deleteModal = bootstrap.Modal.getInstance(deleteModalEl);
-                        if (deleteModal) deleteModal.hide();
-                    } else {
-                        showAlert('danger', resp.message || 'Error updating status');
-                    }
-                }).fail(function(xhr) {
-                    let msg = 'Error updating status';
-                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                    showAlert('danger', msg);
-                }).always(function() {
-                    button.prop('disabled', false);
-                });
-            });
-
-            // Handle direct print receipt button
-            $(document).on('click', '.print-receipt-btn', function() {
-                const receiptUrl = $(this).data('receipt-url');
-
-                // Create or reuse hidden iframe
-                let printFrame = document.getElementById('print-receipt-frame');
-                if (!printFrame) {
-                    printFrame = document.createElement('iframe');
-                    printFrame.id = 'print-receipt-frame';
-                    printFrame.style.display = 'none';
-                    document.body.appendChild(printFrame);
-                }
-
-                // Load receipt and print
-                printFrame.src = receiptUrl;
-                printFrame.onload = function() {
-                    try {
-                        printFrame.contentWindow.print();
-                    } catch (e) {
-                        console.error('Print error:', e);
-                        alert('Unable to print. Please try again.');
-                    }
-                };
             });
         });
     </script>

@@ -79,12 +79,12 @@ Route::middleware('auth')->group(function () {
     // Sales Report - All authenticated users can access
     Route::prefix('sales-report')->name('sales-report.')->group(function () {
         Route::get('/', [SalesReportController::class, 'index'])->name('index');
-        // Route::get('/', [SalesReportController::class, 'index2'])->name('index2');
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
         Route::get('/receipt/{sale}', [SalesReportController::class, 'receipt'])->name('receipt');
         Route::get('/export', [SalesReportController::class, 'exportExcel'])->name('export');
-        // Route::get('/export', [SalesReportController::class, 'exportExcel2'])->name('export2');
         Route::post('/sale/{sale}/status', [SalesReportController::class, 'updateStatus'])->name('sale.update-status');
+        Route::get('/deleted', [SalesReportController::class, 'delete'])->name('deleted');
+        Route::get('/deleted/export', [SalesReportController::class, 'exportDeleted'])->name('deleted.export');
     });
 
     // Sales Report - All authenticated users can access

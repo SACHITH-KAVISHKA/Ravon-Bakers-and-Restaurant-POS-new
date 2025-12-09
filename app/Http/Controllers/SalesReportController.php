@@ -1062,4 +1062,256 @@ class SalesReportController extends Controller
         // Return the sales report receipt view
         return view('sales-report.receipt', compact('sale'));
     }
+
+        public function delete(Request $request)
+    {
+        $query = Sale::query();
+       // Only show deleted sales (status = 0)
+        $query->where('status', 0);
+
+        // Default to today's date
+        $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $branchId = $request->get('branch_id');
+
+        // Apply date filter
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        // Apply branch filter
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        // Get sales with pagination
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
+
+        // Calculate totals - get all sales for filtering, then calculate in PHP
+        $allSales = Sale::query()
+            ->where('status', 0)
+            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->get();
+
+        // Calculate totals with overpayment trimming
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($allSales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        // Create totals object
+        $totals = (object) [
+            'total_transactions' => $allSales->count(),
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
+
+        // Get available branches for the dropdown
+        $branches = Branch::active()->orderBy('name')->get();
+
+        return view('reports.delete.delete-receipt', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
+    }
+
+
+    /**
+     * Export DELETED sales report to Excel
+     */
+    public function exportDeleted(Request $request)
+    {
+        $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $branchId = $request->get('branch_id');
+
+        $query = Sale::query();
+        // Only export DELETED sales
+        $query->where('status', 0);
+
+        // Apply filters
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
+
+        // Calculate totals with overpayment trimming
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        // Create totals object
+        $totals = (object) [
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
+
+        // Create spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set headers
+        $headers = [
+            'A1' => 'Receipt No',
+            'B1' => 'Branch Name',
+            'C1' => 'Subtotal',
+            'D1' => 'Payment Method',
+            'E1' => 'Cash',
+            'F1' => 'Card',
+            'G1' => 'Credit',
+            'H1' => 'Created At',
+            'I1' => 'Deleted At',
+        ];
+
+        foreach ($headers as $cell => $header) {
+            $sheet->setCellValue($cell, $header);
+            $sheet->getStyle($cell)->getFont()->setBold(true);
+        }
+
+        // Add data
+        $row = 2;
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            // Apply payment logic - PRIORITY: Card first, then Cash
+            if ($paymentMethod === 'cash') {
+                $cashAmount = min($customerPayment, $total);
+                $cardAmount = 0;
+            } elseif ($paymentMethod === 'card') {
+                $cashAmount = 0;
+                $cardAmount = min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                // Card gets priority
+                if ($cardPayment >= $total) {
+                    $cardAmount = $total;
+                    $cashAmount = 0;
+                } else {
+                    $cardAmount = $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $cashAmount = min($customerPayment, $remaining);
+                }
+            } else {
+                $cashAmount = 0;
+                $cardAmount = 0;
+            }
+
+            $sheet->setCellValue('A' . $row, $sale->receipt_no);
+            $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
+            $sheet->setCellValue('C' . $row, $sale->subtotal);
+            $sheet->setCellValue('D' . $row, $sale->payment_method);
+            $sheet->setCellValue('E' . $row, $cashAmount);
+            $sheet->setCellValue('F' . $row, $cardAmount);
+            $sheet->setCellValue('G' . $row, $sale->credit_balance ?? 0);
+            $sheet->setCellValue('H' . $row, $sale->created_at->format('Y-m-d H:i:s'));
+            $sheet->setCellValue('I' . $row, $sale->updated_at->format('Y-m-d H:i:s'));
+            $row++;
+        }
+
+        // Add totals row
+        $sheet->setCellValue('A' . $row, 'TOTAL DELETED');
+        $sheet->setCellValue('B' . $row, '');
+        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('D' . $row, '');
+        $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
+        $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
+        $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);
+        $sheet->setCellValue('H' . $row, '');
+        $sheet->setCellValue('I' . $row, '');
+
+        // Style the totals row
+        $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':I' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('FFCDD2'); // Red tint for deleted report
+
+        // Auto-size columns
+        foreach (range('A', 'I') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Create filename
+        $filename = 'deleted_sales_report_' . $startDate . '_to_' . $endDate . '.xlsx';
+
+        // Create response
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
 }

@@ -34,10 +34,9 @@ class OrderController extends Controller
         }
 
         // Get the filtered and paginated orders
-        $orders = $query->where('order_status', '!=', 0) // 1. order_status 0 නොවන ඒවා
+        $orders = $query->where('order_status', '!=', 0) // 1. order_status 0
                         ->where(function ($q) {
-                            // 2. status සහ order_status දෙකම 2 වන අවස්ථා ඉවත් කිරීම
-                            // තර්කය: Status 2 නෙවෙයි හෝ Order Status 2 නෙවෙයි නම් ගන්න (De Morgan's Law)
+
                             $q->where('status', '!=', 2)
                               ->orWhere('order_status', '!=', 2);
                         })
@@ -53,8 +52,6 @@ class OrderController extends Controller
         $user = Auth::user();
         $branches = Branch::all();
 
-        // Items වගුව item_branch_prices සමග JOIN කර මිල ලබා ගැනීම
-        // මෙය "Unknown column" සහ "Undefined property" දෝෂ විසඳයි
         $items = DB::table('items')
             ->join('item_branch_prices', 'items.id', '=', 'item_branch_prices.item_id')
             ->where('items.is_active', 1)
@@ -62,9 +59,10 @@ class OrderController extends Controller
             ->select(
                 'items.id',
                 'items.item_name',
-                'items.item_code', // මෙය create view එකේදී අවශ්‍ය වේ
-                'item_branch_prices.price' // මිල ලබා ගන්නේ මෙතැනින්
+                'items.item_code',
+                'item_branch_prices.price'
             )
+            ->orderBy('items.item_name', 'asc')
             ->get();
 
         return view('staff.orders.create', compact('branches', 'items'));

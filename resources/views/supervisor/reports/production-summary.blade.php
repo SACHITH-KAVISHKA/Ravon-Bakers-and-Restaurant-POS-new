@@ -27,7 +27,9 @@
 <div class="row">
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h3 fw-bold text-dark">Production Item Summary</h1>
+            <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
+                <i class="bi bi-clipboard-check" style="color: #667eea;"></i> Production Item Summary
+            </h1>
             {{-- Export Button Placeholder --}}
             <a href="{{ $exportRoute }}" class="btn btn-success">
                 <i class="bi bi-file-earmark-excel"></i> Export All Data

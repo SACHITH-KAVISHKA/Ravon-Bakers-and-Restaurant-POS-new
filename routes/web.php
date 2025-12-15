@@ -69,12 +69,18 @@ Route::middleware('auth')->group(function () {
             // Production Summary Routes for Admin/Director
             Route::get('/production-summary', [App\Http\Controllers\SupervisorController::class, 'productionSummary'])
                 ->name('production-summary');
-
             Route::get('/production-summary/export', [App\Http\Controllers\SupervisorController::class, 'exportProductionSummary'])
                 ->name('production-summary.export');
-
             Route::get('/production-item-details', [App\Http\Controllers\SupervisorController::class, 'getProductionItemDetails'])
                 ->name('production-item-details');
+
+            // Wastage Summary Report (Re-using SupervisorController logic)
+            Route::get('/wastage-summary', [SupervisorController::class, 'wastageSummary'])
+                ->name('wastage-summary');
+            Route::get('/wastage-summary/export', [SupervisorController::class, 'exportWastageSummary'])
+                ->name('wastage-summary.export');
+            Route::get('/wastage-item-details', [SupervisorController::class, 'getWastageItemDetails'])
+                ->name('wastage-item-details');
         });
     });
 
@@ -165,14 +171,20 @@ Route::middleware('auth')->group(function () {
         // View Route for Production Summary Report
         Route::get('/reports/production-summary', [SupervisorController::class, 'productionSummary'])
         ->name('reports.production-summary');
-
         // Export Route
         Route::get('/reports/production-summary/export', [SupervisorController::class, 'exportProductionSummary'])
         ->name('reports.production-summary.export');
-
         // API route to fetch details for the modal
         Route::get('/reports/production-item-details', [SupervisorController::class, 'getProductionItemDetails'])
         ->name('reports.production-item-details');
+
+        // Wastage Summary Report
+        Route::get('/reports/wastage-summary', [SupervisorController::class, 'wastageSummary'])
+            ->name('reports.wastage-summary');
+        Route::get('/reports/wastage-summary/export', [SupervisorController::class, 'exportWastageSummary'])
+            ->name('reports.wastage-summary.export');
+        Route::get('/reports/wastage-item-details', [SupervisorController::class, 'getWastageItemDetails'])
+            ->name('reports.wastage-item-details');
     });
 
 

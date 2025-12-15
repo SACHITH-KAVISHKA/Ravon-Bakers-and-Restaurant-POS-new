@@ -1693,5 +1693,215 @@ class SupervisorController extends Controller
             return redirect()->back()->with('error', 'Export failed: ' . $e->getMessage());
         }
     }
+
+    public function wastageSummary(Request $request)
+    {
+        // 1. Get Filters
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+        $branchId = $request->input('branch_id'); // Branch Filter
+
+        // 2. Fetch Active Branches for the Dropdown
+        $branches = Branch::where('status', 1)->orderBy('name')->get();
+
+        // 3. Query Aggregate Data
+        $query = DB::table('wastage_items')
+            ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
+            ->join('items', 'items.id', '=', 'wastage_items.item_id')
+            ->select(
+                'items.id',
+                'items.item_code',
+                'items.item_name',
+                DB::raw('SUM(wastage_items.wasted_quantity) as total_wasted'),
+                DB::raw('COUNT(DISTINCT wastages.id) as wastage_count'),
+                DB::raw('MAX(wastages.date_time) as last_wastage_date')
+            )
+            ->whereDate('wastages.date_time', '>=', $startDate)
+            ->whereDate('wastages.date_time', '<=', $endDate);
+
+        // Apply Branch Filter if selected
+        if (!empty($branchId)) {
+            $query->where('wastages.branch_id', $branchId);
+        }
+
+        $wastageItems = $query->groupBy('items.id', 'items.item_code', 'items.item_name')
+            ->orderByDesc('total_wasted')
+            ->paginate(100)
+            ->withQueryString();
+
+        return view('supervisor.reports.wastage-summary', compact(
+            'wastageItems',
+            'startDate',
+            'endDate',
+            'branches',
+            'branchId'
+        ));
+    }
+
+    /**
+     * AJAX: Get Details for specific Item Wastage (With Branch Filter)
+     */
+    public function getWastageItemDetails(Request $request)
+    {
+        $itemId = $request->item_id;
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+        $branchId = $request->branch_id;
+
+        $query = DB::table('wastage_items')
+            ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
+            ->leftJoin('users', 'users.id', '=', 'wastages.user_id')
+            ->leftJoin('branches', 'branches.id', '=', 'wastages.branch_id')
+            ->select(
+                'wastages.id as wastage_id',
+                'wastages.date_time',
+                'wastages.remarks',
+                'wastage_items.wasted_quantity',
+                'users.name as user_name',
+                'branches.name as branch_name'
+            )
+            ->where('wastage_items.item_id', $itemId)
+            ->whereDate('wastages.date_time', '>=', $startDate)
+            ->whereDate('wastages.date_time', '<=', $endDate);
+
+        // Apply Branch Filter to details modal as well
+        if (!empty($branchId)) {
+            $query->where('wastages.branch_id', $branchId);
+        }
+
+        $details = $query->orderBy('wastages.date_time', 'desc')->get();
+
+        // Build HTML Table
+        $html = '<table class="table table-sm table-bordered">';
+        $html .= '<thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Ref #</th>
+                        <th>Branch</th>
+                        <th>User</th>
+                        <th class="text-end">Qty</th>
+                    </tr>
+                  </thead><tbody>';
+
+        if ($details->count() > 0) {
+            foreach ($details as $row) {
+                $formattedDate = \Carbon\Carbon::parse($row->date_time)->format('Y-m-d h:i A');
+                $branchName = $row->branch_name ?? 'N/A';
+                $html .= "<tr>
+                            <td>{$formattedDate}</td>
+                            <td>WST-{$row->wastage_id}</td>
+                            <td>{$branchName}</td>
+                            <td>{$row->user_name}</td>
+                            <td class='text-end fw-bold text-danger'>{$row->wasted_quantity}</td>
+                        </tr>";
+            }
+        } else {
+            $html .= '<tr><td colspan="5" class="text-center">No details found.</td></tr>';
+        }
+
+        $html .= '</tbody></table>';
+
+        return response()->json(['html' => $html]);
+    }
+
+/**
+     * Export Wastage Summary to Excel
+     */
+    public function exportWastageSummary(Request $request)
+    {
+        try {
+            $startDate = $request->input('start_date', date('Y-m-01'));
+            $endDate = $request->input('end_date', date('Y-m-d'));
+            $branchId = $request->input('branch_id');
+
+            $query = DB::table('wastage_items')
+                ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
+                ->join('items', 'items.id', '=', 'wastage_items.item_id')
+                ->select(
+                    'items.item_code',
+                    'items.item_name',
+                    DB::raw('SUM(wastage_items.wasted_quantity) as total_wasted'),
+                    DB::raw('COUNT(DISTINCT wastages.id) as wastage_count'),
+                    DB::raw('MAX(wastages.date_time) as last_wastage_date')
+                )
+                ->whereDate('wastages.date_time', '>=', $startDate)
+                ->whereDate('wastages.date_time', '<=', $endDate);
+
+            // Apply Branch Filter
+            if (!empty($branchId)) {
+                $query->where('wastages.branch_id', $branchId);
+            }
+
+            $data = $query->groupBy('items.id', 'items.item_code', 'items.item_name')
+                ->orderByDesc('total_wasted')
+                ->get();
+
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // Additional Info for Title
+            $branchName = 'All Branches';
+            if(!empty($branchId)){
+                $branchObj = Branch::find($branchId);
+                if($branchObj) $branchName = $branchObj->name;
+            }
+
+            // Title (A1)
+            $sheet->setCellValue('A1', 'Wastage Summary Report - ' . $branchName);
+            $sheet->mergeCells('A1:E1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            // Period (A2)
+            $sheet->setCellValue('A2', "Period: $startDate to $endDate");
+            $sheet->mergeCells('A2:E2');
+            $sheet->getStyle('A2')->getFont()->setItalic(true);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER); // Alignment
+
+            // Headers
+            $headers = ['A4' => '#', 'B4' => 'Item Code', 'C4' => 'Item Name', 'D4' => 'Trans. Count', 'E4' => 'Total Wasted'];
+            foreach ($headers as $cell => $val) $sheet->setCellValue($cell, $val);
+
+            $sheet->getStyle('A4:E4')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle('A4:E4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('D32F2F');
+
+            // Data
+            $row = 5;
+            $count = 1;
+            $grandTotal = 0;
+
+            foreach ($data as $item) {
+                $sheet->setCellValue('A' . $row, $count++);
+                $sheet->setCellValue('B' . $row, $item->item_code ?? '-');
+                $sheet->setCellValue('C' . $row, $item->item_name);
+                $sheet->setCellValue('D' . $row, $item->wastage_count);
+                $sheet->setCellValue('E' . $row, $item->total_wasted);
+                $grandTotal += $item->total_wasted;
+                $row++;
+            }
+
+            // Total
+            $sheet->setCellValue('D' . $row, 'GRAND TOTAL:');
+            $sheet->setCellValue('E' . $row, $grandTotal);
+            $sheet->getStyle('D' . $row . ':E' . $row)->getFont()->setBold(true);
+
+            foreach (range('A', 'E') as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
+
+            $fileName = 'wastage_summary_' . date('Ymd_His') . '.xlsx';
+
+            return new StreamedResponse(function () use ($spreadsheet) {
+                $writer = new Xlsx($spreadsheet);
+                $writer->save('php://output');
+            }, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+                'Cache-Control' => 'max-age=0',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Wastage Export Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Export failed: ' . $e->getMessage());
+        }
+    }
 }
 

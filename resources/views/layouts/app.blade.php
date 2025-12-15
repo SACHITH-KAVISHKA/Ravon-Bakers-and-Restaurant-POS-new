@@ -590,7 +590,8 @@
                                 request()->routeIs('supervisor.productions.*') ||
                                 request()->routeIs('supervisor.reports.item-transaction') ||
                                 request()->routeIs('supervisor.stock-adjustment.index') ||
-                                request()->routeIs('supervisor.reports.production-summary');
+                                request()->routeIs('supervisor.reports.production-summary') ||
+                                request()->routeIs('supervisor.reports.wastage-summary');
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link d-flex justify-content-between align-items-center {{ $reportsActive ? 'active' : '' }}"
@@ -651,8 +652,15 @@
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('supervisor.reports.production-summary') ? 'active' : '' }}"
                                 href="{{ route('supervisor.reports.production-summary') }}">
-                                    <i class="bi bi-clipboard-check"></i> {{-- අයිකනය කැමති පරිදි වෙනස් කරගන්න --}}
+                                    <i class="bi bi-clipboard-check"></i>
                                     <span>Production Summary</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('supervisor.reports.wastage-summary') ? 'active' : '' }}"
+                                href="{{ route('supervisor.reports.wastage-summary') }}">
+                                    <i class="bi bi-trash"></i>
+                                    <span>Wastage Summary</span>
                                 </a>
                             </li>
                         </ul>
@@ -778,6 +786,13 @@
                                 href="{{ route('reports.production-summary') }}">
                                     <i class="bi bi-clipboard-check"></i>
                                     <span>Production Summary</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('reports.wastage-summary') ? 'active' : '' }}"
+                                href="{{ route('reports.wastage-summary') }}">
+                                    <i class="bi bi-trash"></i>
+                                    <span>Wastage Summary</span>
                                 </a>
                             </li>
                             @endif

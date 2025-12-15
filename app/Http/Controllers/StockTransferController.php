@@ -300,11 +300,25 @@ class StockTransferController extends Controller
                 // Deduct from source branch inventory
                 $sourceInventory = Inventory::where('item_id', $transferItem->item_id)
                     ->where('branch_id', $sourceBranchId)
+                    ->lockForUpdate() // transactional lock same time
                     ->first();
 
-                if ($sourceInventory && $sourceInventory->current_stock >= $transferItem->quantity) {
-                    $sourceInventory->decrement('current_stock', $transferItem->quantity);
+                // Given the Exception will be thrown if source inventory is not found
+                    if (!$sourceInventory) {
+                    throw new \Exception("Source inventory not found for item ID: {$transferItem->item_id}");
                 }
+
+                // Ensure sufficient stock in source inventory
+                if ($sourceInventory->current_stock < $transferItem->quantity) {
+                    throw new \Exception("Insufficient stock to accept transfer for item: {$transferItem->item->item_name}. Available: {$sourceInventory->current_stock}");
+                }
+
+                // Deduct stock from source branch
+                $sourceInventory->decrement('current_stock', $transferItem->quantity);
+
+                // if ($sourceInventory && $sourceInventory->current_stock >= $transferItem->quantity) {
+                //     $sourceInventory->decrement('current_stock', $transferItem->quantity);
+                // }
 
                 // Add to destination branch: update if exists, otherwise create
                 $destInventory = Inventory::firstOrNew([
@@ -339,8 +353,10 @@ class StockTransferController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Stock Transfer Accept Error: ' . $e->getMessage());
+
+
             return redirect()->back()
-                ->with('error', 'An error occurred while accepting transfer. Please try again.');
+                ->with('error', $e->getMessage());
         }
     }
 

@@ -65,6 +65,16 @@ Route::middleware('auth')->group(function () {
             Route::post('/item-sales/details', [App\Http\Controllers\ItemSalesController::class, 'getItemDetails'])->name('item-sales.details');
             Route::get('/item-sales/export', [App\Http\Controllers\ItemSalesController::class, 'exportExcel'])->name('item-sales.export');
             Route::get('/item-sales/export-item-details', [App\Http\Controllers\ItemSalesController::class, 'exportItemDetails'])->name('item-sales.export-item-details');
+
+            // Production Summary Routes for Admin/Director
+            Route::get('/production-summary', [App\Http\Controllers\SupervisorController::class, 'productionSummary'])
+                ->name('production-summary');
+
+            Route::get('/production-summary/export', [App\Http\Controllers\SupervisorController::class, 'exportProductionSummary'])
+                ->name('production-summary.export');
+
+            Route::get('/production-item-details', [App\Http\Controllers\SupervisorController::class, 'getProductionItemDetails'])
+                ->name('production-item-details');
         });
     });
 
@@ -76,7 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/clear-session', [POSController::class, 'clearSession'])->name('clear-session');
     });
 
-    // Sales Report - All authenticated users can access
+    // Sales Report - Special authenticated users can access
     Route::prefix('sales-report')->name('sales-report.')->group(function () {
         Route::get('/', [SalesReportController::class, 'index'])->name('index');
         Route::get('/sale-items/{sale}', [SalesReportController::class, 'getSaleItems'])->name('sale-items');
@@ -139,18 +149,30 @@ Route::middleware('auth')->group(function () {
             Route::get('/api/all-inventory', [StockTransferController::class, 'getAllInventory'])->name('api.all-inventory');
         });
 
-            Route::get('/stock-adjustment', [StockAdjustmentController::class, 'index'])
-            ->name('stock-adjustment.index'); // List View
+        Route::get('/stock-adjustment', [StockAdjustmentController::class, 'index'])
+        ->name('stock-adjustment.index'); // List View
 
-            // --- ADD STOCK ADJUSTMENT ROUTES HERE ---
-            Route::get('/stock-adjustment/create', [StockAdjustmentController::class, 'create'])
-                ->name('stock-adjustment.create');
+        // --- ADD STOCK ADJUSTMENT ROUTES HERE ---
+        Route::get('/stock-adjustment/create', [StockAdjustmentController::class, 'create'])
+            ->name('stock-adjustment.create');
 
-            Route::post('/stock-adjustment/store', [StockAdjustmentController::class, 'store'])
-                ->name('stock-adjustment.store');
+        Route::post('/stock-adjustment/store', [StockAdjustmentController::class, 'store'])
+            ->name('stock-adjustment.store');
 
-            Route::get('/stock-adjustment/{id}', [StockAdjustmentController::class, 'show'])
-                ->name('stock-adjustment.show'); // Detail View
+        Route::get('/stock-adjustment/{id}', [StockAdjustmentController::class, 'show'])
+            ->name('stock-adjustment.show'); // Detail View
+
+        // View Route for Production Summary Report
+        Route::get('/reports/production-summary', [SupervisorController::class, 'productionSummary'])
+        ->name('reports.production-summary');
+
+        // Export Route
+        Route::get('/reports/production-summary/export', [SupervisorController::class, 'exportProductionSummary'])
+        ->name('reports.production-summary.export');
+
+        // API route to fetch details for the modal
+        Route::get('/reports/production-item-details', [SupervisorController::class, 'getProductionItemDetails'])
+        ->name('reports.production-item-details');
     });
 
 

@@ -589,7 +589,8 @@
                                 request()->routeIs('supervisor.inventory-history') ||
                                 request()->routeIs('supervisor.productions.*') ||
                                 request()->routeIs('supervisor.reports.item-transaction') ||
-                                request()->routeIs('supervisor.stock-adjustment.index');
+                                request()->routeIs('supervisor.stock-adjustment.index') ||
+                                request()->routeIs('supervisor.reports.production-summary');
                 @endphp
                 <li class="nav-item">
                     <a class="nav-link d-flex justify-content-between align-items-center {{ $reportsActive ? 'active' : '' }}"
@@ -645,6 +646,13 @@
                                 href="{{ route('supervisor.stock-adjustment.index') }}">
                                     <i class="bi bi-sliders"></i>
                                     <span>Stock Adjustments Report</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('supervisor.reports.production-summary') ? 'active' : '' }}"
+                                href="{{ route('supervisor.reports.production-summary') }}">
+                                    <i class="bi bi-clipboard-check"></i> {{-- අයිකනය කැමති පරිදි වෙනස් කරගන්න --}}
+                                    <span>Production Summary</span>
                                 </a>
                             </li>
                         </ul>
@@ -763,6 +771,13 @@
                                 <a class="nav-link {{ request()->routeIs('sales-report.deleted') ? 'active' : '' }}" href="{{ route('sales-report.deleted') }}">
                                     <i class="bi bi-trash"></i>
                                     <span>Deleted Receipts</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('reports.production-summary') ? 'active' : '' }}"
+                                href="{{ route('reports.production-summary') }}">
+                                    <i class="bi bi-clipboard-check"></i>
+                                    <span>Production Summary</span>
                                 </a>
                             </li>
                             @endif

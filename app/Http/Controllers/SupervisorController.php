@@ -1498,5 +1498,200 @@ class SupervisorController extends Controller
         // Pass openingBalance to view
         return view('supervisor.reports.item-transaction-details', compact('branches', 'items', 'transactions', 'selectedItem', 'selectedBranch', 'openingBalance'));
     }
+
+
+    public function productionSummary(Request $request)
+    {
+        // 1. Given date range or defaults
+        $startDate = $request->input('start_date', date('Y-m-01'));
+        $endDate = $request->input('end_date', date('Y-m-d'));
+
+        // 2. Query to aggregate production data
+        $query = DB::table('inventory_request_items')
+            ->join('inventory_requests', 'inventory_requests.id', '=', 'inventory_request_items.inventory_request_id')
+            ->join('items', 'items.id', '=', 'inventory_request_items.item_id')
+            ->select(
+                'items.id',
+                'items.item_code',
+                'items.item_name',
+                DB::raw('SUM(inventory_request_items.quantity) as total_quantity'),
+                DB::raw('COUNT(DISTINCT inventory_requests.id) as request_count'),
+                DB::raw('MAX(inventory_requests.date_time) as last_production_date')
+            )
+            ->where('inventory_requests.status', 'completed') // Only Completed productions
+            ->whereDate('inventory_requests.date_time', '>=', $startDate)
+            ->whereDate('inventory_requests.date_time', '<=', $endDate);
+
+        // 3. Ordering and Pagination
+        $productionItems = $query->groupBy('items.id', 'items.item_code', 'items.item_name')
+            ->orderByDesc('total_quantity')
+            ->paginate(100)
+            ->withQueryString();
+
+        return view('supervisor.reports.production-summary', compact(
+            'productionItems',
+            'startDate',
+            'endDate'
+        ));
+    }
+
+    public function getProductionItemDetails(Request $request)
+    {
+        $itemId = $request->item_id;
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+
+        // Fetch individual batches for this specific item
+        $details = DB::table('inventory_request_items')
+            ->join('inventory_requests', 'inventory_requests.id', '=', 'inventory_request_items.inventory_request_id')
+            ->leftJoin('users', 'users.id', '=', 'inventory_requests.user_id') // To show who created it
+            ->leftJoin('departments', 'departments.id', '=', 'inventory_requests.department_id') // Optional: show department
+            ->select(
+                'inventory_requests.id as request_id',
+                'inventory_requests.date_time',
+                'inventory_requests.notes',
+                'inventory_request_items.quantity',
+                'users.name as created_by',
+                'departments.name as department_name'
+            )
+            ->where('inventory_request_items.item_id', $itemId)
+            ->where('inventory_requests.status', 'completed')
+            ->whereDate('inventory_requests.date_time', '>=', $startDate)
+            ->whereDate('inventory_requests.date_time', '<=', $endDate)
+            ->orderBy('inventory_requests.date_time', 'desc')
+            ->get();
+
+        // Return partial HTML directly to keep JS simple
+        $html = '<table class="table table-sm table-bordered">';
+        $html .= '<thead class="table-light"><tr><th>Date & Time</th><th>Batch ID</th><th>Created By</th><th class="text-end">Qty</th></tr></thead><tbody>';
+
+        if($details->count() > 0) {
+            foreach ($details as $row) {
+                $formattedDate = \Carbon\Carbon::parse($row->date_time)->format('Y-m-d h:i A');
+                $html .= "<tr>
+                            <td>{$formattedDate}</td>
+                            <td>#{$row->request_id}</td>
+                            <td>{$row->created_by}</td>
+                            <td class='text-end fw-bold'>{$row->quantity}</td>
+                        </tr>";
+            }
+        } else {
+            $html .= '<tr><td colspan="4" class="text-center">No details found.</td></tr>';
+        }
+
+        $html .= '</tbody></table>';
+
+        return response()->json(['html' => $html]);
+    }
+
+    /**
+     * Export ALL Production Summary Data (No Pagination)
+     */
+    public function exportProductionSummary(Request $request)
+    {
+        try {
+            // 1. Capture Filters
+            $startDate = $request->input('start_date', date('Y-m-01'));
+            $endDate = $request->input('end_date', date('Y-m-d'));
+
+            // 2. Build Query (Exact same logic as the View, but NO pagination)
+            $query = DB::table('inventory_request_items')
+                ->join('inventory_requests', 'inventory_requests.id', '=', 'inventory_request_items.inventory_request_id')
+                ->join('items', 'items.id', '=', 'inventory_request_items.item_id')
+                ->select(
+                    'items.item_code',
+                    'items.item_name',
+                    DB::raw('SUM(inventory_request_items.quantity) as total_quantity'),
+                    DB::raw('COUNT(DISTINCT inventory_requests.id) as request_count'),
+                    DB::raw('MAX(inventory_requests.date_time) as last_production_date')
+                )
+                ->where('inventory_requests.status', 'completed')
+                ->whereDate('inventory_requests.date_time', '>=', $startDate)
+                ->whereDate('inventory_requests.date_time', '<=', $endDate)
+                ->groupBy('items.id', 'items.item_code', 'items.item_name')
+                ->orderByDesc('total_quantity');
+
+            // 3. FETCH ALL DATA
+            // Using get() instead of paginate() ensures all rows are retrieved
+            $data = $query->get();
+
+            // 4. Create Excel File
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // -- Title Section --
+            $sheet->setCellValue('A1', 'Production Item Summary Report');
+            $sheet->mergeCells('A1:F1');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $sheet->setCellValue('A2', "Period: $startDate to $endDate");
+            $sheet->mergeCells('A2:F2');
+            $sheet->getStyle('A2')->getFont()->setItalic(true);
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            // -- Headers --
+            $headers = [
+                'A4' => '#',
+                'B4' => 'Item Code',
+                'C4' => 'Item Name',
+                'D4' => 'Batches Count',
+                'E4' => 'Last Production',
+                'F4' => 'Total Quantity'
+            ];
+
+            foreach ($headers as $cell => $value) {
+                $sheet->setCellValue($cell, $value);
+            }
+
+            // Style Headers
+            $headerStyle = $sheet->getStyle('A4:F4');
+            $headerStyle->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $headerStyle->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('4CAF50');
+
+            // -- Write All Data Rows --
+            $row = 5;
+            $count = 1;
+            $grandTotal = 0;
+
+            foreach ($data as $item) {
+                $sheet->setCellValue('A' . $row, $count++);
+                $sheet->setCellValue('B' . $row, $item->item_code ?? '-');
+                $sheet->setCellValue('C' . $row, $item->item_name);
+                $sheet->setCellValue('D' . $row, $item->request_count);
+                $sheet->setCellValue('E' . $row, \Carbon\Carbon::parse($item->last_production_date)->format('Y-m-d H:i'));
+                $sheet->setCellValue('F' . $row, $item->total_quantity);
+
+                $grandTotal += $item->total_quantity;
+                $row++;
+            }
+
+            // -- Totals Footer --
+            $sheet->setCellValue('E' . $row, 'GRAND TOTAL:');
+            $sheet->setCellValue('F' . $row, $grandTotal);
+            $sheet->getStyle('E' . $row . ':F' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('E' . $row . ':F' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('E8F5E9');
+
+            // -- Formatting --
+            foreach (range('A', 'F') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            $fileName = 'production_summary_all_' . date('Ymd_His') . '.xlsx';
+
+            return new StreamedResponse(function () use ($spreadsheet) {
+                $writer = new Xlsx($spreadsheet);
+                $writer->save('php://output');
+            }, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+                'Cache-Control' => 'max-age=0',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Export Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Export failed: ' . $e->getMessage());
+        }
+    }
 }
 

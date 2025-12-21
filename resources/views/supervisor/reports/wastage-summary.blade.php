@@ -87,6 +87,7 @@
                         <th class="text-center">Transactions Count</th>
                         <th class="text-center">Last Wastage Date</th>
                         <th class="text-end pe-4">Total Wasted Qty</th>
+                        <th class="text-end pe-4">Total Value</th>
                         <th class="text-center" style="width: 80px;">Action</th>
                     </tr>
                 </thead>
@@ -110,6 +111,9 @@
                         <td class="text-end pe-4">
                             <h5 class="mb-0 fw-bold text-danger">{{ number_format($item->total_wasted) }}</h5>
                         </td>
+                        <td class="text-end pe-4">
+                            <h5 class="mb-0 fw-bold text-dark">{{ number_format($item->total_value, 2) }}</h5>
+                        </td>
                         <td class="text-center">
                             <button type="button"
                                     class="btn btn-sm btn-outline-danger btn-view-details"
@@ -124,6 +128,17 @@
                     <tr><td colspan="5" class="text-center py-4">No wastage records found for this period.</td></tr>
                     @endforelse
                 </tbody>
+                {{-- Add Page Total --}}
+                @if($wastageItems->count() > 0)
+                <tfoot class="table-light">
+                    <tr>
+                        <td colspan="3" class="text-end fw-bold">Page Total:</td>
+                        <td class="text-end pe-4 fw-bold text-danger">{{ number_format($wastageItems->sum('total_wasted')) }}</td>
+                        <td class="text-end pe-4 fw-bold text-dark">{{ number_format($wastageItems->sum('total_value'), 2) }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+                @endif
             </table>
         </div>
         <div class="mt-4">
@@ -134,7 +149,7 @@
 
 {{-- Detail Modal --}}
 <div class="modal fade" id="itemDetailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-light">
                 <h5 class="modal-title" id="modalTitle">Wastage Details</h5>

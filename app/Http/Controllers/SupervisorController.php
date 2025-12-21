@@ -1708,11 +1708,16 @@ class SupervisorController extends Controller
         $query = DB::table('wastage_items')
             ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
             ->join('items', 'items.id', '=', 'wastage_items.item_id')
+            ->leftJoin('item_branch_prices', function($join) {
+                $join->on('wastage_items.item_id', '=', 'item_branch_prices.item_id')
+                     ->on('wastages.branch_id', '=', 'item_branch_prices.branch_id');
+            })
             ->select(
                 'items.id',
                 'items.item_code',
                 'items.item_name',
                 DB::raw('SUM(wastage_items.wasted_quantity) as total_wasted'),
+                DB::raw('SUM(wastage_items.wasted_quantity * COALESCE(item_branch_prices.price, 0)) as total_value'),
                 DB::raw('COUNT(DISTINCT wastages.id) as wastage_count'),
                 DB::raw('MAX(wastages.date_time) as last_wastage_date')
             )
@@ -1752,19 +1757,24 @@ class SupervisorController extends Controller
             ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
             ->leftJoin('users', 'users.id', '=', 'wastages.user_id')
             ->leftJoin('branches', 'branches.id', '=', 'wastages.branch_id')
+            // Join for price
+            ->leftJoin('item_branch_prices', function($join) {
+                $join->on('wastage_items.item_id', '=', 'item_branch_prices.item_id')
+                     ->on('wastages.branch_id', '=', 'item_branch_prices.branch_id');
+            })
             ->select(
                 'wastages.id as wastage_id',
                 'wastages.date_time',
                 'wastages.remarks',
                 'wastage_items.wasted_quantity',
                 'users.name as user_name',
-                'branches.name as branch_name'
+                'branches.name as branch_name',
+                'item_branch_prices.price as unit_price' // Get Unit Price
             )
             ->where('wastage_items.item_id', $itemId)
             ->whereDate('wastages.date_time', '>=', $startDate)
             ->whereDate('wastages.date_time', '<=', $endDate);
 
-        // Apply Branch Filter to details modal as well
         if (!empty($branchId)) {
             $query->where('wastages.branch_id', $branchId);
         }
@@ -1772,31 +1782,50 @@ class SupervisorController extends Controller
         $details = $query->orderBy('wastages.date_time', 'desc')->get();
 
         // Build HTML Table
-        $html = '<table class="table table-sm table-bordered">';
+        $html = '<table class="table table-sm table-bordered align-middle">';
         $html .= '<thead class="table-light">
                     <tr>
                         <th>Date</th>
                         <th>Ref #</th>
                         <th>Branch</th>
                         <th>User</th>
+                        <th class="text-end">Price</th>
                         <th class="text-end">Qty</th>
+                        <th class="text-end">Value</th>
                     </tr>
                   </thead><tbody>';
+
+        $totalQty = 0;
+        $totalValue = 0;
 
         if ($details->count() > 0) {
             foreach ($details as $row) {
                 $formattedDate = \Carbon\Carbon::parse($row->date_time)->format('Y-m-d h:i A');
                 $branchName = $row->branch_name ?? 'N/A';
+                $price = $row->unit_price ?? 0;
+                $value = $row->wasted_quantity * $price; // Calculate Row Value
+
+                $totalQty += $row->wasted_quantity;
+                $totalValue += $value;
+
                 $html .= "<tr>
                             <td>{$formattedDate}</td>
                             <td>WST-{$row->wastage_id}</td>
                             <td>{$branchName}</td>
                             <td>{$row->user_name}</td>
+                            <td class='text-end'>" . number_format($price, 2) . "</td>
                             <td class='text-end fw-bold text-danger'>{$row->wasted_quantity}</td>
+                            <td class='text-end fw-bold'>" . number_format($value, 2) . "</td>
                         </tr>";
             }
+            // Add Total Row
+            $html .= "<tr class='table-secondary fw-bold'>
+                        <td colspan='5' class='text-end'>TOTAL:</td>
+                        <td class='text-end'>{$totalQty}</td>
+                        <td class='text-end'>" . number_format($totalValue, 2) . "</td>
+                      </tr>";
         } else {
-            $html .= '<tr><td colspan="5" class="text-center">No details found.</td></tr>';
+            $html .= '<tr><td colspan="7" class="text-center">No details found.</td></tr>';
         }
 
         $html .= '</tbody></table>';
@@ -1804,7 +1833,7 @@ class SupervisorController extends Controller
         return response()->json(['html' => $html]);
     }
 
-/**
+    /**
      * Export Wastage Summary to Excel
      */
     public function exportWastageSummary(Request $request)
@@ -1817,17 +1846,20 @@ class SupervisorController extends Controller
             $query = DB::table('wastage_items')
                 ->join('wastages', 'wastages.id', '=', 'wastage_items.wastage_id')
                 ->join('items', 'items.id', '=', 'wastage_items.item_id')
+                ->leftJoin('item_branch_prices', function($join) {
+                    $join->on('wastage_items.item_id', '=', 'item_branch_prices.item_id')
+                         ->on('wastages.branch_id', '=', 'item_branch_prices.branch_id');
+                })
                 ->select(
                     'items.item_code',
                     'items.item_name',
                     DB::raw('SUM(wastage_items.wasted_quantity) as total_wasted'),
-                    DB::raw('COUNT(DISTINCT wastages.id) as wastage_count'),
-                    DB::raw('MAX(wastages.date_time) as last_wastage_date')
+                    DB::raw('SUM(wastage_items.wasted_quantity * COALESCE(item_branch_prices.price, 0)) as total_value'),
+                    DB::raw('COUNT(DISTINCT wastages.id) as wastage_count')
                 )
                 ->whereDate('wastages.date_time', '>=', $startDate)
                 ->whereDate('wastages.date_time', '<=', $endDate);
 
-            // Apply Branch Filter
             if (!empty($branchId)) {
                 $query->where('wastages.branch_id', $branchId);
             }
@@ -1839,36 +1871,44 @@ class SupervisorController extends Controller
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
-            // Additional Info for Title
+            // Branch Name for Title
             $branchName = 'All Branches';
             if(!empty($branchId)){
                 $branchObj = Branch::find($branchId);
                 if($branchObj) $branchName = $branchObj->name;
             }
 
-            // Title (A1)
+            // Title
             $sheet->setCellValue('A1', 'Wastage Summary Report - ' . $branchName);
-            $sheet->mergeCells('A1:E1');
+            $sheet->mergeCells('A1:F1'); // Increased merge range
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
-            // Period (A2)
+            // Period
             $sheet->setCellValue('A2', "Period: $startDate to $endDate");
-            $sheet->mergeCells('A2:E2');
+            $sheet->mergeCells('A2:F2'); // Increased merge range
             $sheet->getStyle('A2')->getFont()->setItalic(true);
-            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER); // Alignment
+            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
             // Headers
-            $headers = ['A4' => '#', 'B4' => 'Item Code', 'C4' => 'Item Name', 'D4' => 'Trans. Count', 'E4' => 'Total Wasted'];
+            $headers = [
+                'A4' => '#',
+                'B4' => 'Item Code',
+                'C4' => 'Item Name',
+                'D4' => 'Trans. Count',
+                'E4' => 'Total Wasted',
+                'F4' => 'Total Value' // New Column
+            ];
             foreach ($headers as $cell => $val) $sheet->setCellValue($cell, $val);
 
-            $sheet->getStyle('A4:E4')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-            $sheet->getStyle('A4:E4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('D32F2F');
+            $sheet->getStyle('A4:F4')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle('A4:F4')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('D32F2F');
 
             // Data
             $row = 5;
             $count = 1;
-            $grandTotal = 0;
+            $grandTotalQty = 0;
+            $grandTotalValue = 0;
 
             foreach ($data as $item) {
                 $sheet->setCellValue('A' . $row, $count++);
@@ -1876,16 +1916,22 @@ class SupervisorController extends Controller
                 $sheet->setCellValue('C' . $row, $item->item_name);
                 $sheet->setCellValue('D' . $row, $item->wastage_count);
                 $sheet->setCellValue('E' . $row, $item->total_wasted);
-                $grandTotal += $item->total_wasted;
+                $sheet->setCellValue('F' . $row, $item->total_value); // Set Value
+
+                $grandTotalQty += $item->total_wasted;
+                $grandTotalValue += $item->total_value;
                 $row++;
             }
 
-            // Total
+            // Totals
             $sheet->setCellValue('D' . $row, 'GRAND TOTAL:');
-            $sheet->setCellValue('E' . $row, $grandTotal);
-            $sheet->getStyle('D' . $row . ':E' . $row)->getFont()->setBold(true);
+            $sheet->setCellValue('E' . $row, $grandTotalQty);
+            $sheet->setCellValue('F' . $row, $grandTotalValue); // Total Value
 
-            foreach (range('A', 'E') as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
+            $sheet->getStyle('D' . $row . ':F' . $row)->getFont()->setBold(true);
+            $sheet->getStyle('F' . $row)->getNumberFormat()->setFormatCode('#,##0.00'); // Format currency
+
+            foreach (range('A', 'F') as $col) $sheet->getColumnDimension($col)->setAutoSize(true);
 
             $fileName = 'wastage_summary_' . date('Ymd_His') . '.xlsx';
 

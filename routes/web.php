@@ -217,6 +217,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/store', [App\Http\Controllers\OrderController::class, 'store'])->name('store');
             Route::get('/{order}', [App\Http\Controllers\OrderController::class, 'show'])->name('show');
         });
+
+        // ---- Recent Invoices Route ---
+        Route::get('/recent-invoices', [SalesReportController::class, 'staffRecentInvoices'])->name('recent-invoices');
     });
 
     // Stock Transfer routes for all branch staff (to receive transfers)

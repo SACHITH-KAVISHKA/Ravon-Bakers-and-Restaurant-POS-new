@@ -803,6 +803,13 @@
 
                 @if(auth()->user()->role === 'staff' && auth()->user()->branch_id)
                 <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('staff.recent-invoices') ? 'active' : '' }}"
+                        href="{{ route('staff.recent-invoices') }}">
+                        <i class="bi bi-clock-history"></i>
+                        <span>Recent Invoices</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('stock-transfer.*') ? 'active' : '' }}"
                         href="{{ route('stock-transfer.transfers') }}"
                         style="position: relative;">

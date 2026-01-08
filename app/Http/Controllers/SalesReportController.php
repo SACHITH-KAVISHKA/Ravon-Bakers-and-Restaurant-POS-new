@@ -1008,4 +1008,21 @@ class SalesReportController extends Controller
             'Cache-Control' => 'max-age=0',
         ]);
     }
+
+    /**
+     * Display last 5 invoices for the logged-in staff member
+     */
+    public function staffRecentInvoices()
+    {
+        $user = auth()->user();
+
+        $sales = Sale::where('user_id', $user->id)
+            ->where('status', 1) // Active sales only
+            ->orderBy('created_at', 'desc')
+            ->take(5) // Limit to last 5
+            ->with('branch')
+            ->get();
+
+        return view('staff.recent-invoices', compact('sales'));
+    }
 }

@@ -22,9 +22,9 @@
                             Full Name
                         </label>
                         <div class="col-md-7">
-                            <input id="name" type="text" 
-                                   class="form-control @error('name') is-invalid @enderror" 
-                                   name="name" value="{{ old('name') }}" 
+                            <input id="name" type="text"
+                                   class="form-control @error('name') is-invalid @enderror"
+                                   name="name" value="{{ old('name') }}"
                                    required autocomplete="name" autofocus
                                    placeholder="Enter user's full name">
                             @error('name')
@@ -41,9 +41,9 @@
                             Username
                         </label>
                         <div class="col-md-7">
-                            <input id="username" type="text" 
-                                   class="form-control @error('username') is-invalid @enderror" 
-                                   name="username" value="{{ old('username') }}" 
+                            <input id="username" type="text"
+                                   class="form-control @error('username') is-invalid @enderror"
+                                   name="username" value="{{ old('username') }}"
                                    required autocomplete="username"
                                    placeholder="Enter username">
                             @error('username')
@@ -60,7 +60,7 @@
                             User Role
                         </label>
                         <div class="col-md-7">
-                            <select id="role" class="form-select @error('role') is-invalid @enderror" 
+                            <select id="role" class="form-select @error('role') is-invalid @enderror"
                                     name="role" required onchange="toggleBranchField()">
                                 <option value="">Select Role</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>
@@ -72,13 +72,22 @@
                                 <option value="supervisor" {{ old('role') == 'supervisor' ? 'selected' : '' }}>
                                     Supervisor
                                 </option>
+                                <option value="office" {{ old('role') == 'office' ? 'selected' : '' }}>
+                                    Office Staff
+                                </option>
+                                <option value="holding" {{ old('role') == 'holding' ? 'selected' : '' }}>
+                                    Holding Staff
+                                </option>
+                                <option value="delight" {{ old('role') == 'delight' ? 'selected' : '' }}>
+                                    Delight Staff
+                                </option>
                             </select>
                             @error('role')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
                                 </span>
                             @enderror
-                           
+
                         </div>
                     </div>
 
@@ -88,7 +97,7 @@
                             Branch
                         </label>
                         <div class="col-md-7">
-                            <select id="branch_id" class="form-select @error('branch_id') is-invalid @enderror" 
+                            <select id="branch_id" class="form-select @error('branch_id') is-invalid @enderror"
                                     name="branch_id">
                                 <option value="">Select Branch</option>
                                 @foreach($branches as $branch)
@@ -109,8 +118,8 @@
                             Password
                         </label>
                         <div class="col-md-7">
-                            <input id="password" type="password" 
-                                   class="form-control @error('password') is-invalid @enderror" 
+                            <input id="password" type="password"
+                                   class="form-control @error('password') is-invalid @enderror"
                                    name="password" required autocomplete="new-password"
                                    placeholder="Enter password (minimum 8 characters)">
                             @error('password')
@@ -127,8 +136,8 @@
                             Confirm Password
                         </label>
                         <div class="col-md-7">
-                            <input id="password-confirm" type="password" 
-                                   class="form-control" name="password_confirmation" 
+                            <input id="password-confirm" type="password"
+                                   class="form-control" name="password_confirmation"
                                    required autocomplete="new-password"
                                    placeholder="Confirm password">
                         </div>
@@ -157,7 +166,7 @@
         const roleSelect = document.getElementById('role');
         const branchField = document.getElementById('branchField');
         const branchSelect = document.getElementById('branch_id');
-        
+
         if (roleSelect.value === 'staff') {
             branchField.style.display = 'flex';
             branchSelect.setAttribute('required', 'required');
@@ -181,25 +190,25 @@
         border-radius: 15px;
         overflow: hidden;
     }
-    
+
     .card-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-bottom: none;
         padding: 1.5rem 2rem;
     }
-    
+
     .card-body {
         background: #fafbfc;
         padding: 2rem !important;
     }
-    
+
     .col-form-label {
         font-size: 0.95rem;
         color: #495057;
         line-height: 1.6;
     }
-    
+
     .form-control, .form-select {
         border-radius: 8px;
         border: 2px solid #e9ecef;
@@ -207,13 +216,13 @@
         font-size: 0.95rem;
         transition: all 0.3s ease;
     }
-    
+
     .form-control:focus, .form-select:focus {
         border-color: #667eea;
         box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.15);
         background: white;
     }
-    
+
     .btn-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border: none;
@@ -222,13 +231,13 @@
         padding: 0.75rem 2rem;
         transition: all 0.3s ease;
     }
-    
+
     .btn-primary:hover {
         background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
-    
+
     .btn-outline-secondary {
         border-radius: 8px;
         font-weight: 600;
@@ -236,23 +245,23 @@
         border: 2px solid #6c757d;
         transition: all 0.3s ease;
     }
-    
+
     .btn-outline-secondary:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(108, 117, 125, 0.2);
     }
-    
+
     .btn-outline-light {
         border: 1px solid rgba(255,255,255,0.3);
         color: white;
     }
-    
+
     .btn-outline-light:hover {
         background: rgba(255,255,255,0.1);
         color: white;
         border-color: rgba(255,255,255,0.5);
     }
-    
+
     .invalid-feedback {
         display: block;
         width: 100%;
@@ -261,43 +270,43 @@
         color: #dc3545;
         font-weight: 500;
     }
-    
+
     .form-text {
         color: #6c757d;
         font-size: 0.85rem;
     }
-    
+
     .role-descriptions {
         background: #f8f9fa;
         padding: 0.75rem;
         border-radius: 6px;
         border-left: 3px solid #667eea;
     }
-    
+
     .role-descriptions div {
         font-size: 0.85rem;
         line-height: 1.4;
     }
-    
+
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .col-md-3 {
             text-align: left !important;
             margin-bottom: 0.5rem;
         }
-        
+
         .col-md-7 {
             padding-left: 15px;
         }
-        
+
         .offset-md-3 {
             margin-left: 0;
         }
-        
+
         .card-body {
             padding: 1.5rem !important;
         }
-        
+
         .btn-lg {
             width: 100%;
             margin-bottom: 0.5rem;

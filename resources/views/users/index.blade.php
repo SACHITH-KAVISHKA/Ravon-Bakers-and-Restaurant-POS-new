@@ -47,11 +47,23 @@
                         <span class="badge bg-warning text-dark">
                             <i class="bi bi-person-fill-gear"></i> Supervisor
                         </span>
-                        @else
+                        @elseif($user->role === 'staff')
                         <span class="badge bg-primary">
                             <i class="bi bi-person-badge"></i> Staff
                         </span>
-                        @endif
+                        @elseif($user->role === 'office')
+                        <span class="badge bg-success">
+                            <i class="bi bi-person-lines-fill"></i> Office
+                        </span>
+                        @elseif($user->role === 'holding')
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-building"></i> Holding
+                        </span>
+                        @elseif($user->role === 'delight')
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-building"></i> Delight
+                        </span>
+                    @endif
                     </td>
                     <td>
                         @if($user->role === 'staff' && $user->branch)

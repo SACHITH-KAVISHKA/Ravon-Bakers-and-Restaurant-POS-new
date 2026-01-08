@@ -15,7 +15,10 @@
     <!-- Search and Filter Section -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" action="{{ route('sales-report2.index2') }}" class="row g-3">
+            {{-- <form method="GET" action="{{ route('sales-report2.index2') }}" class="row g-3"> --}}
+            <form method="GET"
+                            action="{{ (auth()->user()->role === 'holding' || auth()->user()->role === 'delight') ? route('sales-report.special') : route('sales-report2.index2') }}"
+                            class="row g-3">
                 <div class="col-12 col-md-6 col-lg-3">
                     <label for="start_date" class="form-label fw-semibold">Start Date</label>
                     <input type="date" class="form-control form-control-lg" id="start_date" name="start_date"
@@ -53,9 +56,22 @@
     <!-- Summary Cards removed per admin view requirement -->
 
     <!-- Export Section -->
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 gap-2">
+    {{-- <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 gap-2">
         <h5 class="mb-0">Sales Transactions</h5>
         <a href="{{ route('sales-report2.export2', request()->query()) }}" class="btn btn-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
+        </a>
+    </div> --}}
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 gap-2">
+        <h5 class="mb-0">Sales Transactions</h5>
+        @php
+            $exportRoute = route('sales-report2.export2', request()->query());
+            // Holding and Delight users get a different export route
+            if(auth()->user()->role === 'holding' || auth()->user()->role === 'delight') {
+                $exportRoute = route('sales-report.special.export', request()->query());
+            }
+        @endphp
+        <a href="{{ $exportRoute }}" class="btn btn-success btn-sm">
             <i class="bi bi-file-earmark-excel me-2"></i>Export to Excel
         </a>
     </div>

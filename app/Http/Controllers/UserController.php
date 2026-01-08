@@ -57,7 +57,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:admin,staff,supervisor']
+            'role' => ['required', 'in:admin,staff,supervisor,office,holding,delight']
         ];
 
         // Add branch validation only for staff members
@@ -122,7 +122,7 @@ class UserController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => ['required', 'in:admin,staff,supervisor'],
+            'role' => ['required', 'in:admin,staff,supervisor,office,holding,delight'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
 

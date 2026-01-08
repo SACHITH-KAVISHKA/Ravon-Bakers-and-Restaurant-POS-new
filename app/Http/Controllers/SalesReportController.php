@@ -235,7 +235,7 @@ class SalesReportController extends Controller
         $sheet->setCellValue('B' . $row, '');
         $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
         $sheet->setCellValue('D' . $row, '');
-    $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
+        $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
         $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
         $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);
         $sheet->setCellValue('H' . $row, '');
@@ -1024,5 +1024,304 @@ class SalesReportController extends Controller
             ->get();
 
         return view('staff.recent-invoices', compact('sales'));
+    }
+
+    public function specialIndex(Request $request)
+    {
+        $user = auth()->user();
+
+        // Role එක අනුව Branch IDs
+        $allowedBranchIds = [];
+        if ($user->role === 'holding') {
+            $allowedBranchIds = [3, 4, 6, 7];
+        } elseif ($user->role === 'delight') {
+            $allowedBranchIds = [2, 5];
+        } else {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $branchId = $request->get('branch_id');
+
+        // Filter Branch dropdown
+        $branches = Branch::whereIn('id', $allowedBranchIds)->active()->orderBy('name')->get();
+
+        // [CORRECTION] Use GLOBAL Last 10 logic to match index2 exactly
+        // Do NOT filter by branch here. This ensures consistency with index2.
+        $globalLastTenSalesIds = Sale::query()
+            ->where('status', 1)
+            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->pluck('id');
+
+        $query = Sale::query();
+        $query->where('status', 1);
+
+        // 1. Security Filter: අදාල branches වල දත්ත පමණක් ලබා ගැනීම
+        $query->whereIn('branch_id', $allowedBranchIds);
+
+        // 2. Filter Logic: Odd/Card/Credit OR Global Last 10
+        $query->where(function ($q) use ($globalLastTenSalesIds) {
+            $q->where(function ($sub) {
+                $sub->whereRaw('id % 2 != 0')
+                    ->orWhere('payment_method', 'card')
+                    ->orWhere('payment_method', 'card_and_cash')
+                    ->orWhere('credit_balance', '>', 0);
+            })
+            ->orWhereIn('id', $globalLastTenSalesIds); // Now checking against Global IDs
+        });
+
+        // Date Filters
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($branchId && in_array($branchId, $allowedBranchIds)) {
+            $query->where('branch_id', $branchId);
+        }
+
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
+
+        // Totals Calculation (Filtered)
+        $allSalesQuery = Sale::query()
+            ->where('status', 1)
+            ->whereIn('branch_id', $allowedBranchIds)
+            ->where(function ($q) use ($globalLastTenSalesIds) {
+                $q->where(function ($sub) {
+                    $sub->whereRaw('id % 2 != 0')
+                        ->orWhere('payment_method', 'card')
+                        ->orWhere('payment_method', 'card_and_cash')
+                        ->orWhere('credit_balance', '>', 0);
+                })
+                ->orWhereIn('id', $globalLastTenSalesIds);
+            })
+            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->when($branchId && in_array($branchId, $allowedBranchIds), fn($q) => $q->where('branch_id', $branchId));
+
+        $allSales = $allSalesQuery->get();
+
+        // Calculate totals logic
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($allSales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        $totals = (object) [
+            'total_transactions' => $allSales->count(),
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
+
+        return view('sales-report.index2', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
+    }
+
+    // SalesReportController.php
+
+    public function exportSpecial(Request $request)
+    {
+        $user = auth()->user();
+
+        // Role based allowed branches
+        $allowedBranchIds = [];
+        if ($user->role === 'holding') {
+            $allowedBranchIds = [3, 4, 6, 7];
+        } elseif ($user->role === 'delight') {
+            $allowedBranchIds = [2, 5];
+        } else {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
+        $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
+        $branchId = $request->get('branch_id');
+
+        // 1. Get last 10 sales IDs within allowed branches
+        $globalLastTenSalesIds = Sale::query()
+        ->where('status', 1)
+        ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+        ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+        ->orderBy('created_at', 'desc')
+        ->limit(10)
+        ->pluck('id');
+
+        $query = Sale::query();
+        $query->where('status', 1);
+
+        $query->whereIn('branch_id', $allowedBranchIds);
+
+        $query->where(function ($q) use ($globalLastTenSalesIds) {
+            $q->where(function ($sub) {
+                $sub->whereRaw('id % 2 != 0')
+                    ->orWhere('payment_method', 'card')
+                    ->orWhere('payment_method', 'card_and_cash')
+                    ->orWhere('credit_balance', '>', 0);
+            })
+            ->orWhereIn('id', $globalLastTenSalesIds);
+        });
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+        if ($branchId && in_array($branchId, $allowedBranchIds)) {
+            $query->where('branch_id', $branchId);
+        }
+
+        $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
+
+        // Calculate totals logic (Same as original)
+        $totalSubtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            $totalSubtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                    $totalCash += 0;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        $totals = (object) [
+            'total_subtotal' => $totalSubtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
+
+        // Create Excel Logic
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = [
+            'B1' => 'Branch Name',
+            'C1' => 'Subtotal',
+            'D1' => 'Payment Method',
+            'E1' => 'Cash',
+            'F1' => 'Card',
+            'G1' => 'Credit',
+            'H1' => 'Date',
+        ];
+
+        foreach ($headers as $cell => $header) {
+            $sheet->setCellValue($cell, $header);
+            $sheet->getStyle($cell)->getFont()->setBold(true);
+        }
+
+        $row = 2;
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->subtotal ?? 0;
+
+            if ($paymentMethod === 'cash') {
+                $cashAmount = min($customerPayment, $total);
+                $cardAmount = 0;
+            } elseif ($paymentMethod === 'card') {
+                $cashAmount = 0;
+                $cardAmount = min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                if ($cardPayment >= $total) {
+                    $cardAmount = $total;
+                    $cashAmount = 0;
+                } else {
+                    $cardAmount = $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $cashAmount = min($customerPayment, $remaining);
+                }
+            } else {
+                $cashAmount = 0;
+                $cardAmount = 0;
+            }
+
+            $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
+            $sheet->setCellValue('C' . $row, $sale->subtotal);
+            $sheet->setCellValue('D' . $row, $sale->payment_method);
+            $sheet->setCellValue('E' . $row, $cashAmount);
+            $sheet->setCellValue('F' . $row, $cardAmount);
+            $sheet->setCellValue('G' . $row, $sale->credit_balance ?? 0);
+            $sheet->setCellValue('H' . $row, $sale->created_at->format('Y-m-d H:i:s'));
+            $row++;
+        }
+
+        // Totals Row
+        $sheet->setCellValue('B' . $row, 'TOTAL');
+        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
+        $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
+        $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);
+
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':H' . $row)->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('E3F2FD');
+
+        foreach (range('A', 'H') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $filename = 'group_sales_report_' . $startDate . '_to_' . $endDate . '.xlsx';
+
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $filename . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 }

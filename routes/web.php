@@ -187,11 +187,6 @@ Route::middleware('auth')->group(function () {
             ->name('reports.wastage-item-details');
     });
 
-
-
-
-
-
     // Staff routes for inventory management
     Route::middleware(['auth'])->prefix('staff')->name('staff.')->group(function () {
         Route::get('/branch-inventory', [App\Http\Controllers\StaffController::class, 'branchInventory'])->name('branch-inventory');
@@ -230,7 +225,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/{stockTransfer}/accept', [StockTransferController::class, 'accept'])->name('accept');
         Route::post('/{stockTransfer}/reject', [StockTransferController::class, 'reject'])->name('reject');
     });
-});
+
+    // Special Group Sales Report Route
+    Route::get('/group-sales-report', [SalesReportController::class, 'specialIndex'])
+        ->name('sales-report.special');
+    });
+
+    // Export route for Special Group Sales Report
+    Route::get('/group-sales-report/export', [SalesReportController::class, 'exportSpecial'])
+        ->name('sales-report.special.export');
 
 Route::post('/qz/sign', [PrinterController::class, 'signQzRequest']);
 

@@ -715,18 +715,17 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->role === 'admin' || auth()->user()->role === 'director' || auth()->user()->role === 'office')
+                @if(auth()->user()->role === 'admin' || auth()->user()->role === 'director' || auth()->user()->role === 'office' || auth()->user()->role === 'holding' || auth()->user()->role === 'delight')
                 @php
                     $adminReportsActive = false; // Default
                     if (auth()->user()->role === 'director') {
-                        // Director sees sales-report.* and reports.*
                         $adminReportsActive = request()->routeIs('sales-report.*') || request()->routeIs('reports.*');
                     } elseif (auth()->user()->role === 'admin') {
-                        // Admin sees sales-report2.* and reports.*
                         $adminReportsActive = request()->routeIs('sales-report2.*') || request()->routeIs('reports.*') || request()->routeIs('sales-report.deleted');
                     } elseif (auth()->user()->role === 'office') {
-                        // Office sees ONLY sales-report2.*
                         $adminReportsActive = request()->routeIs('sales-report2.*');
+                    } elseif (auth()->user()->role === 'holding' || auth()->user()->role === 'delight') {
+                        $adminReportsActive = request()->routeIs('sales-report.special');
                     }
                 @endphp
                 <li class="nav-item">
@@ -759,6 +758,16 @@
                                     <span>Daily Sales Report-2</span>
                                 </a>
                             </li>
+                            @endif
+
+                            @if(auth()->user()->role === 'holding' || auth()->user()->role === 'delight')
+                                <li class="nav-item">
+                                    <a class="nav-link {{ request()->routeIs('sales-report.special') ? 'active' : '' }}"
+                                    href="{{ route('sales-report.special') }}">
+                                        <i class="bi bi-pie-chart"></i>
+                                        <span>Group Sales Report</span>
+                                    </a>
+                                </li>
                             @endif
 
                             {{-- Show these reports to BOTH admin and director --}}

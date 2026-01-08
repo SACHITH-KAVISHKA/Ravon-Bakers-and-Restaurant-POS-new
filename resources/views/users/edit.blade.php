@@ -30,9 +30,9 @@
                             Full Name
                         </label>
                         <div class="col-md-9">
-                            <input id="name" type="text" 
-                                   class="form-control @error('name') is-invalid @enderror" 
-                                   name="name" value="{{ old('name', $user->name) }}" 
+                            <input id="name" type="text"
+                                   class="form-control @error('name') is-invalid @enderror"
+                                   name="name" value="{{ old('name', $user->name) }}"
                                    required autocomplete="name" autofocus
                                    placeholder="Enter user's full name">
                             @error('name')
@@ -49,9 +49,9 @@
                             Username
                         </label>
                         <div class="col-md-9">
-                            <input id="username" type="text" 
-                                   class="form-control @error('username') is-invalid @enderror" 
-                                   name="username" value="{{ old('username', $user->username) }}" 
+                            <input id="username" type="text"
+                                   class="form-control @error('username') is-invalid @enderror"
+                                   name="username" value="{{ old('username', $user->username) }}"
                                    required autocomplete="username"
                                    placeholder="Enter username">
                             @error('username')
@@ -68,7 +68,7 @@
                             User Role
                         </label>
                         <div class="col-md-9">
-                            <select id="role" class="form-select @error('role') is-invalid @enderror" 
+                            <select id="role" class="form-select @error('role') is-invalid @enderror"
                                     name="role" required onchange="toggleBranchField()">
                                 <option value="">Select Role</option>
                                 <option value="admin" {{ old('role', $user->role) == 'admin' ? 'selected' : '' }}>
@@ -80,13 +80,22 @@
                                 <option value="supervisor" {{ old('role', $user->role) == 'supervisor' ? 'selected' : '' }}>
                                     Supervisor
                                 </option>
+                                <option value="office" {{ old('role', $user->role) == 'office' ? 'selected' : '' }}>
+                                    Office Staff
+                                </option>
+                                <option value="holding" {{ old('role', $user->role) == 'holding' ? 'selected' : '' }}>
+                                    Holding Staff
+                                </option>
+                                <option value="delight" {{ old('role', $user->role) == 'delight' ? 'selected' : '' }}>
+                                    Delight Staff
+                                </option>
                             </select>
                             @error('role')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
                                 </span>
                             @enderror
-                            
+
                         </div>
                     </div>
 
@@ -96,7 +105,7 @@
                             Branch
                         </label>
                         <div class="col-md-9">
-                            <select id="branch_id" class="form-select @error('branch_id') is-invalid @enderror" 
+                            <select id="branch_id" class="form-select @error('branch_id') is-invalid @enderror"
                                     name="branch_id">
                                 <option value="">Select Branch</option>
                                 @foreach($branches as $branch)
@@ -110,7 +119,7 @@
                                     <strong>{{ $message }}</strong>
                                 </span>
                             @enderror
-                           
+
                         </div>
                     </div>                    <hr class="my-4">
                     <h6 class="text-muted mb-3">
@@ -123,8 +132,8 @@
                             New Password
                         </label>
                         <div class="col-md-9">
-                            <input id="password" type="password" 
-                                   class="form-control @error('password') is-invalid @enderror" 
+                            <input id="password" type="password"
+                                   class="form-control @error('password') is-invalid @enderror"
                                    name="password" autocomplete="new-password"
                                    placeholder="Leave blank to keep current password">
                             @error('password')
@@ -144,8 +153,8 @@
                             Confirm New Password
                         </label>
                         <div class="col-md-9">
-                            <input id="password-confirm" type="password" 
-                                   class="form-control" name="password_confirmation" 
+                            <input id="password-confirm" type="password"
+                                   class="form-control" name="password_confirmation"
                                    autocomplete="new-password"
                                    placeholder="Confirm new password">
                         </div>
@@ -174,7 +183,7 @@
         const roleSelect = document.getElementById('role');
         const branchField = document.getElementById('branchField');
         const branchSelect = document.getElementById('branch_id');
-        
+
         if (roleSelect.value === 'staff') {
             branchField.style.display = 'flex';
             branchSelect.setAttribute('required', 'required');
@@ -192,24 +201,24 @@
         border: none;
         border-radius: 10px;
     }
-    
+
     .card-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-bottom: none;
         border-radius: 10px 10px 0 0 !important;
     }
-    
+
     .form-control:focus, .form-select:focus {
         border-color: #667eea;
         box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
     }
-    
+
     .btn-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border: none;
     }
-    
+
     .btn-primary:hover {
         background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
     }

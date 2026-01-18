@@ -58,7 +58,7 @@ class StockTransferController extends Controller
             'date_time' => 'required|date',
             'notes' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
-            'items.*.item_id' => 'required|exists:items,id',
+            'items.*.item_id' => 'required|exists:items,id,is_active,1',
             'items.*.quantity' => ['required', 'numeric', function ($attribute, $value, $fail) {
                 if ($value == 0) {
                     $fail('The quantity cannot be zero.');
@@ -475,6 +475,9 @@ class StockTransferController extends Controller
 
         // Get all inventory items from main branch including negative stock
         $inventoryItems = Inventory::where('branch_id', 1)
+            ->whereHas('item', function($query) {
+                $query->where('is_active', 1);
+            })
             ->where('current_stock', '>', 0)
             ->with('item')
             ->get()

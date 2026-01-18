@@ -229,11 +229,11 @@ Route::middleware('auth')->group(function () {
     // Special Group Sales Report Route
     Route::get('/group-sales-report', [SalesReportController::class, 'specialIndex'])
         ->name('sales-report.special');
-    });
 
     // Export route for Special Group Sales Report
     Route::get('/group-sales-report/export', [SalesReportController::class, 'exportSpecial'])
         ->name('sales-report.special.export');
+});
 
 Route::post('/qz/sign', [PrinterController::class, 'signQzRequest']);
 

@@ -570,6 +570,9 @@ class StaffController extends Controller
 
         // Get all inventory items from staff's branch including negative stock
         $inventoryItems = Inventory::where('branch_id', $userBranchId)
+            ->whereHas('item', function($query) {
+                $query->where('is_active', 1);
+            })
             ->where('current_stock', '>', 0)
             ->with('item')
             ->get()

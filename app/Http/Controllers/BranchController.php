@@ -11,14 +11,49 @@ class BranchController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // public function index()
+    // {
+    //     if (!Gate::allows('manage-users')) {
+    //         abort(403, 'Unauthorized access to branch management.');
+    //     }
+
+    //     $branches = Branch::withCount('users')->orderBy('name')->get();
+    //     return view('branches.index', compact('branches'));
+    // }
+
     public function index()
     {
-        if (!Gate::allows('manage-users')) {
+        $user = auth()->user();
+        $role = strtolower($user->role ?? '');
+        $name = str_replace(' ', '', strtolower($user->name ?? ''));
+        $username = str_replace(' ', '', strtolower($user->username ?? ''));
+
+        $isHolding = ($role === 'holding' || str_contains($name, 'adminh') || str_contains($username, 'adminh'));
+        $isDelight = ($role === 'delight' || str_contains($name, 'admind') || str_contains($username, 'admind'));
+        $isAdminOrDirector = in_array($role, ['admin', 'director']);
+
+        // Restrict access to branch management for non-admin/director users
+        if (!$isAdminOrDirector && !$isHolding && !$isDelight) {
             abort(403, 'Unauthorized access to branch management.');
         }
 
-        $branches = Branch::withCount('users')->orderBy('name')->get();
-        return view('branches.index', compact('branches'));
+        $query = Branch::withCount('users')->orderBy('name');
+
+        // Admin H  restricted to Branch IDs: 6, 7
+        if ($isHolding) {
+            $query->whereIn('id', [6, 7]);
+        }
+        // Admin D restricted to Branch IDs: 2, 3, 4, 5
+        elseif ($isDelight) {
+            $query->whereIn('id', [2, 3, 4, 5]);
+        }
+
+        $branches = $query->get();
+
+        // Manage Add/Edit/Delete permissions only for Admin and Director
+        $canManageBranches = $isAdminOrDirector;
+
+        return view('branches.index', compact('branches', 'canManageBranches'));
     }
 
     /**

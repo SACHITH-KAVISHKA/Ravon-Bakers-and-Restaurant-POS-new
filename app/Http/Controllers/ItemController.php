@@ -29,13 +29,65 @@ class ItemController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // public function index(Request $request)
+    // {
+    //     // Admin sees all items
+    //     $query = Item::with(['inventory', 'branchPrices.branch'])
+    //                  ->where('is_active', true);
+
+    //     // Apply search filter
+    //     if ($request->has('search') && !empty($request->search)) {
+    //         $search = $request->search;
+    //         $query->where(function($q) use ($search) {
+    //             $q->where('item_name', 'LIKE', '%' . $search . '%')
+    //               ->orWhere('item_code', 'LIKE', '%' . $search . '%')
+    //               ->orWhere('category', 'LIKE', '%' . $search . '%');
+    //         });
+    //     }
+
+    //     $items = $query->orderBy('item_name', 'asc')
+    //                  ->paginate(100);
+
+    //     $branches = Branch::orderBy('name')->get();
+
+    //     return view('items.index', compact('items', 'branches'));
+    // }
+
     public function index(Request $request)
     {
-        // Admin sees all items
-        $query = Item::with(['inventory', 'branchPrices.branch'])
+        $currentUser = auth()->user();
+
+        $role = strtolower($currentUser->role ?? '');
+        $name = str_replace(' ', '', strtolower($currentUser->name ?? ''));
+        $username = str_replace(' ', '', strtolower($currentUser->username ?? ''));
+
+        $isHolding = ($role === 'holding' || str_contains($name, 'adminh') || str_contains($username, 'adminh'));
+        $isDelight = ($role === 'delight' || str_contains($name, 'admind') || str_contains($username, 'admind'));
+        $isAdminOrDirector = in_array($role, ['admin', 'director']);
+
+        if (!$isAdminOrDirector && !$isHolding && !$isDelight) {
+            abort(403, 'Unauthorized access to Item Management.');
+        }
+
+        $query = \App\Models\Item::with(['inventory', 'branchPrices.branch'])
                      ->where('is_active', true);
 
-        // Apply search filter
+        $branchQuery = \App\Models\Branch::where('id', '!=', 1)->orderBy('name');
+
+        if ($isHolding) {
+            $query->whereHas('branchPrices', function($q) {
+                $q->whereIn('branch_id', [6, 7]);
+            });
+            $branchQuery->whereIn('id', [6, 7]);
+        }
+        elseif ($isDelight) {
+            $query->whereHas('branchPrices', function($q) {
+                $q->whereIn('branch_id', [2, 3, 4, 5]);
+            });
+            $branchQuery->whereIn('id', [2, 3, 4, 5]);
+        }
+
+        // Search Filter එක
         if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -45,12 +97,13 @@ class ItemController extends Controller
             });
         }
 
-        $items = $query->orderBy('item_name', 'asc')
-                     ->paginate(100);
+        $items = $query->orderBy('item_name', 'asc')->paginate(100);
+        $branches = $branchQuery->get(); // View එකට යැවීමට Branches ලබාගැනීම
 
-        $branches = Branch::orderBy('name')->get();
+        $canManageItems = true;
 
-        return view('items.index', compact('items', 'branches'));
+        // $branches දත්තය compact හරහා පිටුවට යැවීම
+        return view('items.index', compact('items', 'canManageItems', 'branches'));
     }
 
     /**

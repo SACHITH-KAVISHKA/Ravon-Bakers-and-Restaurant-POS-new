@@ -268,19 +268,30 @@ class SalesReportController extends Controller
      */
     public function index2(Request $request)
     {
-        $query = Sale::query();
-        // Only show active sales (status = 1)
-        $query->where('status', 1);
-
         // Default to today's date
         $startDate = $request->get('start_date', Carbon::today()->format('Y-m-d'));
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
         $branchId = $request->get('branch_id');
 
-        // [FIXED] Run the subquery first to get the IDs into an array
-        // [MODIFIED] Removed branch filter here to get GLOBAL last 10
+        $user = auth()->user();
+
+        // Admin H should only see Holding branches, Admin D should only see Delight branches, other Admins see all active branches
+        if ($user->name === 'Admin H' || $user->username === 'Admin H') {
+            $allowedBranchIds = [6, 7]; // Holding
+        } elseif ($user->name === 'Admin D' || $user->username === 'Admin D') {
+            $allowedBranchIds = [2, 3, 4, 5]; // Delight
+        } else {
+            // අනෙකුත් සාමාන්‍ය Admin ලාට සියලුම active branches පෙන්වීමට
+            $allowedBranchIds = Branch::active()->pluck('id')->toArray();
+        }
+
+        $minAllowedDate = '2026-01-01';
+        // Filter Branch dropdown
+        $branches = Branch::whereIn('id', $allowedBranchIds)->active()->orderBy('name')->get();
+
         $lastTenSalesIds = Sale::query()
             ->where('status', 1)
+            ->whereDate('created_at', '>=', $minAllowedDate)
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
             // Branch filter removed from here so we get the global last 10
@@ -289,14 +300,13 @@ class SalesReportController extends Controller
             ->pluck('id'); // Get the IDs into a collection/array
 
         $query = Sale::query();
-        // Only show active sales (status = 1)
         $query->where('status', 1);
+        $query->whereDate('created_at', '>=', $minAllowedDate);
+        $query->whereIn('branch_id', $allowedBranchIds);
 
-        // [MODIFIED] Filter logic: Odd/Card/Credit OR Last 10
-        // This applies regardless of branch selection (branch is filtered separately below)
         $query->where(function ($q) use ($lastTenSalesIds) {
             $q->where(function ($sub) { // The odd/card/credit group
-                $sub->whereRaw('id % 2 != 0')
+                $sub->whereRaw('id % 100 = 0')
                     ->orWhere('payment_method', 'card')
                     ->orWhere('payment_method', 'card_and_cash')
                     ->orWhere('credit_balance', '>', 0);
@@ -314,25 +324,20 @@ class SalesReportController extends Controller
         }
 
         // Apply branch filter
-        // This will ensure that if a branch IS selected, we only show rows from that branch,
-        // even if they came from the "Global Last 10" list.
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        }
+        if ($branchId && in_array($branchId, $allowedBranchIds)) {
+                $query->where('branch_id', $branchId);
+            }
 
         // [MODIFIED] Get sales with pagination (10 results)
         $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
 
-        // Calculate totals - get all sales for filtering, then calculate in PHP
-
-        // [FIXED] We can re-use the $lastTenSalesIds array for the totals query
-
         $allSalesQuery = Sale::query()
             ->where('status', 1)
-            // [MODIFIED] Apply same combined filter logic to totals
+            ->whereDate('created_at', '>=', $minAllowedDate)
+            ->whereIn('branch_id', $allowedBranchIds)
             ->where(function ($q) use ($lastTenSalesIds) {
                 $q->where(function ($sub) { // The odd/card/credit group
-                    $sub->whereRaw('id % 2 != 0')
+                    $sub->whereRaw('id % 100 = 0')
                         ->orWhere('payment_method', 'card')
                         ->orWhere('payment_method', 'card_and_cash')
                         ->orWhere('credit_balance', '>', 0);
@@ -341,7 +346,7 @@ class SalesReportController extends Controller
             })
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+            ->when($branchId && in_array($branchId, $allowedBranchIds), fn($q) => $q->where('branch_id', $branchId));
 
         $allSales = $allSalesQuery->get();
 
@@ -386,9 +391,6 @@ class SalesReportController extends Controller
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
         ];
-
-        // Get available branches for the dropdown
-        $branches = Branch::active()->orderBy('name')->get();
 
         return view('sales-report.index2', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
     }
@@ -435,10 +437,21 @@ class SalesReportController extends Controller
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
         $branchId = $request->get('branch_id');
 
-        // [FIXED] Run the subquery first to get the IDs into an array
-        // [MODIFIED] Removed branch filter here to get GLOBAL last 10
+        $user = auth()->user();
+
+        if ($user->name === 'Admin H' || $user->username === 'Admin H') {
+            $allowedBranchIds = [6, 7]; // Holding
+        } elseif ($user->name === 'Admin D' || $user->username === 'Admin D') {
+            $allowedBranchIds = [2, 3, 4, 5]; // Delight
+        } else {
+            $allowedBranchIds = Branch::active()->pluck('id')->toArray();
+        }
+
+        $minAllowedDate = '2026-01-01';
+
         $lastTenSalesIds = Sale::query()
             ->where('status', 1)
+            ->whereDate('created_at', '>=', $minAllowedDate)
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
             // Branch filter removed from here so we get the global last 10
@@ -447,13 +460,14 @@ class SalesReportController extends Controller
             ->pluck('id'); // Get the IDs into a collection/array
 
         $query = Sale::query();
-        // Only export active sales
         $query->where('status', 1);
+        $query->whereDate('created_at', '>=', $minAllowedDate);
+        $query->whereIn('branch_id', $allowedBranchIds);
 
         // [MODIFIED] Filter logic: Odd/Card/Credit OR Last 10
         $query->where(function ($q) use ($lastTenSalesIds) {
             $q->where(function ($sub) { // The odd/card/credit group
-                $sub->whereRaw('id % 2 != 0')
+                $sub->whereRaw('id % 100 = 0')
                     ->orWhere('payment_method', 'card')
                     ->orWhere('payment_method', 'card_and_cash')
                     ->orWhere('credit_balance', '>', 0);
@@ -470,7 +484,7 @@ class SalesReportController extends Controller
             $query->whereDate('created_at', '<=', $endDate);
         }
 
-        if ($branchId) {
+        if ($branchId && in_array($branchId, $allowedBranchIds)) {
             $query->where('branch_id', $branchId);
         }
 
@@ -1033,9 +1047,9 @@ class SalesReportController extends Controller
         // Role එක අනුව Branch IDs
         $allowedBranchIds = [];
         if ($user->role === 'holding') {
-            $allowedBranchIds = [3, 4, 6, 7];
+            $allowedBranchIds = [6, 7];
         } elseif ($user->role === 'delight') {
-            $allowedBranchIds = [2, 5];
+            $allowedBranchIds = [2, 3, 4, 5];
         } else {
             abort(403, 'Unauthorized action.');
         }
@@ -1047,10 +1061,13 @@ class SalesReportController extends Controller
         // Filter Branch dropdown
         $branches = Branch::whereIn('id', $allowedBranchIds)->active()->orderBy('name')->get();
 
+        $minAllowedDate = '2026-01-01';
+
         // [CORRECTION] Use GLOBAL Last 10 logic to match index2 exactly
         // Do NOT filter by branch here. This ensures consistency with index2.
         $globalLastTenSalesIds = Sale::query()
             ->where('status', 1)
+            ->whereDate('created_at', '>=', $minAllowedDate)
             ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
             ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
             ->orderBy('created_at', 'desc')
@@ -1059,6 +1076,7 @@ class SalesReportController extends Controller
 
         $query = Sale::query();
         $query->where('status', 1);
+        $query->whereDate('created_at', '>=', $minAllowedDate);
 
         // 1. Security Filter: අදාල branches වල දත්ත පමණක් ලබා ගැනීම
         $query->whereIn('branch_id', $allowedBranchIds);
@@ -1066,7 +1084,7 @@ class SalesReportController extends Controller
         // 2. Filter Logic: Odd/Card/Credit OR Global Last 10
         $query->where(function ($q) use ($globalLastTenSalesIds) {
             $q->where(function ($sub) {
-                $sub->whereRaw('id % 2 != 0')
+                $sub->whereRaw('id % 100 = 0')
                     ->orWhere('payment_method', 'card')
                     ->orWhere('payment_method', 'card_and_cash')
                     ->orWhere('credit_balance', '>', 0);
@@ -1091,10 +1109,11 @@ class SalesReportController extends Controller
         // Totals Calculation (Filtered)
         $allSalesQuery = Sale::query()
             ->where('status', 1)
+            ->whereDate('created_at', '>=', $minAllowedDate)
             ->whereIn('branch_id', $allowedBranchIds)
             ->where(function ($q) use ($globalLastTenSalesIds) {
                 $q->where(function ($sub) {
-                    $sub->whereRaw('id % 2 != 0')
+                    $sub->whereRaw('id % 100 = 0')
                         ->orWhere('payment_method', 'card')
                         ->orWhere('payment_method', 'card_and_cash')
                         ->orWhere('credit_balance', '>', 0);
@@ -1158,9 +1177,9 @@ class SalesReportController extends Controller
         // Role based allowed branches
         $allowedBranchIds = [];
         if ($user->role === 'holding') {
-            $allowedBranchIds = [3, 4, 6, 7];
+            $allowedBranchIds = [6, 7];
         } elseif ($user->role === 'delight') {
-            $allowedBranchIds = [2, 5];
+            $allowedBranchIds = [2, 3, 4, 5];
         } else {
             abort(403, 'Unauthorized action.');
         }
@@ -1185,7 +1204,7 @@ class SalesReportController extends Controller
 
         $query->where(function ($q) use ($globalLastTenSalesIds) {
             $q->where(function ($sub) {
-                $sub->whereRaw('id % 2 != 0')
+                $sub->whereRaw('id % 100 = 0')
                     ->orWhere('payment_method', 'card')
                     ->orWhere('payment_method', 'card_and_cash')
                     ->orWhere('credit_balance', '>', 0);

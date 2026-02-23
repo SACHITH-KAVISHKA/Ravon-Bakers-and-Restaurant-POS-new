@@ -102,7 +102,7 @@
                                     $customerPayment = $sale->customer_payment ?? 0;
                                     $cardPayment = $sale->card_payment ?? 0;
                                     $total = $sale->subtotal ?? 0;
-                                    
+
                                     // Handle payments - PRIORITY: Card first, then Cash
                                     if ($paymentMethod === 'cash') {
                                         // Pure cash payment
@@ -139,7 +139,7 @@
                             <td>{{ $sale->created_at->format('M d, Y H:i') }}</td>
                             <td>
                                 <div class="d-flex gap-1 flex-wrap">
-                                    <button class="btn btn-sm btn-outline-primary view-items-btn" 
+                                    <button class="btn btn-sm btn-outline-primary view-items-btn"
                                         data-sale-id="{{ $sale->id }}"
                                         data-bs-toggle="modal"
                                         data-bs-target="#saleItemsModal"
@@ -148,19 +148,22 @@
                                     </button>
 
                                     <button class="btn btn-sm btn-outline-success ms-1 print-receipt-btn"
-                                        data-receipt-url="{{ route('sales-report.receipt', ['sale' => $sale->id]) }}"
+                                        data-receipt-url="{{ route('sales-report.receipt', ['sale' => $sale->id])}}"
                                         title="Print Receipt">
                                         <i class="bi bi-printer"></i>
                                     </button>
 
                                     @if($sale->status ?? 1)
-                                    <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn" 
-                                            data-sale-id="{{ $sale->id }}"
-                                            title="Delete">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                        {{-- Admin හෝ User ID 11 වන Director ට පමණක් පෙන්වීම සඳහා --}}
+                                        @if(auth()->user()->role === 'director' && auth()->user()->id == 11)
+                                        <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn"
+                                                data-sale-id="{{ $sale->id }}"
+                                                title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        @endif
                                     @else
-                                    <span class="badge bg-secondary ms-1">Deleted</span>
+                                        <span class="badge bg-secondary ms-1">Deleted</span>
                                     @endif
                                 </div>
                             </td>
@@ -416,7 +419,7 @@
             // Handle direct print receipt button
             $(document).on('click', '.print-receipt-btn', function() {
                 const receiptUrl = $(this).data('receipt-url');
-                
+
                 // Create or reuse hidden iframe
                 let printFrame = document.getElementById('print-receipt-frame');
                 if (!printFrame) {
@@ -425,7 +428,7 @@
                     printFrame.style.display = 'none';
                     document.body.appendChild(printFrame);
                 }
-                
+
                 // Load receipt and print
                 printFrame.src = receiptUrl;
                 printFrame.onload = function() {

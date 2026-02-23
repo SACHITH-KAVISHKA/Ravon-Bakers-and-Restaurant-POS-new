@@ -168,7 +168,7 @@
                                         title="Print Receipt">
                                         <i class="bi bi-printer"></i>
                                     </button>
-                                    @if(auth()->user()->role == 'admin' )
+                                    @if(auth()->user()->role === 'director' && auth()->user()->id == 11))
                                     @if($sale->status ?? 1)
                                     <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn"
                                             data-sale-id="{{ $sale->id }}"

@@ -15,19 +15,81 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // public function index()
+    // {
+    //     // Check if user has permission
+    //     if (!Gate::allows('manage-users')) {
+    //         abort(403, 'Unauthorized access to user management.');
+    //     }
+
+    //     // Only show active users (status = 1)
+    //     $users = User::with('branch')
+    //                 ->where('status', 1)
+    //                 ->where('role', '!=', 'director')
+    //                 ->where('id', '!=', 1)
+    //                 ->orderBy('created_at', 'desc')
+    //                 ->paginate(15);
+    //     return view('users.index', compact('users'));
+    // }
+
     public function index()
     {
         // Check if user has permission
-        if (!Gate::allows('manage-users')) {
+        if (!\Illuminate\Support\Facades\Gate::allows('manage-users')) {
             abort(403, 'Unauthorized access to user management.');
         }
 
-        // Only show active users (status = 1)
-        $users = User::with('branch')
+        $currentUser = auth()->user();
+
+        $query = \App\Models\User::with('branch')
                     ->where('status', 1)
-                    ->where('role', '!=', 'director')
-                    ->orderBy('created_at', 'desc')
-                    ->paginate(15);
+                    ->where('id', '!=', 1)
+                    ->orderBy('created_at', 'desc');
+
+        // Restrict Admin H to specific roles and names
+        if ($currentUser->name === 'Admin H' || $currentUser->username === 'Admin H') {
+            $query->where(function($q) use ($currentUser) {
+                $q->whereIn('role', ['holding', 'supervisor']) // check roles
+                  ->orWhereIn('name', [
+                      'Cafe - N', 'Cafe - M',
+                      'Cafe-N', 'Cafe-M'
+                  ]) // check names
+                  ->orWhere('id', $currentUser->id); // show me
+            });
+        }
+        // Restrict Admin D to specific roles and names
+        elseif ($currentUser->name === 'Admin D' || $currentUser->username === 'Admin D') {
+            $query->where(function($q) use ($currentUser) {
+                $q->whereIn('role', ['delight', 'supervisor']) // check roles
+                  ->orWhereIn('name', [
+                      'maskreeda', 'MasKreeda', 'MASkreeda',
+                      'masbrew', 'MasBrew', 'MASbrew',
+                      'masayathi', 'MasAyathi', 'MASayathi',
+                      'masactive', 'MasActive', 'MASactive'
+                  ]) // check names
+                  ->orWhere('id', $currentUser->id); // show me
+            });
+        }
+        // Normal Admin users
+        elseif ($currentUser->role === 'admin') {
+            // Doesn't show directors for admin
+            $query->where('role', '!=', 'director');
+        }
+        // for Directors
+        elseif ($currentUser->role === 'director') {
+            // Doesn't show other directors for directors
+            $query->where('role', '!=', 'director');
+        }
+        // For other users (staff, supervisors, office)
+        else {
+            // normal users doesn't show directores
+            $query->where('role', '!=', 'director')
+                  ->where('branch_id', $currentUser->branch_id)
+                  ->where('id', '!=', $currentUser->id);
+        }
+
+        $users = $query->paginate(15);
+
         return view('users.index', compact('users'));
     }
 

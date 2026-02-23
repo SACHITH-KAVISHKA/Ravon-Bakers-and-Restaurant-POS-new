@@ -246,44 +246,104 @@ class SupervisorController extends Controller
      * Show available stock items organized by category
      * Refactored to use unified SQL query for both current and historical stock
      */
+    // public function inventoryHistory(Request $request)
+    // {
+    //     // Get filters - user selects a specific date to view that day's transactions
+    //     $fromDate = $request->input('date');
+    //     $fromTime = $request->input('time');
+
+    //     // Get all active branches
+    //     $branches = Branch::where('status', 1)->orderBy('name')->get();
+    //     $mainBranch = $branches->where('name', 'Main Branch')->first();
+
+    //     if (!$mainBranch) {
+    //         $mainBranch = $branches->first();
+    //     }
+
+    //     $mainBranchId = $mainBranch ? $mainBranch->id : null;
+    //     $otherBranches = $branches->where('id', '!=', $mainBranchId);
+
+    //     // MODE 1: CURRENT STOCK (No Date Filter)
+    //     if (empty($fromDate)) {
+    //         $results = $this->getCurrentStock();
+    //         $toDateTime = null;
+    //     }
+    //     // MODE 2: HISTORICAL STOCK CALCULATION (Backwards from current stock)
+    //     else {
+    //         // FROM datetime: User selected date + time (or 00:00:00 for full day)
+    //         $fromDateTime = $fromDate . ' ' . (!empty($fromTime) ? $fromTime . ':00' : '00:00:00');
+
+    //         // TO datetime: Current date and time
+    //         $toDateTime = date('Y-m-d H:i:s');
+
+    //         // Calculate stock at selected date by getting current stock and subtracting all transactions from selected date to now
+    //         $results = $this->getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime);
+    //     }
+
+    //     // Transform results for view
+    //     $itemsCollection = $this->transformStockResults($results, $mainBranch, $otherBranches);
+
+    //     // Paginate
+    //     $perPage = 100;
+    //     $page = request()->get('page', 1);
+    //     $total = $itemsCollection->count();
+    //     $itemsForCurrentPage = $itemsCollection->forPage($page, $perPage)->values();
+
+    //     $allItems = new LengthAwarePaginator($itemsForCurrentPage, $total, $perPage, $page, [
+    //         'path' => request()->url(),
+    //         'query' => request()->query(),
+    //     ]);
+
+    //     return view('supervisor.inventory-history', compact('allItems', 'branches', 'mainBranch', 'otherBranches', 'fromDate', 'fromTime', 'toDateTime'));
+    // }
+
     public function inventoryHistory(Request $request)
     {
-        // Get filters - user selects a specific date to view that day's transactions
         $fromDate = $request->input('date');
         $fromTime = $request->input('time');
 
-        // Get all active branches
-        $branches = Branch::where('status', 1)->orderBy('name')->get();
-        $mainBranch = $branches->where('name', 'Main Branch')->first();
+        // User Role Detection (Admin H, Admin D, or Regular Admin/Director)
+        $currentUser = auth()->user();
+        $role = strtolower($currentUser->role ?? '');
+        $name = str_replace(' ', '', strtolower($currentUser->name ?? ''));
+        $username = str_replace(' ', '', strtolower($currentUser->username ?? ''));
 
-        if (!$mainBranch) {
-            $mainBranch = $branches->first();
+        $isAdminH = ($role === 'holding' || str_contains($name, 'adminh') || str_contains($username, 'adminh'));
+        $isAdminD = ($role === 'delight' || str_contains($name, 'admind') || str_contains($username, 'admind'));
+
+        // Adjust branch visibility based on role
+        $allBranches = Branch::where('status', 1)->orderBy('name')->get();
+        $realMainBranch = $allBranches->where('name', 'Main Branch')->first();
+        $mainBranchIdForSql = $realMainBranch ? $realMainBranch->id : 1; // SQL Only Main Branch ID (used in SQL query for filtering transactions)
+
+        //  return view('supervisor.inventory-history', compact('isAdminH', 'isAdminD')); --- IGNORE ---
+        if ($isAdminH) {
+            $mainBranch = null; // Admin H does not see Main Branch as main
+            $otherBranches = $allBranches->whereIn('id', [6, 7]);
+        } elseif ($isAdminD) {
+            $mainBranch = null; // Admin D does not see Main Branch as main
+            $otherBranches = $allBranches->whereIn('id', [2, 3, 4, 5]);
+        } else {
+            // Normal Admin/Director: Show all branches with Main Branch as main
+            $mainBranch = $realMainBranch;
+            if (!$mainBranch) {
+                $mainBranch = $allBranches->first();
+            }
+            $mainBranchId = $mainBranch ? $mainBranch->id : null;
+            $otherBranches = $allBranches->where('id', '!=', $mainBranchId);
         }
 
-        $mainBranchId = $mainBranch ? $mainBranch->id : null;
-        $otherBranches = $branches->where('id', '!=', $mainBranchId);
-
-        // MODE 1: CURRENT STOCK (No Date Filter)
         if (empty($fromDate)) {
             $results = $this->getCurrentStock();
             $toDateTime = null;
-        }
-        // MODE 2: HISTORICAL STOCK CALCULATION (Backwards from current stock)
-        else {
-            // FROM datetime: User selected date + time (or 00:00:00 for full day)
+        } else {
             $fromDateTime = $fromDate . ' ' . (!empty($fromTime) ? $fromTime . ':00' : '00:00:00');
-
-            // TO datetime: Current date and time
             $toDateTime = date('Y-m-d H:i:s');
-
-            // Calculate stock at selected date by getting current stock and subtracting all transactions from selected date to now
-            $results = $this->getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime);
+            $results = $this->getHistoricalStock($mainBranchIdForSql, $fromDateTime, $toDateTime);
         }
 
-        // Transform results for view
         $itemsCollection = $this->transformStockResults($results, $mainBranch, $otherBranches);
 
-        // Paginate
         $perPage = 100;
         $page = request()->get('page', 1);
         $total = $itemsCollection->count();
@@ -293,6 +353,8 @@ class SupervisorController extends Controller
             'path' => request()->url(),
             'query' => request()->query(),
         ]);
+
+        $branches = $allBranches;
 
         return view('supervisor.inventory-history', compact('allItems', 'branches', 'mainBranch', 'otherBranches', 'fromDate', 'fromTime', 'toDateTime'));
     }
@@ -608,159 +670,333 @@ class SupervisorController extends Controller
      * Export inventory history/current stock as Excel
      * Uses same logic as inventoryHistory() method
      */
+    // public function exportInventoryHistory(Request $request)
+    // {
+    //     try {
+    //         $fromDate = $request->input('date');
+    //         $fromTime = $request->input('time');
+
+    //     // Get branches
+    //     $branches = Branch::where('status', 1)->orderBy('name')->get();
+    //     $mainBranch = $branches->where('name', 'Main Branch')->first();
+    //     if (!$mainBranch) {
+    //         $mainBranch = $branches->first();
+    //     }
+
+    //     $mainBranchId = $mainBranch ? $mainBranch->id : null;
+    //     $otherBranches = $branches->where('id', '!=', $mainBranchId);
+
+    //     // Get stock data using same logic as inventoryHistory()
+    //     if (empty($fromDate)) {
+    //         $results = $this->getCurrentStock();
+    //     } else {
+    //         $fromDateTime = $fromDate . ' ' . (!empty($fromTime) ? $fromTime . ':00' : '00:00:00');
+    //         $toDateTime = date('Y-m-d H:i:s');
+    //         $results = $this->getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime);
+    //     }
+
+    //     // Transform results
+    //     $itemsCollection = $this->transformStockResults($results, $mainBranch, $otherBranches);
+
+    //     // Create spreadsheet
+    //     $spreadsheet = new Spreadsheet();
+    //     $sheet = $spreadsheet->getActiveSheet();
+
+    //     // Set title with date filter info
+    //     $titleRow = 1;
+    //     if ($fromDate || $fromTime) {
+    //         $title = 'Historical Stock Report';
+    //         $filterInfo = 'Stock as of: ' . date('M d, Y', strtotime($fromDate));
+    //         if ($fromTime) {
+    //             $filterInfo .= ' at ' . date('h:i A', strtotime($fromTime));
+    //         } else {
+    //             $filterInfo .= ' (Start of Day)';
+    //         }
+
+    //         $sheet->setCellValue('A1', $title);
+    //         $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
+    //         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+    //         $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+    //         $sheet->setCellValue('A2', $filterInfo);
+    //         $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
+    //         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+    //         $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+    //         $titleRow = 4;
+    //     } else {
+    //         $sheet->setCellValue('A1', 'Current Inventory Report');
+    //         $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
+    //         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+    //         $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+    //         $sheet->setCellValue('A2', 'Generated on: ' . now()->format('M d, Y h:i A'));
+    //         $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
+    //         $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+    //         $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+    //         $titleRow = 4;
+    //     }
+
+    //     // Set headers
+    //     $columns = ['Item', 'Item Code', 'Main Stock'];
+    //     foreach ($otherBranches as $branch) {
+    //         $columns[] = $branch->name;
+    //     }
+
+    //     // Write header row
+    //     $sheet->fromArray([$columns], null, 'A' . $titleRow);
+
+    //     // Style header row
+    //     $headerStyle = $sheet->getStyle('A' . $titleRow . ':' . $sheet->getHighestColumn() . $titleRow);
+    //     $headerStyle->getFont()->setBold(true);
+    //     $headerStyle->getFill()
+    //         ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+    //         ->getStartColor()->setRGB('4CAF50');
+    //     $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
+
+    //     // Write data rows
+    //     $rowIndex = $titleRow + 1;
+    //     $totalMainStock = 0;
+    //     $totalBranchStocks = [];
+
+    //     foreach ($itemsCollection as $item) {
+    //         $row = [
+    //             $item['name'] ?? '',
+    //             $item['item_code'] ?? '',
+    //             $item['main_stock'] ?? 0,
+    //         ];
+
+    //         $totalMainStock += $item['main_stock'] ?? 0;
+
+    //         foreach ($otherBranches as $branch) {
+    //             $branchStock = $item['branch_stocks'][$branch->name] ?? 0;
+    //             $row[] = $branchStock;
+
+    //             if (!isset($totalBranchStocks[$branch->name])) {
+    //                 $totalBranchStocks[$branch->name] = 0;
+    //             }
+    //             $totalBranchStocks[$branch->name] += $branchStock;
+    //         }
+
+    //         $sheet->fromArray([$row], null, 'A' . $rowIndex);
+    //         $rowIndex++;
+    //     }
+
+    //     // Add totals row
+    //     $totalRow = ['TOTAL', '', $totalMainStock];
+    //     foreach ($otherBranches as $branch) {
+    //         $totalRow[] = $totalBranchStocks[$branch->name] ?? 0;
+    //     }
+    //     $sheet->fromArray([$totalRow], null, 'A' . $rowIndex);
+
+    //     // Style totals row
+    //     $totalStyle = $sheet->getStyle('A' . $rowIndex . ':' . $sheet->getHighestColumn() . $rowIndex);
+    //     $totalStyle->getFont()->setBold(true);
+    //     $totalStyle->getFill()
+    //         ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+    //         ->getStartColor()->setRGB('FFF9C4');
+
+    //     // Auto-size columns
+    //     foreach (range('A', $sheet->getHighestColumn()) as $col) {
+    //         $sheet->getColumnDimension($col)->setAutoSize(true);
+    //     }
+
+    //     // Create filename
+    //     if ($fromDate) {
+    //         $fileName = 'historical-stock-' . str_replace('-', '', $fromDate) . '-' . now()->format('Ymd-His') . '.xlsx';
+    //     } else {
+    //         $fileName = 'current-inventory-' . now()->format('Ymd-His') . '.xlsx';
+    //     }
+
+    //     // Create response
+    //     return new StreamedResponse(function () use ($spreadsheet) {
+    //         $writer = new Xlsx($spreadsheet);
+    //         $writer->save('php://output');
+    //     }, 200, [
+    //         'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    //         'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+    //         'Cache-Control' => 'max-age=0',
+    //     ]);
+
+    //     } catch (\Illuminate\Database\QueryException $e) {
+    //         Log::error('Export Inventory History Database Error: ' . $e->getMessage());
+    //         return redirect()->back()
+    //             ->with('error', 'Database error occurred while exporting inventory. Please contact support.');
+
+    //     } catch (\Exception $e) {
+    //         Log::error('Export Inventory History Error: ' . $e->getMessage());
+    //         return redirect()->back()
+    //             ->with('error', 'An error occurred while exporting inventory. Please try again.');
+    //     }
+    // }
+
+
     public function exportInventoryHistory(Request $request)
     {
         try {
             $fromDate = $request->input('date');
             $fromTime = $request->input('time');
 
-        // Get branches
-        $branches = Branch::where('status', 1)->orderBy('name')->get();
-        $mainBranch = $branches->where('name', 'Main Branch')->first();
-        if (!$mainBranch) {
-            $mainBranch = $branches->first();
-        }
+            // 1. පරිශීලකයා හඳුනා ගැනීම
+            $currentUser = auth()->user();
+            $role = strtolower($currentUser->role ?? '');
+            $name = str_replace(' ', '', strtolower($currentUser->name ?? ''));
+            $username = str_replace(' ', '', strtolower($currentUser->username ?? ''));
 
-        $mainBranchId = $mainBranch ? $mainBranch->id : null;
-        $otherBranches = $branches->where('id', '!=', $mainBranchId);
+            $isAdminH = ($role === 'holding' || str_contains($name, 'adminh') || str_contains($username, 'adminh'));
+            $isAdminD = ($role === 'delight' || str_contains($name, 'admind') || str_contains($username, 'admind'));
 
-        // Get stock data using same logic as inventoryHistory()
-        if (empty($fromDate)) {
-            $results = $this->getCurrentStock();
-        } else {
-            $fromDateTime = $fromDate . ' ' . (!empty($fromTime) ? $fromTime . ':00' : '00:00:00');
-            $toDateTime = date('Y-m-d H:i:s');
-            $results = $this->getHistoricalStock($mainBranchId, $fromDateTime, $toDateTime);
-        }
+            $allBranches = Branch::where('status', 1)->orderBy('name')->get();
+            $realMainBranch = $allBranches->where('name', 'Main Branch')->first();
+            $mainBranchIdForSql = $realMainBranch ? $realMainBranch->id : 1;
 
-        // Transform results
-        $itemsCollection = $this->transformStockResults($results, $mainBranch, $otherBranches);
-
-        // Create spreadsheet
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        // Set title with date filter info
-        $titleRow = 1;
-        if ($fromDate || $fromTime) {
-            $title = 'Historical Stock Report';
-            $filterInfo = 'Stock as of: ' . date('M d, Y', strtotime($fromDate));
-            if ($fromTime) {
-                $filterInfo .= ' at ' . date('h:i A', strtotime($fromTime));
+            if ($isAdminH) {
+                $mainBranch = null;
+                $otherBranches = $allBranches->whereIn('id', [6, 7]);
+            } elseif ($isAdminD) {
+                $mainBranch = null;
+                $otherBranches = $allBranches->whereIn('id', [2, 3, 4, 5]);
             } else {
-                $filterInfo .= ' (Start of Day)';
-            }
-
-            $sheet->setCellValue('A1', $title);
-            $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
-            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
-            $sheet->setCellValue('A2', $filterInfo);
-            $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
-            $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
-            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
-            $titleRow = 4;
-        } else {
-            $sheet->setCellValue('A1', 'Current Inventory Report');
-            $sheet->mergeCells('A1:' . chr(67 + count($otherBranches)) . '1');
-            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
-            $sheet->setCellValue('A2', 'Generated on: ' . now()->format('M d, Y h:i A'));
-            $sheet->mergeCells('A2:' . chr(67 + count($otherBranches)) . '2');
-            $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
-            $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
-            $titleRow = 4;
-        }
-
-        // Set headers
-        $columns = ['Item', 'Item Code', 'Main Stock'];
-        foreach ($otherBranches as $branch) {
-            $columns[] = $branch->name;
-        }
-
-        // Write header row
-        $sheet->fromArray([$columns], null, 'A' . $titleRow);
-
-        // Style header row
-        $headerStyle = $sheet->getStyle('A' . $titleRow . ':' . $sheet->getHighestColumn() . $titleRow);
-        $headerStyle->getFont()->setBold(true);
-        $headerStyle->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('4CAF50');
-        $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
-
-        // Write data rows
-        $rowIndex = $titleRow + 1;
-        $totalMainStock = 0;
-        $totalBranchStocks = [];
-
-        foreach ($itemsCollection as $item) {
-            $row = [
-                $item['name'] ?? '',
-                $item['item_code'] ?? '',
-                $item['main_stock'] ?? 0,
-            ];
-
-            $totalMainStock += $item['main_stock'] ?? 0;
-
-            foreach ($otherBranches as $branch) {
-                $branchStock = $item['branch_stocks'][$branch->name] ?? 0;
-                $row[] = $branchStock;
-
-                if (!isset($totalBranchStocks[$branch->name])) {
-                    $totalBranchStocks[$branch->name] = 0;
+                $mainBranch = $realMainBranch;
+                if (!$mainBranch) {
+                    $mainBranch = $allBranches->first();
                 }
-                $totalBranchStocks[$branch->name] += $branchStock;
+                $mainBranchId = $mainBranch ? $mainBranch->id : null;
+                $otherBranches = $allBranches->where('id', '!=', $mainBranchId);
             }
 
-            $sheet->fromArray([$row], null, 'A' . $rowIndex);
-            $rowIndex++;
-        }
+            if (empty($fromDate)) {
+                $results = $this->getCurrentStock();
+            } else {
+                $fromDateTime = $fromDate . ' ' . (!empty($fromTime) ? $fromTime . ':00' : '00:00:00');
+                $toDateTime = date('Y-m-d H:i:s');
+                $results = $this->getHistoricalStock($mainBranchIdForSql, $fromDateTime, $toDateTime);
+            }
 
-        // Add totals row
-        $totalRow = ['TOTAL', '', $totalMainStock];
-        foreach ($otherBranches as $branch) {
-            $totalRow[] = $totalBranchStocks[$branch->name] ?? 0;
-        }
-        $sheet->fromArray([$totalRow], null, 'A' . $rowIndex);
+            $itemsCollection = $this->transformStockResults($results, $mainBranch, $otherBranches);
 
-        // Style totals row
-        $totalStyle = $sheet->getStyle('A' . $rowIndex . ':' . $sheet->getHighestColumn() . $rowIndex);
-        $totalStyle->getFont()->setBold(true);
-        $totalStyle->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('FFF9C4');
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
 
-        // Auto-size columns
-        foreach (range('A', $sheet->getHighestColumn()) as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
+            // Export කරන Columns ගණන ගණනය කිරීම
+            $numCols = 2 + ($mainBranch ? 1 : 0) + count($otherBranches);
+            $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($numCols);
 
-        // Create filename
-        if ($fromDate) {
-            $fileName = 'historical-stock-' . str_replace('-', '', $fromDate) . '-' . now()->format('Ymd-His') . '.xlsx';
-        } else {
-            $fileName = 'current-inventory-' . now()->format('Ymd-His') . '.xlsx';
-        }
+            $titleRow = 1;
+            if ($fromDate || $fromTime) {
+                $title = 'Historical Stock Report';
+                $filterInfo = 'Stock as of: ' . date('M d, Y', strtotime($fromDate));
+                if ($fromTime) {
+                    $filterInfo .= ' at ' . date('h:i A', strtotime($fromTime));
+                } else {
+                    $filterInfo .= ' (Start of Day)';
+                }
 
-        // Create response
-        return new StreamedResponse(function () use ($spreadsheet) {
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
-        }, 200, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
-            'Cache-Control' => 'max-age=0',
-        ]);
+                $sheet->setCellValue('A1', $title);
+                $sheet->mergeCells('A1:' . $lastCol . '1');
+                $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+                $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
-        } catch (\Illuminate\Database\QueryException $e) {
-            Log::error('Export Inventory History Database Error: ' . $e->getMessage());
-            return redirect()->back()
-                ->with('error', 'Database error occurred while exporting inventory. Please contact support.');
+                $sheet->setCellValue('A2', $filterInfo);
+                $sheet->mergeCells('A2:' . $lastCol . '2');
+                $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+                $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+                $titleRow = 4;
+            } else {
+                $sheet->setCellValue('A1', 'Current Inventory Report');
+                $sheet->mergeCells('A1:' . $lastCol . '1');
+                $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+                $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+                $sheet->setCellValue('A2', 'Generated on: ' . now()->format('M d, Y h:i A'));
+                $sheet->mergeCells('A2:' . $lastCol . '2');
+                $sheet->getStyle('A2')->getFont()->setItalic(true)->setSize(11);
+                $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+                $titleRow = 4;
+            }
+
+            $columns = ['Item', 'Item Code'];
+            if ($mainBranch) {
+                $columns[] = $mainBranch->name;
+            }
+            foreach ($otherBranches as $branch) {
+                $columns[] = $branch->name;
+            }
+
+            $sheet->fromArray([$columns], null, 'A' . $titleRow);
+
+            $headerStyle = $sheet->getStyle('A' . $titleRow . ':' . $lastCol . $titleRow);
+            $headerStyle->getFont()->setBold(true);
+            $headerStyle->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('4CAF50');
+            $headerStyle->getFont()->getColor()->setRGB('FFFFFF');
+
+            $rowIndex = $titleRow + 1;
+            $totalMainStock = 0;
+            $totalBranchStocks = [];
+
+            foreach ($itemsCollection as $item) {
+                $row = [
+                    $item['name'] ?? '',
+                    $item['item_code'] ?? '',
+                ];
+
+                if ($mainBranch) {
+                    $row[] = $item['main_stock'] ?? 0;
+                    $totalMainStock += $item['main_stock'] ?? 0;
+                }
+
+                foreach ($otherBranches as $branch) {
+                    $branchStock = $item['branch_stocks'][$branch->name] ?? 0;
+                    $row[] = $branchStock;
+
+                    if (!isset($totalBranchStocks[$branch->name])) {
+                        $totalBranchStocks[$branch->name] = 0;
+                    }
+                    $totalBranchStocks[$branch->name] += $branchStock;
+                }
+
+                $sheet->fromArray([$row], null, 'A' . $rowIndex);
+                $rowIndex++;
+            }
+
+            $totalRow = ['TOTAL', ''];
+            if ($mainBranch) {
+                $totalRow[] = $totalMainStock;
+            }
+            foreach ($otherBranches as $branch) {
+                $totalRow[] = $totalBranchStocks[$branch->name] ?? 0;
+            }
+            $sheet->fromArray([$totalRow], null, 'A' . $rowIndex);
+
+            $totalStyle = $sheet->getStyle('A' . $rowIndex . ':' . $lastCol . $rowIndex);
+            $totalStyle->getFont()->setBold(true);
+            $totalStyle->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('FFF9C4');
+
+            foreach (range('A', $lastCol) as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            if ($fromDate) {
+                $fileName = 'historical-stock-' . str_replace('-', '', $fromDate) . '-' . now()->format('Ymd-His') . '.xlsx';
+            } else {
+                $fileName = 'current-inventory-' . now()->format('Ymd-His') . '.xlsx';
+            }
+
+            return new StreamedResponse(function () use ($spreadsheet) {
+                $writer = new Xlsx($spreadsheet);
+                $writer->save('php://output');
+            }, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+                'Cache-Control' => 'max-age=0',
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Export Inventory History Error: ' . $e->getMessage());
@@ -768,7 +1004,6 @@ class SupervisorController extends Controller
                 ->with('error', 'An error occurred while exporting inventory. Please try again.');
         }
     }
-
     /**
      * Show the form for adding wastage
      */

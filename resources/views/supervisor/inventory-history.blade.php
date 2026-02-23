@@ -73,6 +73,56 @@
                                 <thead style="background-color: #f8f9fa;">
                                     <tr>
                                         <th class="border-0 px-3 py-3">Item</th>
+
+                                        {{-- show main branch --}}
+                                        @if($mainBranch)
+                                        <th class="border-0 px-3 py-3 text-center" style="background-color: #e3f2fd; color: #1976d2;">
+                                            {{ $mainBranch->name }}
+                                            @if($fromDate ?? false)
+                                                <br><small class="fw-normal">(Net Change)</small>
+                                            @endif
+                                        </th>
+                                        @endif
+
+                                        @foreach($otherBranches as $branch)
+                                            <th class="border-0 px-3 py-3 text-center" style="background-color: #fff3e0; color: #e65100;">
+                                                {{ $branch->name }}
+                                                @if($fromDate ?? false)
+                                                    <br><small class="fw-normal">(Net Change)</small>
+                                                @endif
+                                            </th>
+                                        @endforeach
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($allItems as $item)
+                                        <tr class="border-bottom">
+                                            <td class="px-2 py-2">
+                                                <div>
+                                                    <span class="fw-bold d-block" style="color: #667eea; font-size:0.95rem;">{{ $item['name'] }}</span>
+                                                    <small class="text-muted" style="font-size:0.8rem;">{{ $item['item_code'] }}</small>
+                                                </div>
+                                            </td>
+
+                                            {{-- show main branch --}}
+                                            @if($mainBranch)
+                                            <td class="px-2 py-2 text-center" style="background-color: #f5f9ff;">
+                                                <span class="stock-number" style="color: {{ $item['main_stock'] < 0 ? '#dc3545' : '#0b66d1' }}; font-weight:700; font-size:0.95rem;">{{ $item['main_stock'] }}</span>
+                                            </td>
+                                            @endif
+
+                                            @foreach($otherBranches as $branch)
+                                                <td class="px-2 py-2 text-center" style="background-color: #fffbf5;">
+                                                    @php $qty = $item['branch_stocks'][$branch->name] ?? 0; @endphp
+                                                    <span class="stock-number" style="color: {{ $qty < 0 ? '#dc3545' : ($qty > 0 ? '#e65100' : '#6c757d') }}; font-weight:{{ $qty != 0 ? '600' : '400' }}; font-size:0.9rem;">{{ $qty }}</span>
+                                                </td>
+                                            @endforeach
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                {{-- <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th class="border-0 px-3 py-3">Item</th>
                                         <th class="border-0 px-3 py-3 text-center" style="background-color: #e3f2fd; color: #1976d2;">
                                             Main Stock
                                             @if($fromDate ?? false)
@@ -109,7 +159,7 @@
                                             @endforeach
                                         </tr>
                                     @endforeach
-                                </tbody>
+                                </tbody> --}}
                             </table>
                         </div>
                     </div>

@@ -4,8 +4,9 @@
             <i class="bi bi-box-seam me-2"></i>
             Item Management
         </h1>
-        {{-- Allow Admin and Director to Add Items --}}
-        @if(Auth::user()->role === 'admin' || Auth::user()->role === 'director')
+
+        {{-- බොත්තම පෙන්වීම Controller එකෙන් එවන $canManageItems මත තීරණය වේ --}}
+        @if(isset($canManageItems) && $canManageItems)
         <a href="{{ route('items.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add New Item
         </a>

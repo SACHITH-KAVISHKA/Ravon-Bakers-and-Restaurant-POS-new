@@ -1,6 +1,27 @@
 @php
-// Load branches for the dropdown. It's small and safe to load here for now.
-$branches = \App\Models\Branch::orderBy('name')->where('id', '!=', 1)->get();
+    $currentUser = auth()->user();
+
+    // මූලික Branch Query එක (Main admin ලාට සියල්ල පෙන්වයි)
+    $branchQuery = \App\Models\Branch::orderBy('name')->where('id', '!=', 1);
+
+    // පරිශීලකයා හඳුනා ගැනීම (අකුරු වල හිස්තැන් ඉවත් කර)
+    $role = strtolower($currentUser->role ?? '');
+    $name = str_replace(' ', '', strtolower($currentUser->name ?? ''));
+    $username = str_replace(' ', '', strtolower($currentUser->username ?? ''));
+
+    $isHolding = ($role === 'holding' || str_contains($name, 'adminh') || str_contains($username, 'adminh'));
+    $isDelight = ($role === 'delight' || str_contains($name, 'admind') || str_contains($username, 'admind'));
+
+    // Admin H (Holding) ට අදාල Branches (6, 7) පමණක් ලබා දීම
+    if ($isHolding) {
+        $branchQuery->whereIn('id', [6, 7]);
+    }
+    // Admin D (Delight) ට අදාල Branches (2, 3, 4, 5) පමණක් ලබා දීම
+    elseif ($isDelight) {
+        $branchQuery->whereIn('id', [2, 3, 4, 5]);
+    }
+
+    $branches = $branchQuery->get();
 @endphp
 
 <div class="card mb-3">

@@ -20,11 +20,14 @@ class ItemSalesController extends Controller
      */
     public function itemSales(Request $request)
     {
-        // Get all branches except Main Branch
-        $branches = Branch::where('status', 1)
-            ->where('name', '!=', 'Main Branch')
-            ->orderBy('name')
-            ->get();
+        // // Get all branches except Main Branch
+        // $branches = Branch::where('status', 1)
+        //     ->where('name', '!=', 'Main Branch')
+        //     ->orderBy('name')
+        //     ->get();
+
+        // Relavent branches based on user role
+        $branches = $this->getAllowedBranches();
 
         // Default to today's date
         $fromDate = $request->input('from_date', Carbon::today()->format('Y-m-d'));
@@ -39,6 +42,40 @@ class ItemSalesController extends Controller
     /**
      * Filter item sales via AJAX
      */
+    // public function filterItemSales(Request $request)
+    // {
+    //     $request->validate([
+    //         'from_date' => 'required|date',
+    //         'to_date' => 'required|date|after_or_equal:from_date',
+    //     ]);
+
+    //     $fromDate = $request->input('from_date');
+    //     $toDate = $request->input('to_date');
+
+    //     // Get all branches except Main Branch
+    //     $branches = Branch::where('status', 1)
+    //         ->where('name', '!=', 'Main Branch')
+    //         ->orderBy('name')
+    //         ->get();
+
+    //     // Get sales data
+    //     $salesData = $this->getSalesData($fromDate, $toDate, $branches);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'data' => $salesData,
+    //         'branches' => $branches->map(function($branch) {
+    //             return [
+    //                 'id' => $branch->id,
+    //                 'name' => $branch->name
+    //             ];
+    //         })
+    //     ]);
+    // }
+
+    /**
+     * Filter item sales via AJAX
+     */
     public function filterItemSales(Request $request)
     {
         $request->validate([
@@ -46,18 +83,10 @@ class ItemSalesController extends Controller
             'to_date' => 'required|date|after_or_equal:from_date',
         ]);
 
-        $fromDate = $request->input('from_date');
-        $toDate = $request->input('to_date');
+        $branches = $this->getAllowedBranches();
+        $salesData = $this->getSalesData($request->from_date, $request->to_date, $branches);
 
-        // Get all branches except Main Branch
-        $branches = Branch::where('status', 1)
-            ->where('name', '!=', 'Main Branch')
-            ->orderBy('name')
-            ->get();
-
-        // Get sales data
-        $salesData = $this->getSalesData($fromDate, $toDate, $branches);
-
+        // Blade එකට HTML නොයවා, JS එකට අවශ්‍ය පරිදි නැවත JSON යැවීම
         return response()->json([
             'success' => true,
             'data' => $salesData,
@@ -70,76 +99,205 @@ class ItemSalesController extends Controller
         ]);
     }
 
+
+
+    /**
+     * Get sales data grouped by item and branch
+     */
+    // private function getSalesData($fromDate, $toDate, $branches)
+    // {
+    //     // Query to get all sales within date range
+    //     $sales = Sale::with(['saleItems.item', 'branch'])
+    //         ->whereDate('created_at', '>=', $fromDate)
+    //         ->whereDate('created_at', '<=', $toDate)
+    //         ->where('status', 1) // Only active sales
+    //         ->get();
+
+    //     // Group sales by item
+    //     $itemSales = [];
+
+    //     foreach ($sales as $sale) {
+    //         $branchId = $sale->branch_id;
+
+    //         // Skip if no branch
+    //         if (!$branchId) continue;
+
+    //         $branch = $branches->firstWhere('id', $branchId);
+    //         if (!$branch) continue;
+
+    //         foreach ($sale->saleItems as $saleItem) {
+    //             $itemId = $saleItem->item_id;
+    //             $itemCode = $saleItem->item->item_code ?? 'N/A';
+    //             $itemName = $saleItem->item->item_name ?? 'Unknown';
+    //             $category = $saleItem->item->category->name ?? 'Uncategorized';
+
+    //             // Initialize item if not exists
+    //             if (!isset($itemSales[$itemId])) {
+    //                 $itemSales[$itemId] = [
+    //                     'item_id' => $itemId,
+    //                     'item_code' => $itemCode,
+    //                     'item_name' => $itemName,
+    //                     'category' => $category,
+    //                     'total_quantity' => 0,
+    //                     'branches' => []
+    //                 ];
+    //             }
+
+    //             // Add to total quantity
+    //             $itemSales[$itemId]['total_quantity'] += $saleItem->quantity;
+
+    //             // Add to branch quantity
+    //             if (!isset($itemSales[$itemId]['branches'][$branch->name])) {
+    //                 $itemSales[$itemId]['branches'][$branch->name] = 0;
+    //             }
+    //             $itemSales[$itemId]['branches'][$branch->name] += $saleItem->quantity;
+    //         }
+    //     }
+
+    //     // Fill in zero values for branches with no sales
+    //     foreach ($itemSales as &$item) {
+    //         foreach ($branches as $branch) {
+    //             if (!isset($item['branches'][$branch->name])) {
+    //                 $item['branches'][$branch->name] = 0;
+    //             }
+    //         }
+    //     }
+
+    //     // Convert to indexed array and sort by item name
+    //     $result = array_values($itemSales);
+    //     usort($result, function($a, $b) {
+    //         return strcmp($a['item_name'], $b['item_name']);
+    //     });
+
+    //     return $result;
+    // }
+
     /**
      * Get sales data grouped by item and branch
      */
     private function getSalesData($fromDate, $toDate, $branches)
     {
-        // Query to get all sales within date range
-        $sales = Sale::with(['saleItems.item', 'branch'])
-            ->whereDate('created_at', '>=', $fromDate)
-            ->whereDate('created_at', '<=', $toDate)
-            ->where('status', 1) // Only active sales
+        $branchIds = $branches->pluck('id')->toArray();
+        // ID එකට අදාල Branch Name එක සොයාගැනීම සඳහා Map එකක් සෑදීම
+        $branchNamesMap = $branches->pluck('name', 'id')->toArray();
+
+        if (empty($branchIds)) {
+            return collect();
+        }
+
+        $sales = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('items', 'sale_items.item_id', '=', 'items.id')
+            ->select(
+                'items.id as item_id',
+                'items.item_code',
+                'items.item_name',
+                'sales.branch_id',
+                DB::raw('SUM(sale_items.quantity) as db_total_qty')
+            )
+            ->whereBetween('sales.created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59'])
+            ->where('sales.status', '!=', '0')
+            ->whereIn('sales.branch_id', $branchIds)
+            ->groupBy('items.id', 'items.item_code', 'items.item_name', 'sales.branch_id')
             ->get();
 
-        // Group sales by item
-        $itemSales = [];
-        
+        $itemsData = [];
         foreach ($sales as $sale) {
-            $branchId = $sale->branch_id;
-            
-            // Skip if no branch
-            if (!$branchId) continue;
-            
-            $branch = $branches->firstWhere('id', $branchId);
-            if (!$branch) continue;
+            if (!isset($itemsData[$sale->item_id])) {
+                $itemsData[$sale->item_id] = [
+                    'item_id' => $sale->item_id,
+                    'item_code' => $sale->item_code,
+                    'item_name' => $sale->item_name,
+                    'total_quantity' => 0, // Blade එකට අවශ්‍ය පරිදි total_quantity ලෙස නම වෙනස් කරන ලදී
+                    'branches' => []
+                ];
 
-            foreach ($sale->saleItems as $saleItem) {
-                $itemId = $saleItem->item_id;
-                $itemCode = $saleItem->item->item_code ?? 'N/A';
-                $itemName = $saleItem->item->item_name ?? 'Unknown';
-                $category = $saleItem->item->category->name ?? 'Uncategorized';
-
-                // Initialize item if not exists
-                if (!isset($itemSales[$itemId])) {
-                    $itemSales[$itemId] = [
-                        'item_id' => $itemId,
-                        'item_code' => $itemCode,
-                        'item_name' => $itemName,
-                        'category' => $category,
-                        'total_quantity' => 0,
-                        'branches' => []
-                    ];
-                }
-
-                // Add to total quantity
-                $itemSales[$itemId]['total_quantity'] += $saleItem->quantity;
-
-                // Add to branch quantity
-                if (!isset($itemSales[$itemId]['branches'][$branch->name])) {
-                    $itemSales[$itemId]['branches'][$branch->name] = 0;
-                }
-                $itemSales[$itemId]['branches'][$branch->name] += $saleItem->quantity;
-            }
-        }
-
-        // Fill in zero values for branches with no sales
-        foreach ($itemSales as &$item) {
-            foreach ($branches as $branch) {
-                if (!isset($item['branches'][$branch->name])) {
-                    $item['branches'][$branch->name] = 0;
+                // Blade එකට අවශ්‍ය පරිදි ආයතනයේ නම (Branch Name) key එක ලෙස භාවිතා කිරීම
+                foreach ($branches as $branch) {
+                    $itemsData[$sale->item_id]['branches'][$branch->name] = 0;
                 }
             }
+
+            $branchName = $branchNamesMap[$sale->branch_id] ?? null;
+
+            if ($branchName) {
+                $itemsData[$sale->item_id]['branches'][$branchName] += $sale->db_total_qty;
+            }
+
+            // මුළු එකතුවට අගය එකතු කිරීම
+            $itemsData[$sale->item_id]['total_quantity'] += $sale->db_total_qty;
         }
 
-        // Convert to indexed array and sort by item name
-        $result = array_values($itemSales);
-        usort($result, function($a, $b) {
-            return strcmp($a['item_name'], $b['item_name']);
-        });
-
-        return $result;
+        return collect($itemsData)->sortBy('item_name')->values();
     }
+
+    /**
+     * Get detailed transaction data for a specific item
+     */
+    // public function getItemDetails(Request $request)
+    // {
+    //     $request->validate([
+    //         'item_id' => 'required|integer',
+    //         'from_date' => 'required|date',
+    //         'to_date' => 'required|date',
+    //     ]);
+
+    //     $itemId = $request->input('item_id');
+    //     $fromDate = $request->input('from_date');
+    //     $toDate = $request->input('to_date');
+
+    //     // Get all sale items for this item within date range
+    //     $saleItems = SaleItem::with(['sale.branch'])
+    //         ->where('item_id', $itemId)
+    //         ->whereHas('sale', function($query) use ($fromDate, $toDate) {
+    //             $query->where('status', 1)
+    //                   ->whereDate('created_at', '>=', $fromDate)
+    //                   ->whereDate('created_at', '<=', $toDate);
+    //         })
+    //         ->get();
+
+    //     // Group by branch
+    //     $branchData = [];
+    //     $totalQuantity = 0;
+
+    //     foreach ($saleItems as $saleItem) {
+    //         $sale = $saleItem->sale;
+    //         if (!$sale || !$sale->branch) continue;
+
+    //         $branchName = $sale->branch->name;
+
+    //         // Skip Main Branch
+    //         if ($branchName === 'Main Branch') continue;
+
+    //         if (!isset($branchData[$branchName])) {
+    //             $branchData[$branchName] = [
+    //                 'branch_name' => $branchName,
+    //                 'transactions' => [],
+    //                 'total_quantity' => 0,
+    //             ];
+    //         }
+
+    //         $branchData[$branchName]['transactions'][] = [
+    //             'receipt_no' => $sale->receipt_no,
+    //             'quantity' => $saleItem->quantity,
+    //             'unit_price' => $saleItem->unit_price,
+    //             'total_price' => $saleItem->total_price,
+    //             'date' => $sale->created_at->format('M d, Y H:i'),
+    //         ];
+
+    //         $branchData[$branchName]['total_quantity'] += $saleItem->quantity;
+    //         $totalQuantity += $saleItem->quantity;
+    //     }
+
+    //     // Sort branches by name
+    //     ksort($branchData);
+
+    //     return response()->json([
+    //         'success' => true,
+    //         'branches' => array_values($branchData),
+    //         'total_quantity' => $totalQuantity,
+    //     ]);
+    // }
 
     /**
      * Get detailed transaction data for a specific item
@@ -156,13 +314,25 @@ class ItemSalesController extends Controller
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
-        // Get all sale items for this item within date range
+        // අදාල පරිශීලකයාට (Admin H / Admin D) අවසර ඇති ආයතන ලබා ගැනීම
+        $branches = $this->getAllowedBranches();
+        $allowedBranchIds = $branches->pluck('id')->toArray();
+
+        if (empty($allowedBranchIds)) {
+            return response()->json([
+                'success' => true,
+                'branches' => [],
+                'total_quantity' => 0,
+            ]);
+        }
+
+        // Get all sale items for this item within date range and allowed branches
         $saleItems = SaleItem::with(['sale.branch'])
             ->where('item_id', $itemId)
-            ->whereHas('sale', function($query) use ($fromDate, $toDate) {
+            ->whereHas('sale', function($query) use ($fromDate, $toDate, $allowedBranchIds) {
                 $query->where('status', 1)
-                      ->whereDate('created_at', '>=', $fromDate)
-                      ->whereDate('created_at', '<=', $toDate);
+                      ->whereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59'])
+                      ->whereIn('branch_id', $allowedBranchIds); // ෆිල්ටර් කිරීම මෙතනින් සිදුවේ
             })
             ->get();
 
@@ -175,9 +345,6 @@ class ItemSalesController extends Controller
             if (!$sale || !$sale->branch) continue;
 
             $branchName = $sale->branch->name;
-            
-            // Skip Main Branch
-            if ($branchName === 'Main Branch') continue;
 
             if (!isset($branchData[$branchName])) {
                 $branchData[$branchName] = [
@@ -217,10 +384,11 @@ class ItemSalesController extends Controller
         $fromDate = $request->input('from_date', Carbon::today()->format('Y-m-d'));
         $toDate = $request->input('to_date', Carbon::today()->format('Y-m-d'));
 
-        $branches = Branch::where('status', 1)
-            ->where('name', '!=', 'Main Branch')
-            ->orderBy('name')
-            ->get();
+        $branches = $this->getAllowedBranches();
+
+        if ($branches->isEmpty()) {
+            return redirect()->back()->with('error', 'No authorized branches found.');
+        }
 
         $salesData = $this->getSalesData($fromDate, $toDate, $branches);
 
@@ -299,19 +467,21 @@ class ItemSalesController extends Controller
         // Get item details
         $item = Item::find($itemId);
 
-        // Get all branches
-        $branches = Branch::where('status', 1)
-            ->where('name', '!=', 'Main Branch')
-            ->orderBy('name')
-            ->get();
+        // අදාල පරිශීලකයාට (Admin H / Admin D) අවසර ඇති ආයතන ලබා ගැනීම
+        $branches = $this->getAllowedBranches();
+        $allowedBranchIds = $branches->pluck('id')->toArray();
 
-        // Get all sales for this item within date range
+        if (empty($allowedBranchIds)) {
+            return redirect()->back()->with('error', 'No authorized branches found.');
+        }
+
+        // Get all sales for this item within date range and allowed branches
         $salesItems = SaleItem::with(['sale.branch'])
             ->where('item_id', $itemId)
-            ->whereHas('sale', function ($query) use ($fromDate, $toDate) {
-                $query->whereDate('created_at', '>=', $fromDate)
-                    ->whereDate('created_at', '<=', $toDate)
-                    ->where('status', 1);
+            ->whereHas('sale', function ($query) use ($fromDate, $toDate, $allowedBranchIds) {
+                $query->whereBetween('created_at', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59'])
+                      ->where('status', 1)
+                      ->whereIn('branch_id', $allowedBranchIds); // ෆිල්ටර් කිරීම
             })
             ->get();
 
@@ -365,7 +535,7 @@ class ItemSalesController extends Controller
         $sheet->setCellValue('B3', $item->item_name ?? 'Unknown');
         $sheet->setCellValue('A4', 'Date Range:');
         $sheet->setCellValue('B4', $fromDate . ' to ' . $toDate);
-        
+
         $sheet->getStyle('A2:A4')->getFont()->setBold(true);
 
         $currentRow = 6;
@@ -424,7 +594,7 @@ class ItemSalesController extends Controller
         $sheet->getStyle('A' . $currentRow . ':B' . $currentRow)->getFont()->getColor()->setRGB('FFFFFF');
         $sheet->getStyle('A' . $currentRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
         $sheet->getStyle('B' . $currentRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        
+
         // Add border to remaining cells for visual consistency
         $sheet->getStyle('C' . $currentRow . ':E' . $currentRow)->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
@@ -448,5 +618,26 @@ class ItemSalesController extends Controller
             'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
             'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    private function getAllowedBranches()
+    {
+        $user = auth()->user();
+        $role = strtolower($user->role ?? '');
+        $name = str_replace(' ', '', strtolower($user->name ?? ''));
+        $username = str_replace(' ', '', strtolower($user->username ?? ''));
+
+        $isAdminH = ($role === 'holding' || str_contains($name, 'adminh') || str_contains($username, 'adminh'));
+        $isAdminD = ($role === 'delight' || str_contains($name, 'admind') || str_contains($username, 'admind'));
+
+        $query = Branch::where('status', 1)->where('name', '!=', 'Main Branch');
+
+        if ($isAdminH) {
+            $query->whereIn('id', [6, 7]);
+        } elseif ($isAdminD) {
+            $query->whereIn('id', [2, 3, 4, 5]);
+        }
+
+        return $query->orderBy('name')->get();
     }
 }

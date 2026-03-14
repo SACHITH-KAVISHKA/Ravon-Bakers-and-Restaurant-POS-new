@@ -143,16 +143,16 @@
             <div style="margin-bottom: 10px;">
                 <img src="{{ asset('images/Bird.jpg') }}" alt="Logo" style="width: 60px; height: 60px; border-radius: 50%; display: block; margin: 0 auto;">
             </div>
-            
+
             @if($sale->branch)
                 <!-- Branch Name -->
                 <div class="restaurant-name">{{ $sale->branch->display_name ?? $sale->branch->name }}</div>
-                
+
                 <!-- Company Name (if exists) -->
                 @if($sale->branch->company_name)
                     <div style="font-size: 12px; margin-top: 3px;">{{ $sale->branch->company_name }}</div>
                 @endif
-                
+
                 <!-- Branch Address and Phone -->
                 <div style="font-size: 10px; margin-top: 3px;">
                     @if($sale->branch->address)
@@ -161,17 +161,25 @@
                     @if($sale->branch->telephone)
                         <div>Tel: {{ $sale->branch->telephone }}</div>
                     @endif
+                    @if($sale->branch->vat_reg_no)
+                        <div>VAT Reg No: {{ $sale->branch->vat_reg_no }}</div>
+                    @endif
                 </div>
             @else
                 <!-- Fallback if no branch data -->
                 <div style="font-size: 10px; margin-top: 5px;">
                     <div>282/A 2, Kaduwela</div>
                     <div>Tel: 076 200 6007</div>
+                    <div>VAT Reg No: 103803284-7000</div>
                 </div>
             @endif
         </div>
 
         <div class="receipt-info">
+            <div>
+                <span>CUSTOMER:</span>
+                <span>{{ $sale->customer_name ?? 'Cash Customer' }}</span>
+            </div>
             <div>
                 <span>RECEIPT NO:</span>
                 <span>{{ $sale->receipt_no }}</span>
@@ -408,6 +416,7 @@
     <!-- Receipt Data for PDF -->
     <script type="application/json" id="receipt-data">
         {
+            "customerName": "{{ $sale->customer_name ?? 'Cash Customer' }}",
             "receiptNo": "{{ $sale->receipt_no }}",
             "userName": "{{ $sale->user_name }}",
             "branchName": "{{ $sale->branch && $sale->branch->display_name ? strtoupper($sale->branch->display_name) : ($sale->branch ? strtoupper($sale->branch->name) : 'REVON BAKER') }}",
@@ -473,7 +482,7 @@
         const logoUrl = "{!! asset('images/logo.jpg') !!}";
         let logoBase64 = @json($logoBase64Data); // Pre-loaded from server
         let circularLogoBase64 = null; // Will hold the circular version
-        
+
         // Function to create circular logo from square image
         function createCircularLogo(base64Image, size) {
             return new Promise((resolve, reject) => {
@@ -483,16 +492,16 @@
                     canvas.width = size;
                     canvas.height = size;
                     const ctx = canvas.getContext('2d');
-                    
+
                     // Create circular clipping path
                     ctx.beginPath();
                     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
                     ctx.closePath();
                     ctx.clip();
-                    
+
                     // Draw image
                     ctx.drawImage(img, 0, 0, size, size);
-                    
+
                     // Convert to base64
                     resolve(canvas.toDataURL('image/jpeg', 0.95));
                 };
@@ -500,23 +509,23 @@
                 img.src = base64Image;
             });
         }
-        
+
         console.log('Logo pre-loaded from server:', logoBase64 ? 'YES (length: ' + logoBase64.length + ')' : 'NO');
-        
+
         // Function to convert image URL to base64
         function convertImageToBase64(url) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 // Remove crossOrigin for same-domain images
-                
+
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
                     canvas.width = this.width;
                     canvas.height = this.height;
-                    
+
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(this, 0, 0);
-                    
+
                     try {
                         const base64 = canvas.toDataURL('image/jpeg', 0.95);
                         resolve(base64);
@@ -525,17 +534,17 @@
                         reject(e);
                     }
                 };
-                
+
                 img.onerror = function(e) {
                     console.error('❌ Image load failed:', e);
                     reject(e);
                 };
-                
+
                 // Load image without timestamp first
                 img.src = url;
             });
         }
-        
+
         // Load logo on page load
         window.addEventListener('load', function() {
             convertImageToBase64(logoUrl)
@@ -558,10 +567,10 @@
                     console.error('Error creating circular logo:', err);
                 }
             }
-            
+
             // Logo is already pre-loaded from server as base64
             console.log('PDF Generation - Logo status:', circularLogoBase64 ? 'Ready!' : 'Not available');
-            
+
             const {
                 jsPDF
             } = window.jspdf;
@@ -595,7 +604,7 @@
                     const logoSize = 16;
                     const logoX = pageWidth / 2 - logoSize / 2;
                     const logoY = yPosition;
-                    
+
                     pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
                     yPosition += 20;
                     console.log('Circular logo added successfully!');
@@ -630,6 +639,10 @@
             });
             yPosition += 4;
             pdf.text('Phone: ' + receiptData.branchPhone, pageWidth / 2, yPosition, {
+                align: 'center'
+            });
+            yPosition += 4;
+            pdf.text('VAT Reg No: ' + receiptData.branchVatRegNo, pageWidth / 2, yPosition, {
                 align: 'center'
             });
             yPosition += 8;
@@ -686,7 +699,7 @@
                             const logoSize = 12;
                             const logoX = pageWidth / 2 - logoSize / 2;
                             const logoY = yPosition;
-                            
+
                             pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
                             yPosition += 16;
                         } catch (e) {

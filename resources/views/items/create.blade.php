@@ -88,6 +88,28 @@
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
                             </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-12 col-md-12">
+                                    <label class="form-label fw-semibold">Tax Configuration</label>
+                                    <div class="d-flex gap-4 p-3 border rounded bg-light">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="vat_applicable" id="vat_applicable" value="1"
+                                                {{ old('vat_applicable', isset($item) ? $item->vat_applicable : 0) ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold" for="vat_applicable">
+                                                VAT Applicable (18%)
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="sscl_applicable" id="sscl_applicable" value="1"
+                                                {{ old('sscl_applicable', isset($item) ? $item->sscl_applicable : 0) ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold" for="sscl_applicable">
+                                                SSCL Applicable (2.5%)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Select if this item is subject to government taxes.</small>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mt-3">

@@ -1489,16 +1489,23 @@
 
                 <!-- Totals Section -->
                 <div class="totals-section">
-                    <!-- <div class="total-row">
-                        <span>Sub Total</span>
-                        <span id="subtotal">LKR 0.00</span>
-                    </div> -->
+                    <div class="total-row">
+                        <span>Sub Total (Base)</span>
+                        <span id="subtotal-display">LKR 0.00</span>
+                    </div>
+                    <div class="total-row text-muted" style="font-size: 12px;">
+                        <span>SSCL ({{ $ssclRate }}%)</span>
+                        <span id="sscl-display">LKR 0.00</span>
+                    </div>
+                    <div class="total-row text-muted" style="font-size: 12px;">
+                        <span>VAT ({{ $vatRate }}%)</span>
+                        <span id="vat-display">LKR 0.00</span>
+                    </div>
                     <div class="total-row grand-total">
-                        <span>TOTAL</span>
+                        <span>GRAND TOTAL</span>
                         <span id="total">LKR 0.00</span>
                     </div>
                 </div>
-
                 <!-- Checkout Button -->
                 <button type="button" class="checkout-btn" id="checkout-btn" onclick="openPaymentModal()" disabled>
                     <i class="bi bi-credit-card"></i> Process Payment
@@ -1615,6 +1622,14 @@
                                         <span>Sub Total</span>
                                         <span id="modal-subtotal">0.00</span>
                                     </div>
+                                    <div class="summary-row" style="font-size: 12px; color: #666;">
+                                        <span>SSCL ({{ $ssclRate }}%)</span>
+                                        <span id="modal-sscl">0.00</span>
+                                    </div>
+                                    <div class="summary-row" style="font-size: 12px; color: #666;">
+                                        <span>VAT ({{ $vatRate }}%)</span>
+                                        <span id="modal-vat">0.00</span>
+                                    </div>
                                     <div class="summary-row total-row">
                                         <span>Total ——></span>
                                         <span id="modal-total">0.00</span>
@@ -1677,6 +1692,10 @@
     <script src="{{ asset('js/prevent-double-submit.js') }}"></script>
 
     <script>
+
+
+        const VAT_PERCENT = {{ $vatRate }};
+        const SSCL_PERCENT = {{ $ssclRate }};
 
         let currentImportedOrderId = {{ $importedOrderId ?? 'null' }};
 
@@ -1802,7 +1821,8 @@
                 name: '{{ Auth::user()->branch->display_name ?? Auth::user()->branch->name ?? "RAVON BAKERS" }}',
                 companyName: '{{ Auth::user()->branch->company_name ?? "" }}',
                 address: '{{ Auth::user()->branch->address ?? "282/A 2, Kaduwela" }}',
-                telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}'
+                telephone: '{{ Auth::user()->branch->telephone ?? "076 200 6007" }}',
+                vatRegNo: '{{ Auth::user()->branch->vat_reg_no ?? "" }}'
             };
 
         // Logo URL for PDF - encode logo image as base64 on server side
@@ -1975,33 +1995,59 @@
         }
 
         // Update totals
-        function updateTotals() {
-            let subtotal = 0;
+        // function updateTotals() {
+        //     let subtotal = 0;
 
-            // Calculate subtotal from cart items
+        //     // Calculate subtotal from cart items
+        //     if (cart && cart.length > 0) {
+        //         subtotal = cart.reduce((sum, item) => {
+        //             const itemPrice = parseFloat(item.price) || 0;
+        //             const itemQuantity = parseInt(item.quantity) || 0;
+        //             return sum + (itemPrice * itemQuantity);
+        //         }, 0);
+        //     }
+
+        //     const total = subtotal; // No discount or tax
+
+        //     // Update subtotal element if it exists
+        //     const subtotalElement = document.getElementById('subtotal');
+        //     if (subtotalElement) {
+        //         subtotalElement.textContent = `LKR ${subtotal.toFixed(2)}`;
+        //     }
+
+        //     // Update total element
+        //     const totalElement = document.getElementById('total');
+        //     if (totalElement) {
+        //         totalElement.textContent = `LKR ${total.toFixed(2)}`;
+        //     }
+
+        //     // Update checkout button based on cart
+        //     updateCheckoutButton();
+        // }
+
+        function updateTotals() {
+            let totalInclusive = 0;
+
+            // Cart එකේ තියෙන අයිතම වල Inclusive මුළු එකතුව ගන්න
             if (cart && cart.length > 0) {
-                subtotal = cart.reduce((sum, item) => {
-                    const itemPrice = parseFloat(item.price) || 0;
-                    const itemQuantity = parseInt(item.quantity) || 0;
-                    return sum + (itemPrice * itemQuantity);
+                totalInclusive = cart.reduce((sum, item) => {
+                    return sum + (item.price * item.quantity);
                 }, 0);
             }
 
-            const total = subtotal; // No discount or tax
+            // Dynamic Factor එක හැදීම (උදා: (1 + 0.025) * (1 + 0.18) = 1.2095)
+            const taxFactor = (1 + (SSCL_PERCENT / 100)) * (1 + (VAT_PERCENT / 100));
 
-            // Update subtotal element if it exists
-            const subtotalElement = document.getElementById('subtotal');
-            if (subtotalElement) {
-                subtotalElement.textContent = `LKR ${subtotal.toFixed(2)}`;
-            }
+            const baseAmount = totalInclusive / taxFactor;
+            const ssclAmount = baseAmount * (SSCL_PERCENT / 100);
+            const vatAmount = (baseAmount + ssclAmount) * (VAT_PERCENT / 100);
 
-            // Update total element
-            const totalElement = document.getElementById('total');
-            if (totalElement) {
-                totalElement.textContent = `LKR ${total.toFixed(2)}`;
-            }
+            // UI එකට Update කිරීම
+            document.getElementById('subtotal-display').textContent = `LKR ${baseAmount.toFixed(2)}`;
+            document.getElementById('sscl-display').textContent = `LKR ${ssclAmount.toFixed(2)}`;
+            document.getElementById('vat-display').textContent = `LKR ${vatAmount.toFixed(2)}`;
+            document.getElementById('total').textContent = `LKR ${totalInclusive.toFixed(2)}`;
 
-            // Update checkout button based on cart
             updateCheckoutButton();
         }
 
@@ -2529,87 +2575,175 @@
             updateModalTotals();
         }
 
-        // Update modal totals
+        // // Update modal totals
+        // function updateModalTotals() {
+
+        //     const totalInclusive = getTotalAmount(); // මෙය Inclusive Total එක ලබා දෙයි
+
+        //     // බදු වෙන් කිරීම
+        //     const baseAmount = totalInclusive / 1.2095;
+        //     const ssclAmount = baseAmount * 0.025;
+        //     const vatAmount = (baseAmount + ssclAmount) * 0.18;
+
+        //     // const ssclAmount = subtotal * ssclRate;
+        //     // const taxableAmount = subtotal + ssclAmount;
+        //     // const vatAmount = taxableAmount * vatRate;
+        //     // const grandTotal = taxableAmount + vatAmount;
+
+        //     // Modal එකේ පෙන්වීම
+        //     document.getElementById('modal-subtotal').textContent = baseAmount.toFixed(2);
+        //     document.getElementById('modal-sscl').textContent = ssclAmount.toFixed(2);
+        //     document.getElementById('modal-vat').textContent = vatAmount.toFixed(2);
+        //     document.getElementById('modal-total').textContent = totalInclusive.toFixed(2);
+
+        //     let balance = 0;
+        //     let creditAmount = 0;
+        //     const total = totalInclusive;
+
+        //     // Calculate based on payment method
+        //     if (modalSelectedPaymentMethod === 'CASH') {
+        //         // CASH: show cash amount and calculate balance/credit
+        //         document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
+        //         document.getElementById('modal-card-amount').textContent = '0.00';
+
+        //         if (modalCustomerPayment < total) {
+        //             // Insufficient payment - calculate credit
+        //             creditAmount = total - modalCustomerPayment;
+        //             balance = 0;
+        //         } else {
+        //             // Sufficient payment - calculate change
+        //             balance = modalCustomerPayment - total;
+        //         }
+        //     } else if (modalSelectedPaymentMethod === 'CARD') {
+        //         // CARD: card amount and calculate balance/credit
+        //         document.getElementById('modal-cash-amount').textContent = '0.00';
+        //         document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
+
+        //         if (modalCardPayment < total) {
+        //             // Insufficient payment - calculate credit
+        //             creditAmount = total - modalCardPayment;
+        //             balance = 0;
+        //         } else if (modalCardPayment > total) {
+        //             // Overpayment - show balance (change)
+        //             balance = modalCardPayment - total;
+        //             creditAmount = 0;
+        //         } else {
+        //             // Exact payment
+        //             balance = 0;
+        //             creditAmount = 0;
+        //         }
+        //     } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
+        //         // CARD & CASH: show both amounts and calculate balance/credit
+        //         document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
+        //         document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
+        //         const totalPaid = modalCustomerPayment + modalCardPayment;
+
+        //         if (totalPaid < total) {
+        //             // Insufficient payment - calculate credit
+        //             creditAmount = total - totalPaid;
+        //             balance = 0;
+        //         } else {
+        //             // Sufficient payment - calculate change
+        //             balance = totalPaid - total;
+        //         }
+        //     } else if (modalSelectedPaymentMethod === 'CREDIT') {
+        //         // CREDIT: entire amount as credit
+        //         document.getElementById('modal-cash-amount').textContent = '0.00';
+        //         document.getElementById('modal-card-amount').textContent = '0.00';
+        //         creditAmount = total;
+        //         balance = 0;
+        //     }
+
+        //     // Update balance display
+        //     document.getElementById('modal-balance').textContent = balance.toFixed(2);
+
+        //     // Update credit display
+        //     const creditElement = document.getElementById('modal-credit');
+        //     const creditRow = document.getElementById('modal-credit-row');
+
+        //     if (creditElement && creditRow) {
+        //         creditElement.textContent = creditAmount.toFixed(2);
+        //         // Show/hide credit row based on whether there's credit
+        //         creditRow.style.display = creditAmount > 0 ? 'flex' : 'none';
+        //     }
+
+        //     // Update print button state after totals are updated
+        //     toggleModalPrintButton();
+        // }
+
         function updateModalTotals() {
-            const total = getTotalAmount();
+        const totalInclusive = getTotalAmount(); // මෙය Inclusive Total එක ලබා දෙයි
 
-            // Update subtotal and total
-            document.getElementById('modal-subtotal').textContent = total.toFixed(2);
-            document.getElementById('modal-total').textContent = total.toFixed(2);
+        const taxFactor = (1 + (SSCL_PERCENT / 100)) * (1 + (VAT_PERCENT / 100));
 
-            let balance = 0;
-            let creditAmount = 0;
+        const baseAmount = totalInclusive / taxFactor;
+        const ssclAmount = baseAmount * (SSCL_PERCENT / 100);
+        const vatAmount = (baseAmount + ssclAmount) * (VAT_PERCENT / 100);
 
-            // Calculate based on payment method
-            if (modalSelectedPaymentMethod === 'CASH') {
-                // CASH: show cash amount and calculate balance/credit
-                document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
-                document.getElementById('modal-card-amount').textContent = '0.00';
+        // Modal එකේ පෙන්වීම
+        document.getElementById('modal-subtotal').textContent = baseAmount.toFixed(2);
+        document.getElementById('modal-sscl').textContent = ssclAmount.toFixed(2);
+        document.getElementById('modal-vat').textContent = vatAmount.toFixed(2);
+        document.getElementById('modal-total').textContent = totalInclusive.toFixed(2);
 
-                if (modalCustomerPayment < total) {
-                    // Insufficient payment - calculate credit
-                    creditAmount = total - modalCustomerPayment;
-                    balance = 0;
-                } else {
-                    // Sufficient payment - calculate change
-                    balance = modalCustomerPayment - total;
-                }
-            } else if (modalSelectedPaymentMethod === 'CARD') {
-                // CARD: card amount and calculate balance/credit
-                document.getElementById('modal-cash-amount').textContent = '0.00';
-                document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
+        let balance = 0;
+        let creditAmount = 0;
+        const total = totalInclusive; // ගෙවීමට ඇති මුළු මුදල
 
-                if (modalCardPayment < total) {
-                    // Insufficient payment - calculate credit
-                    creditAmount = total - modalCardPayment;
-                    balance = 0;
-                } else if (modalCardPayment > total) {
-                    // Overpayment - show balance (change)
-                    balance = modalCardPayment - total;
-                    creditAmount = 0;
-                } else {
-                    // Exact payment
-                    balance = 0;
-                    creditAmount = 0;
-                }
-            } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
-                // CARD & CASH: show both amounts and calculate balance/credit
-                document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
-                document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
-                const totalPaid = modalCustomerPayment + modalCardPayment;
+        // ගෙවීම් ක්‍රමය අනුව ගණනය කිරීම්
+        if (modalSelectedPaymentMethod === 'CASH') {
+            document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
+            document.getElementById('modal-card-amount').textContent = '0.00';
 
-                if (totalPaid < total) {
-                    // Insufficient payment - calculate credit
-                    creditAmount = total - totalPaid;
-                    balance = 0;
-                } else {
-                    // Sufficient payment - calculate change
-                    balance = totalPaid - total;
-                }
-            } else if (modalSelectedPaymentMethod === 'CREDIT') {
-                // CREDIT: entire amount as credit
-                document.getElementById('modal-cash-amount').textContent = '0.00';
-                document.getElementById('modal-card-amount').textContent = '0.00';
-                creditAmount = total;
+            if (modalCustomerPayment < total) {
+                creditAmount = total - modalCustomerPayment;
                 balance = 0;
+            } else {
+                balance = modalCustomerPayment - total;
             }
-
-            // Update balance display
-            document.getElementById('modal-balance').textContent = balance.toFixed(2);
-
-            // Update credit display
-            const creditElement = document.getElementById('modal-credit');
-            const creditRow = document.getElementById('modal-credit-row');
-
-            if (creditElement && creditRow) {
-                creditElement.textContent = creditAmount.toFixed(2);
-                // Show/hide credit row based on whether there's credit
-                creditRow.style.display = creditAmount > 0 ? 'flex' : 'none';
-            }
-
-            // Update print button state after totals are updated
-            toggleModalPrintButton();
         }
+        else if (modalSelectedPaymentMethod === 'CARD') {
+            document.getElementById('modal-cash-amount').textContent = '0.00';
+            document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
+
+            if (modalCardPayment < total) {
+                creditAmount = total - modalCardPayment;
+                balance = 0;
+            } else {
+                balance = modalCardPayment - total;
+            }
+        }
+        else if (modalSelectedPaymentMethod === 'CARD & CASH') {
+            document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
+            document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
+            const totalPaid = modalCustomerPayment + modalCardPayment;
+
+            if (totalPaid < total) {
+                creditAmount = total - totalPaid;
+                balance = 0;
+            } else {
+                balance = totalPaid - total;
+            }
+        }
+        else if (modalSelectedPaymentMethod === 'CREDIT') {
+            document.getElementById('modal-cash-amount').textContent = '0.00';
+            document.getElementById('modal-card-amount').textContent = '0.00';
+            creditAmount = total;
+            balance = 0;
+        }
+
+        // Balance සහ Credit UI එකට දාන්න
+        document.getElementById('modal-balance').textContent = balance.toFixed(2);
+        const creditElement = document.getElementById('modal-credit');
+        const creditRow = document.getElementById('modal-credit-row');
+
+        if (creditElement && creditRow) {
+            creditElement.textContent = creditAmount.toFixed(2);
+            creditRow.style.display = creditAmount > 0 ? 'flex' : 'none';
+        }
+
+        toggleModalPrintButton();
+    }
 
         // Check if cart has beverage items (Bar items)
         function hasBeverageItems() {
@@ -3443,6 +3577,7 @@
 
                 // Get stored cart data or use current cart
                 const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
+                const totalInclusive = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                 const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
                 const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ?
                     parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) :
@@ -3453,6 +3588,13 @@
 
                 // Calculate totals from cart
                 const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+                // Dynamic Tax Calculation (Reverse)
+                const taxFactor = (1 + (SSCL_PERCENT / 100)) * (1 + (VAT_PERCENT / 100));
+                const baseAmount = totalInclusive / taxFactor;
+                const ssclAmount = baseAmount * (SSCL_PERCENT / 100);
+                const vatAmount = (baseAmount + ssclAmount) * (VAT_PERCENT / 100);
+
 
                 // Calculate balance based on payment method
                 let balance = 0;
@@ -3612,11 +3754,27 @@
                 pdf.text('Tel: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
                     align: 'center'
                 });
-                yPosition += 6;
+                yPosition += 4;
 
-                // Separator line
-                pdf.setLineWidth(0.5);
-                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                if (branchInfo.vatRegNo && branchInfo.vatRegNo.trim() !== '') {
+                pdf.text('VAT Reg No: ' + branchInfo.vatRegNo, pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
+                yPosition += 4;
+                }
+                yPosition += 2;
+
+                // // Separator line
+                // pdf.setLineWidth(0.5);
+                // pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                // yPosition += 6;
+
+                // Receipt information
+                pdf.setFontSize(12);
+                pdf.setFont('courier', 'bold');
+                pdf.text('INVOICE', pageWidth / 2, yPosition, {
+                    align: 'center'
+                });
                 yPosition += 6;
 
                 // Receipt information
@@ -3625,7 +3783,13 @@
 
                 checkPageBreak(25); // Check space for receipt info block
 
-                pdf.text('RECEIPT NO:', leftMargin, yPosition);
+                pdf.text('CUSTOMER:', leftMargin, yPosition);
+                pdf.text('Cash Customer', pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
+
+                pdf.text('INVOICE NO:', leftMargin, yPosition);
                 pdf.text(receiptData.receiptNo, pageWidth - rightMargin, yPosition, {
                     align: 'right'
                 });
@@ -3660,7 +3824,7 @@
 
                 // 2. Customer Name (if exists)
                 if (receiptData.customerName) {
-                    pdf.text('CUSTOMER:', leftMargin, yPosition);
+                    pdf.text('Ordered By:', leftMargin, yPosition);
 
                     // Optional formatting
                     let cName = receiptData.customerName;
@@ -3687,6 +3851,9 @@
                 receiptData.items.forEach((item, index) => {
                     checkPageBreak(12); // Each item needs about 12mm space
 
+                    const itemBaseUnitPrice = parseFloat(item.unitPrice) / taxFactor;
+                    const itemBaseLineTotal = itemBaseUnitPrice * item.quantity;
+
                     // Item name and total price
                     pdf.setFont('courier', 'bold');
                     pdf.setFontSize(9);
@@ -3698,7 +3865,7 @@
                     }
 
                     pdf.text(itemName, leftMargin, yPosition);
-                    pdf.text(`LKR ${item.totalPrice}`, pageWidth - rightMargin, yPosition, {
+                    pdf.text(`LKR ${itemBaseLineTotal.toFixed(2)}`, pageWidth - rightMargin, yPosition, {
                         align: 'right'
                     });
                     yPosition += 4;
@@ -3706,7 +3873,7 @@
                     // Quantity and unit price
                     pdf.setFont('courier', 'normal');
                     pdf.setFontSize(8);
-                    pdf.text(`${item.quantity} x LKR ${item.unitPrice}`, leftMargin + 2, yPosition);
+                    pdf.text(`${item.quantity} x LKR ${itemBaseUnitPrice.toFixed(2)}`, leftMargin + 2, yPosition);
                     yPosition += 6;
                 });
 
@@ -3721,18 +3888,40 @@
 
                 pdf.setFont('courier', 'normal');
                 pdf.setFontSize(9);
-                pdf.text('Sub Total:', leftMargin, yPosition);
-                pdf.text(`LKR ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
-                    align: 'right'
-                });
+                // pdf.text('Sub Total:', leftMargin, yPosition);
+                // pdf.text(`LKR ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
+                //     align: 'right'
+                // });
+                // yPosition += 6;
+
+                // pdf.setFont('courier', 'bold');
+                // pdf.setFontSize(11);
+                // pdf.text('TOTAL:', leftMargin, yPosition);
+                // pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
+                //     align: 'right'
+                // });
+                // yPosition += 8;
+
+                // 1. Base Amount (Sub Total)
+                pdf.text('Sub Total (Base):', leftMargin, yPosition);
+                pdf.text(`LKR ${baseAmount.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
+                yPosition += 5;
+
+                // 2. SSCL Dynamic Label
+                pdf.text(`SSCL (${SSCL_PERCENT}%):`, leftMargin, yPosition);
+                pdf.text(`LKR ${ssclAmount.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
+                yPosition += 5;
+
+                // 3. VAT Dynamic Label
+                pdf.text(`VAT (${VAT_PERCENT}%):`, leftMargin, yPosition);
+                pdf.text(`LKR ${vatAmount.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
                 yPosition += 6;
 
+                // 4. Grand Total
                 pdf.setFont('courier', 'bold');
                 pdf.setFontSize(11);
                 pdf.text('TOTAL:', leftMargin, yPosition);
-                pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
-                    align: 'right'
-                });
+                pdf.text(`LKR ${totalInclusive.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
                 yPosition += 8;
 
                 // Payment information
@@ -3880,7 +4069,7 @@
                 // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const receiptPrinterName = "XP-80C"; // Set your receipt printer name here
+                const receiptPrinterName = "OutletPOS"; // Set your receipt printer name here
                 await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
 
                 console.log("Receipt PDF has been sent to QZ Tray.");
@@ -4063,7 +4252,7 @@
                   // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const botPrinterName = "XP-80C";
+                const botPrinterName = "OutlePOS";
                 await printPDFwithQZ(pdfBase64, botPrinterName, "BOT");
 
                 // showSuccess("BOT sent to printer!");

@@ -7,6 +7,8 @@ use App\Models\Category;
 use App\Models\Inventory;
 use App\Models\InventoryRequestItem;
 use App\Models\Branch;
+use App\Models\ItemBranchPrice;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -98,12 +100,16 @@ class ItemController extends Controller
         }
 
         $items = $query->orderBy('item_name', 'asc')->paginate(100);
-        $branches = $branchQuery->get(); // View එකට යැවීමට Branches ලබාගැනීම
+        $branches = $branchQuery->get(); // Give branches to view for pricing display and filtering
 
         $canManageItems = true;
 
-        // $branches දත්තය compact හරහා පිටුවට යැවීම
-        return view('items.index', compact('items', 'canManageItems', 'branches'));
+        // Database eken tax rates tika gannawa
+        $vatRate = \App\Models\Setting::where('key', 'vat_rate')->value('value') ?? 18;
+        $ssclRate = \App\Models\Setting::where('key', 'sscl_rate')->value('value') ?? 2.5;
+
+        // $branches data compact to view for branch-specific pricing display and filtering
+        return view('items.index', compact('items', 'canManageItems', 'branches','vatRate', 'ssclRate'));
     }
 
     /**
@@ -143,6 +149,8 @@ class ItemController extends Controller
             // 'price' moved to branch-specific pricing
             'description' => 'nullable|string',
             'stock_count' => 'required|boolean',
+            'vat_applicable' => 'nullable|boolean',
+            'sscl_applicable' => 'nullable|boolean',
         ]);
 
         try {
@@ -173,6 +181,8 @@ class ItemController extends Controller
                     'description' => $request->description,
                     'is_active' => true,
                     'stock_count' => $request->stock_count ?? true,
+                    'vat_applicable' => $request->has('vat_applicable'),
+                    'sscl_applicable' => $request->has('sscl_applicable'),
                 ]);
             }
 
@@ -271,6 +281,8 @@ class ItemController extends Controller
             // 'price' moved to branch-specific pricing
             'description' => 'nullable|string',
             'stock_count' => 'required|boolean',
+            'vat_applicable' => 'nullable|boolean',
+            'sscl_applicable' => 'nullable|boolean',
         ]);
 
         try {
@@ -282,6 +294,8 @@ class ItemController extends Controller
                 //'price' => moved to branch prices
                 'description' => $request->description,
                 'stock_count' => $request->stock_count ?? true,
+                'vat_applicable' => $request->has('vat_applicable'),
+                'sscl_applicable' => $request->has('sscl_applicable'),
             ]);
 
             // Update branch-specific prices if provided

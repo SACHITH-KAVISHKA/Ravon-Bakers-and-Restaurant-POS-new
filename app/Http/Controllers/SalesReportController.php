@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Branch;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -767,8 +768,12 @@ class SalesReportController extends Controller
         // Load the sale with its related items and branch
         $sale->load(['saleItems', 'branch']);
 
+        // Give the view access to VAT and SSCL rates from settings
+        $vatRate = \App\Models\Setting::where('key', 'vat_rate')->value('value') ?? 18;
+        $ssclRate = \App\Models\Setting::where('key', 'sscl_rate')->value('value') ?? 2.5;
+
         // Return the sales report receipt view
-        return view('sales-report.receipt', compact('sale'));
+        return view('sales-report.receipt', compact('sale', 'vatRate', 'ssclRate' ));
     }
 
     public function delete(Request $request)

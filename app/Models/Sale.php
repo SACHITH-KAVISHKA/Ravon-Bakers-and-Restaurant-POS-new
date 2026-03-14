@@ -14,6 +14,8 @@ class Sale extends Model
         'branch_id',
         'user_name',
         'subtotal',
+        'sscl_amount',
+        'vat_amount',
         'discount',
         'tax',
         'total',

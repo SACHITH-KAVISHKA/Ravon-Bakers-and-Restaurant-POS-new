@@ -151,16 +151,16 @@
             <div style="margin-bottom: 10px;">
                 <img src="{{ asset('images/logo.jpg') }}" alt="Logo" style="width: 60px; height: 60px; border-radius: 50%; display: block; margin: 0 auto;">
             </div>
-            
+
             @if($sale->branch)
                 <!-- Branch Name -->
                 <div class="restaurant-name">{{ $sale->branch->display_name ?? $sale->branch->name }}</div>
-                
+
                 <!-- Company Name (if exists) -->
                 @if($sale->branch->company_name)
                     <div style="font-size: 12px; margin-top: 3px;">{{ $sale->branch->company_name }}</div>
                 @endif
-                
+
                 <!-- Branch Address and Phone -->
                 <div style="font-size: 10px; margin-top: 3px;">
                     @if($sale->branch->address)
@@ -169,19 +169,28 @@
                     @if($sale->branch->telephone)
                         <div>Tel: {{ $sale->branch->telephone }}</div>
                     @endif
+                    @if($sale->branch->vat_reg_no)
+                        <div>VAT Reg No: {{ $sale->branch->vat_reg_no }}</div>
+                    @endif
                 </div>
+                <div style="font-size: 12px; font-weight: bold; margin-top: 10px;">INVOICE</div>`
             @else
                 <!-- Fallback if no branch data -->
                 <div style="font-size: 10px; margin-top: 5px;">
                     <div>282/A 2, Kaduwela</div>
                     <div>Tel: 076 200 6007</div>
+                    <div>VAT Reg No: 103803284-7000</div>
                 </div>
             @endif
         </div>
 
         <div class="receipt-info">
             <div>
-                <span>RECEIPT NO:</span>
+                <span>CUSTOMER:</span>
+                <span>{{ $sale->customer_name ?? 'Cash Customer' }}</span>
+            </div>
+            <div>
+                <span>INVOICE NO:</span>
                 <span>{{ $sale->receipt_no }}</span>
             </div>
             <div>
@@ -199,21 +208,41 @@
         </div>
 
         <div class="items">
+            @php
+                // Calculate the combined tax factor to derive base prices
+                $taxFactor = (1 + ($ssclRate / 100)) * (1 + ($vatRate / 100));
+            @endphp
+
             @foreach($sale->saleItems as $item)
+            @php
+                // Without tax factor, we can derive the base unit price and line total for each item
+                $itemBaseUnitPrice = $item->unit_price / $taxFactor;
+                $itemBaseLineTotal = $itemBaseUnitPrice * $item->quantity;
+            @endphp
             <div class="item">
                 <div class="item-details">
                     <div class="item-name">{{ $item->item_name }}</div>
-                    <div class="item-qty-price">{{ $item->quantity }} x LKR {{ number_format($item->unit_price, 2) }}</div>
+                    <div class="item-qty-price">{{ $item->quantity }} x LKR {{ number_format($itemBaseUnitPrice, 2) }}</div>
                 </div>
-                <div>LKR {{ number_format($item->total_price, 2) }}</div>
+                <div>LKR {{ number_format($itemBaseLineTotal, 2) }}</div>
             </div>
             @endforeach
         </div>
 
         <div class="totals">
             <div class="total-row">
-                <span>Sub Total:</span>
+                <span>Sub Total (Base):</span>
                 <span>LKR {{ number_format($sale->subtotal, 2) }}</span>
+            </div>
+
+            <div class="total-row" style="font-size: 11px; color: #555;">
+            <span>SSCL ({{ $ssclRate }}%):</span>
+            <span>LKR {{ number_format($sale->sscl_amount, 2) }}</span>
+            </div>
+
+            <div class="total-row" style="font-size: 11px; color: #555;">
+                <span>VAT ({{ $vatRate }}%):</span>
+                <span>LKR {{ number_format($sale->vat_amount, 2) }}</span>
             </div>
 
             <div class="total-row grand-total">
@@ -305,7 +334,7 @@
             </div>
             <div>Come again!</div>
             <div style="margin-top: 10px; font-size: 8px; color: #666;">
-                <div>System by SKM Labs</div>
+                <div>System by Jayawardena Group</div>
             </div>
         </div>
     </div>

@@ -15,11 +15,15 @@ class Item extends Model
         'description',
         'is_active',
         'stock_count',
+        'vat_applicable',
+        'sscl_applicable',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'stock_count' => 'boolean',
+        'vat_applicable' => 'boolean',
+        'sscl_applicable' => 'boolean',
     ];
 
     /**

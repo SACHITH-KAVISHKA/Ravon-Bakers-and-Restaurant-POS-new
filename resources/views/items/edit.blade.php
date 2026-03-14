@@ -64,22 +64,22 @@
                                     <label class="form-label">Include in Stock Count *</label>
                                     <div class="d-flex gap-4 mt-2">
                                         <div class="form-check">
-                                            <input class="form-check-input @error('stock_count') is-invalid @enderror" 
-                                                   type="radio" 
-                                                   name="stock_count" 
-                                                   id="stock_count_yes" 
-                                                   value="1" 
+                                            <input class="form-check-input @error('stock_count') is-invalid @enderror"
+                                                   type="radio"
+                                                   name="stock_count"
+                                                   id="stock_count_yes"
+                                                   value="1"
                                                    @checked(old('stock_count', $item->stock_count) == 1)>
                                             <label class="form-check-label" for="stock_count_yes">
                                                 Yes
                                             </label>
                                         </div>
                                         <div class="form-check">
-                                            <input class="form-check-input @error('stock_count') is-invalid @enderror" 
-                                                   type="radio" 
-                                                   name="stock_count" 
-                                                   id="stock_count_no" 
-                                                   value="0" 
+                                            <input class="form-check-input @error('stock_count') is-invalid @enderror"
+                                                   type="radio"
+                                                   name="stock_count"
+                                                   id="stock_count_no"
+                                                   value="0"
                                                    @checked(old('stock_count', $item->stock_count) == 0)>
                                             <label class="form-check-label" for="stock_count_no">
                                                 No
@@ -93,6 +93,28 @@
                                     @error('stock_count')
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
+                                </div>
+                            </div>
+                            <div class="row g-3 mt-2">
+                                <div class="col-12 col-md-12">
+                                    <label class="form-label fw-semibold">Tax Configuration</label>
+                                    <div class="d-flex gap-4 p-3 border rounded bg-light">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="vat_applicable" id="vat_applicable" value="1"
+                                                {{ old('vat_applicable', isset($item) ? $item->vat_applicable : 0) ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold" for="vat_applicable">
+                                                VAT Applicable (18%)
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="sscl_applicable" id="sscl_applicable" value="1"
+                                                {{ old('sscl_applicable', isset($item) ? $item->sscl_applicable : 0) ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-bold" for="sscl_applicable">
+                                                SSCL Applicable (2.5%)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Select if this item is subject to government taxes.</small>
                                 </div>
                             </div>
 

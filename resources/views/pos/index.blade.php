@@ -3789,6 +3789,12 @@
                 });
                 yPosition += 5;
 
+                pdf.text('CUSTOMER VAT:', leftMargin, yPosition);
+                pdf.text('Not eligible for VAT', pageWidth - rightMargin, yPosition, {
+                    align: 'right'
+                });
+                yPosition += 5;
+
                 pdf.text('INVOICE NO:', leftMargin, yPosition);
                 pdf.text(receiptData.receiptNo, pageWidth - rightMargin, yPosition, {
                     align: 'right'
@@ -4069,7 +4075,7 @@
                 // Generate Base64 String
                 const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
 
-                const receiptPrinterName = "OutletPOS"; // Set your receipt printer name here
+                const receiptPrinterName = "Microsoft Print to PDF"; // Set your receipt printer name here
                 await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
 
                 console.log("Receipt PDF has been sent to QZ Tray.");

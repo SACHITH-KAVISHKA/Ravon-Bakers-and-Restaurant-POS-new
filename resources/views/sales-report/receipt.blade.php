@@ -190,6 +190,10 @@
                 <span>{{ $sale->customer_name ?? 'Cash Customer' }}</span>
             </div>
             <div>
+                <span>CUSTOMER VAT:</span>
+                <span>{{ $sale->customer_vat ?? 'Not eligible for VAT' }}</span>
+            </div>
+            <div>
                 <span>INVOICE NO:</span>
                 <span>{{ $sale->receipt_no }}</span>
             </div>

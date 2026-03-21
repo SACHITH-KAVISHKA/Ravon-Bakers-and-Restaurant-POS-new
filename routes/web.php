@@ -12,6 +12,7 @@ use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\KotController;
+use App\Http\Controllers\VatReportController;
 use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -83,6 +84,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/wastage-item-details', [SupervisorController::class, 'getWastageItemDetails'])
                 ->name('wastage-item-details');
         });
+    });
+
+        Route::middleware(['auth', 'can:manage-users'])->group(function () {
+        Route::get('/reports/vat', [VatReportController::class, 'index'])->name('reports.vat');
+        Route::get('/reports/vat/export', [VatReportController::class, 'exportExcel'])->name('reports.vat.export');
     });
 
     // POS System - ONLY staff members can access

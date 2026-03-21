@@ -793,6 +793,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('reports.vat') ? 'active' : '' }}" href="{{ route('reports.vat') }}">
+                                    <i class="bi bi-percent"></i>
+                                    <span>VAT Report</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('sales-report.deleted') ? 'active' : '' }}" href="{{ route('sales-report.deleted') }}">
                                     <i class="bi bi-trash"></i>
                                     <span>Deleted Receipts</span>

@@ -3923,6 +3923,10 @@
                 pdf.text(`LKR ${vatAmount.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
                 yPosition += 6;
 
+                pdf.setLineWidth(0.3);
+                pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                yPosition += 6;
+
                 // 4. Grand Total
                 pdf.setFont('courier', 'bold');
                 pdf.setFontSize(11);
@@ -4073,9 +4077,9 @@
                 // MODIFIED: 'iframe' logic REMOVED
                 // The PDF is now generated, get the blob
                 // Generate Base64 String
-                const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
+                const pdfBase64 = pdf.output('datauristring').split(',')[1];
 
-                const receiptPrinterName = "Microsoft Print to PDF"; // Set your receipt printer name here
+                const receiptPrinterName = "OutletPOS"; // Set your receipt printer name here
                 await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
 
                 console.log("Receipt PDF has been sent to QZ Tray.");

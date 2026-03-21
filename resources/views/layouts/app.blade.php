@@ -695,6 +695,14 @@
                         <span>Branch Management</span>
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}"
+                        href="{{ route('customers.index') }}">
+                        <i class="bi bi-person-badge"></i>
+                        <span>Customer Management</span>
+                    </a>
+                </li>
                 @endcan
 
                 @if(auth()->user()->role === 'admin' || auth()->user()->role === 'director')

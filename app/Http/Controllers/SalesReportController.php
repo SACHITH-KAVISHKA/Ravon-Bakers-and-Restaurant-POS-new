@@ -6,6 +6,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Branch;
 use App\Models\Setting;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -1348,4 +1349,38 @@ class SalesReportController extends Controller
             'Cache-Control' => 'max-age=0',
         ]);
     }
+
+    public function editSale(Sale $sale)
+    {
+        // අවසර පරීක්ෂාව
+        if (!in_array(auth()->user()->role, ['admin', 'director'])) {
+            abort(403);
+        }
+
+        $customers = \App\Models\Customer::orderBy('name')->get();
+        return view('sales-report.edit-sale', compact('sale', 'customers'));
+    }
+
+    public function updateSale(Request $request, Sale $sale)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'director'])) {
+            abort(403);
+        }
+
+        $request->validate([
+            'receipt_no' => 'required|string|unique:sales,receipt_no,' . $sale->id,
+            'customer_name' => 'nullable|string',
+            'customer_vat' => 'nullable|string',
+        ]);
+
+        $sale->update([
+            'receipt_no' => $request->receipt_no,
+            'customer_name' => $request->customer_name,
+            'customer_vat' => $request->customer_vat,
+        ]);
+
+       return redirect()->route('sales-report.index')->with('success', 'Sale updated successfully.');
+    }
+
+
 }

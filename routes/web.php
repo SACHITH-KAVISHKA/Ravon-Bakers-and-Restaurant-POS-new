@@ -12,6 +12,7 @@ use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\KotController;
+use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Mike42\Escpos\Printer;
@@ -102,6 +103,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/deleted', [SalesReportController::class, 'delete'])->name('deleted');
         Route::get('/deleted/export', [SalesReportController::class, 'exportDeleted'])->name('deleted.export');
     });
+
+    // Sales Report Edit Routes
+    Route::get('/sales-report/{sale}/edit', [SalesReportController::class, 'editSale'])->name('sales-report.edit');
+    Route::put('/sales-report/{sale}', [SalesReportController::class, 'updateSale'])->name('sales-report.update');
+
+    // Customer Management Routes
+    Route::resource('customers', CustomerController::class);
 
     // Sales Report - All authenticated users can access
     Route::prefix('sales-report2')->name('sales-report2.')->group(function () {

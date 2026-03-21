@@ -168,6 +168,12 @@
                                         title="Print Receipt">
                                         <i class="bi bi-printer"></i>
                                     </button>
+                                    {{-- Admin හෝ Director ට පමණක් Edit පෙන්වීමට --}}
+                                    @if(in_array(auth()->user()->role, ['director']))
+                                    <a href="{{ route('sales-report.edit', $sale->id) }}" class="btn btn-sm btn-outline-warning ms-1" title="Edit Sale">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @endif
                                     @if(auth()->user()->role === 'director' && auth()->user()->id == 11))
                                     @if($sale->status ?? 1)
                                     <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn"

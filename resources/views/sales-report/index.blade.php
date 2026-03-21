@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
-            <h1 class="h3 mb-0 text-gray-800">
+            <h1 class="h3 fw-bold" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">
                 <i class="bi bi-bar-chart-fill me-2"></i> Daily Sales Report
             </h1>
             <p class="text-muted mb-0 d-none d-md-block">View and export sales transactions</p>
@@ -152,9 +152,15 @@
                                         title="Print Receipt">
                                         <i class="bi bi-printer"></i>
                                     </button>
+                                    {{-- Only show Edit button for Director  --}}
+                                    @if(in_array(auth()->user()->role, ['director']))
+                                    <a href="{{ route('sales-report.edit', $sale->id) }}" class="btn btn-sm btn-outline-warning ms-1" title="Edit Sale">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @endif
 
                                     @if($sale->status ?? 1)
-                                        {{-- Admin හෝ User ID 11 වන Director ට පමණක් පෙන්වීම සඳහා --}}
+                                        {{-- Admin  Or User ID 11 Director --}}
                                         @if(auth()->user()->role === 'director' && auth()->user()->id == 11)
                                         <button class="btn btn-sm btn-outline-danger ms-1 delete-sale-btn"
                                                 data-sale-id="{{ $sale->id }}"

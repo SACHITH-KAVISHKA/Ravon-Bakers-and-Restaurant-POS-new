@@ -32,9 +32,9 @@
 
         .header {
             text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+            border-bottom: none;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
         }
 
         .restaurant-name {
@@ -44,9 +44,12 @@
         }
 
         .receipt-info {
-            font-size: 12px;
-            margin-bottom: 15px;
+            font-size: 10px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
         }
+
 
         .receipt-info div {
             display: flex;
@@ -72,6 +75,10 @@
         }
 
         .item-name {
+            font-weight: bold;
+        }
+
+        .item-amount {
             font-weight: bold;
         }
 
@@ -173,7 +180,7 @@
                         <div>VAT Reg No: {{ $sale->branch->vat_reg_no }}</div>
                     @endif
                 </div>
-                <div style="font-size: 12px; font-weight: bold; margin-top: 10px;">INVOICE</div>`
+                <div style="font-size: 12px; font-weight: bold; margin-top: 6px;">INVOICE</div>`
             @else
                 <!-- Fallback if no branch data -->
                 <div style="font-size: 10px; margin-top: 5px;">
@@ -228,7 +235,7 @@
                     <div class="item-name">{{ $item->item_name }}</div>
                     <div class="item-qty-price">{{ $item->quantity }} x LKR {{ number_format($itemBaseUnitPrice, 2) }}</div>
                 </div>
-                <div>LKR {{ number_format($itemBaseLineTotal, 2) }}</div>
+                <div class="item-amount">LKR {{ number_format($itemBaseLineTotal, 2) }}</div>
             </div>
             @endforeach
         </div>
@@ -255,7 +262,7 @@
             </div>
         </div>
 
-        <div class="receipt-info" style="margin-top: 15px;">
+        <div class="receipt-info" style="margin-top: 15px; border-bottom: none;">
             <div>
                 <span>Payment Method:</span>
                 <span>{{ strtoupper($sale->payment_method) }}</span>

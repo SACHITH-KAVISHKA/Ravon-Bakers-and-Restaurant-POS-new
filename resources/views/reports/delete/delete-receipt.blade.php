@@ -85,10 +85,10 @@
                                 <div class="d-flex flex-column">
                                     <strong>{{ $sale->branch->name ?? 'N/A' }}</strong>
                                     <small class="text-muted d-sm-none">{{ $sale->receipt_no }}</small>
-                                    <small class="text-muted d-md-none">LKR {{ number_format($sale->subtotal, 2) }}</small>
+                                    <small class="text-muted d-md-none">LKR {{ number_format($sale->total, 2) }}</small>
                                 </div>
                             </td>
-                            <td class="d-none d-md-table-cell">LKR {{ number_format($sale->subtotal, 2) }}</td>
+                            <td class="d-none d-md-table-cell">LKR {{ number_format($sale->total, 2) }}</td>
                             <td class="d-none d-lg-table-cell">
                                 <span class="badge bg-info">{{ $sale->payment_method }}</span>
                             </td>
@@ -97,7 +97,7 @@
                                     $paymentMethod = strtolower($sale->payment_method);
                                     $customerPayment = $sale->customer_payment ?? 0;
                                     $cardPayment = $sale->card_payment ?? 0;
-                                    $total = $sale->subtotal ?? 0;
+                                    $total = $sale->total ?? 0;
 
                                     if ($paymentMethod === 'cash') {
                                         $cashAmount = min($customerPayment, $total);
@@ -146,7 +146,7 @@
 
                         <tr class="table-info fw-bold">
                             <td colspan="2" class="text-end">TOTAL DELETED:</td>
-                            <td class="d-none d-md-table-cell">LKR {{ number_format($totals->total_subtotal ?? 0, 2) }}</td>
+                            <td class="d-none d-md-table-cell">LKR {{ number_format($totals->total_grandtotal ?? 0, 2) }}</td>
                             <td class="d-none d-lg-table-cell">-</td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_cash ?? 0, 2) }}</td>
                             <td class="d-none d-xl-table-cell">LKR {{ number_format($totals->total_card_payment ?? 0, 2) }}</td>

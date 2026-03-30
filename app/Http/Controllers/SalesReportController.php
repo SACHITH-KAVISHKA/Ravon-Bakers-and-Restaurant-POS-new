@@ -54,7 +54,7 @@ class SalesReportController extends Controller
             ->get();
 
         // Calculate totals with overpayment trimming
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -63,9 +63,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
@@ -89,7 +89,7 @@ class SalesReportController extends Controller
         // Create totals object
         $totals = (object) [
             'total_transactions' => $allSales->count(),
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -130,7 +130,7 @@ class SalesReportController extends Controller
         $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
 
         // Calculate totals with overpayment trimming
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -139,9 +139,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
@@ -164,7 +164,7 @@ class SalesReportController extends Controller
 
         // Create totals object
         $totals = (object) [
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -178,7 +178,7 @@ class SalesReportController extends Controller
         $headers = [
             'A1' => 'Receipt No',
             'B1' => 'Branch Name',
-            'C1' => 'Subtotal',
+            'C1' => 'Grand Total',
             'D1' => 'Payment Method',
             'E1' => 'Cash',
             'F1' => 'Card',
@@ -197,7 +197,7 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
             if ($paymentMethod === 'cash') {
@@ -223,7 +223,7 @@ class SalesReportController extends Controller
 
             $sheet->setCellValue('A' . $row, $sale->receipt_no);
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
-            $sheet->setCellValue('C' . $row, $sale->subtotal);
+            $sheet->setCellValue('C' . $row, $sale->total);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
             $sheet->setCellValue('E' . $row, $cashAmount);
             $sheet->setCellValue('F' . $row, $cardAmount);
@@ -235,7 +235,7 @@ class SalesReportController extends Controller
         // Add totals row
         $sheet->setCellValue('A' . $row, 'TOTAL');
         $sheet->setCellValue('B' . $row, '');
-        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('C' . $row, $totals->total_grandtotal ?? 0);
         $sheet->setCellValue('D' . $row, '');
         $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
         $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
@@ -353,7 +353,7 @@ class SalesReportController extends Controller
         $allSales = $allSalesQuery->get();
 
         // Calculate totals with overpayment trimming
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -362,9 +362,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
@@ -388,7 +388,7 @@ class SalesReportController extends Controller
         // Create totals object
         $totals = (object) [
             'total_transactions' => $allSales->count(),
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -493,7 +493,7 @@ class SalesReportController extends Controller
         $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
 
         // Calculate totals with overpayment trimming
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -502,9 +502,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
@@ -527,7 +527,7 @@ class SalesReportController extends Controller
 
         // Create totals object
         $totals = (object) [
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -541,7 +541,7 @@ class SalesReportController extends Controller
         $headers = [
             // 'A1' => 'Receipt No',
             'B1' => 'Branch Name',
-            'C1' => 'Subtotal',
+            'C1' => 'Grand Total',
             'D1' => 'Payment Method',
             'E1' => 'Cash',
             'F1' => 'Card',
@@ -560,7 +560,7 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
             if ($paymentMethod === 'cash') {
@@ -586,7 +586,7 @@ class SalesReportController extends Controller
 
             // $sheet->setCellValue('A' . $row, $sale->receipt_no);
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
-            $sheet->setCellValue('C' . $row, $sale->subtotal);
+            $sheet->setCellValue('C' . $row, $sale->total);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
             $sheet->setCellValue('E' . $row, $cashAmount);
             $sheet->setCellValue('F' . $row, $cardAmount);
@@ -598,7 +598,7 @@ class SalesReportController extends Controller
         // Add totals row
         // $sheet->setCellValue('A' . $row, 'TOTAL');
         $sheet->setCellValue('B' . $row, 'TOTAL');
-        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('C' . $row, $totals->total_grandtotal ?? 0);
         $sheet->setCellValue('D' . $row, '');
         $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
         $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
@@ -814,7 +814,7 @@ class SalesReportController extends Controller
             ->get();
 
         // Calculate totals with overpayment trimming
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -823,9 +823,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
@@ -849,7 +849,7 @@ class SalesReportController extends Controller
         // Create totals object
         $totals = (object) [
             'total_transactions' => $allSales->count(),
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -891,7 +891,7 @@ class SalesReportController extends Controller
         $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
 
         // Calculate totals with overpayment trimming
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -900,9 +900,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
@@ -925,7 +925,7 @@ class SalesReportController extends Controller
 
         // Create totals object
         $totals = (object) [
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -939,7 +939,7 @@ class SalesReportController extends Controller
         $headers = [
             'A1' => 'Receipt No',
             'B1' => 'Branch Name',
-            'C1' => 'Subtotal',
+            'C1' => 'Grand Total',
             'D1' => 'Payment Method',
             'E1' => 'Cash',
             'F1' => 'Card',
@@ -959,7 +959,7 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
             // Apply payment logic - PRIORITY: Card first, then Cash
             if ($paymentMethod === 'cash') {
@@ -985,7 +985,7 @@ class SalesReportController extends Controller
 
             $sheet->setCellValue('A' . $row, $sale->receipt_no);
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
-            $sheet->setCellValue('C' . $row, $sale->subtotal);
+            $sheet->setCellValue('C' . $row, $sale->total);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
             $sheet->setCellValue('E' . $row, $cashAmount);
             $sheet->setCellValue('F' . $row, $cardAmount);
@@ -998,7 +998,7 @@ class SalesReportController extends Controller
         // Add totals row
         $sheet->setCellValue('A' . $row, 'TOTAL DELETED');
         $sheet->setCellValue('B' . $row, '');
-        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('C' . $row, $totals->total_grandtotal ?? 0);
         $sheet->setCellValue('D' . $row, '');
         $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
         $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
@@ -1133,7 +1133,7 @@ class SalesReportController extends Controller
         $allSales = $allSalesQuery->get();
 
         // Calculate totals logic
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -1142,9 +1142,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             if ($paymentMethod === 'cash') {
@@ -1165,7 +1165,7 @@ class SalesReportController extends Controller
 
         $totals = (object) [
             'total_transactions' => $allSales->count(),
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -1231,7 +1231,7 @@ class SalesReportController extends Controller
         $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
 
         // Calculate totals logic (Same as original)
-        $totalSubtotal = 0;
+        $totalGrandtotal = 0;
         $totalCash = 0;
         $totalCard = 0;
         $totalCredit = 0;
@@ -1240,9 +1240,9 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
-            $totalSubtotal += $total;
+            $totalGrandtotal += $total;
             $totalCredit += $sale->credit_balance ?? 0;
 
             if ($paymentMethod === 'cash') {
@@ -1262,7 +1262,7 @@ class SalesReportController extends Controller
         }
 
         $totals = (object) [
-            'total_subtotal' => $totalSubtotal,
+            'total_grandtotal' => $totalGrandtotal,
             'total_cash' => $totalCash,
             'total_card_payment' => $totalCard,
             'total_credit_balance' => $totalCredit,
@@ -1274,7 +1274,7 @@ class SalesReportController extends Controller
 
         $headers = [
             'B1' => 'Branch Name',
-            'C1' => 'Subtotal',
+            'C1' => 'Grand Total',
             'D1' => 'Payment Method',
             'E1' => 'Cash',
             'F1' => 'Card',
@@ -1292,7 +1292,7 @@ class SalesReportController extends Controller
             $paymentMethod = strtolower($sale->payment_method);
             $customerPayment = $sale->customer_payment ?? 0;
             $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->subtotal ?? 0;
+            $total = $sale->total ?? 0;
 
             if ($paymentMethod === 'cash') {
                 $cashAmount = min($customerPayment, $total);
@@ -1315,7 +1315,7 @@ class SalesReportController extends Controller
             }
 
             $sheet->setCellValue('B' . $row, $sale->branch->name ?? 'N/A');
-            $sheet->setCellValue('C' . $row, $sale->subtotal);
+            $sheet->setCellValue('C' . $row, $sale->total);
             $sheet->setCellValue('D' . $row, $sale->payment_method);
             $sheet->setCellValue('E' . $row, $cashAmount);
             $sheet->setCellValue('F' . $row, $cardAmount);
@@ -1326,7 +1326,7 @@ class SalesReportController extends Controller
 
         // Totals Row
         $sheet->setCellValue('B' . $row, 'TOTAL');
-        $sheet->setCellValue('C' . $row, $totals->total_subtotal ?? 0);
+        $sheet->setCellValue('C' . $row, $totals->total_grandtotal ?? 0);
         $sheet->setCellValue('E' . $row, $totals->total_cash ?? 0);
         $sheet->setCellValue('F' . $row, $totals->total_card_payment ?? 0);
         $sheet->setCellValue('G' . $row, $totals->total_credit_balance ?? 0);

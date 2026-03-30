@@ -226,8 +226,20 @@
 
             @foreach($sale->saleItems as $item)
             @php
-                // Without tax factor, we can derive the base unit price and line total for each item
-                $itemBaseUnitPrice = $item->unit_price / $taxFactor;
+                // // Without tax factor, we can derive the base unit price and line total for each item
+                // $itemBaseUnitPrice = $item->unit_price / $taxFactor;
+                // $itemBaseLineTotal = $itemBaseUnitPrice * $item->quantity;
+
+                // Item eke flags check karala rates thiranaya kirima
+                // $item->item kiyanne SaleItem eke parent Item model eka
+                $sRateForItem = ($item->item && $item->item->sscl_applicable) ? ($ssclRate / 100) : 0;
+                $vRateForItem = ($item->item && $item->item->vat_applicable) ? ($vatRate / 100) : 0;
+
+                // Adala item ekata pamanak tax factor eka hadagamu
+                $itemTaxFactor = (1 + $sRateForItem) * (1 + $vRateForItem);
+
+                // Tax taxable nethnam factor eka 1 wenawa, ethakota original price eka wenas wenne ne
+                $itemBaseUnitPrice = $item->unit_price / $itemTaxFactor;
                 $itemBaseLineTotal = $itemBaseUnitPrice * $item->quantity;
             @endphp
             <div class="item">

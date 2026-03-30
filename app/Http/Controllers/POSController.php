@@ -92,6 +92,8 @@ class POSController extends Controller
                             'quantity' => (float)$oItem->quantity,
                             'itemType' => $oItem->item->item_type ?? 'Kitchen', // Default value එකක් දීම
                             'category' => $oItem->item->category ?? 'Other',
+                            'vat_applicable' => $oItem->item->vat_applicable ? 1 : 0,
+                            'sscl_applicable' => $oItem->item->sscl_applicable ? 1 : 0,
                         ];
                     }
                 }

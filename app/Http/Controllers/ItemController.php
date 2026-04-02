@@ -382,4 +382,98 @@ class ItemController extends Controller
             return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
         });
     }
+
+    public function exportExcel(Request $request)
+    {
+        $currentUser = auth()->user();
+        $role = strtolower($currentUser->role ?? '');
+
+        // 1. පරිශීලකයාගේ Role එක අනුව අදාළ ශාඛා පමණක් පෙරීම (Holding/Delight Logic)
+        $isHolding = ($role === 'holding' || str_contains(strtolower($currentUser->name), 'adminh'));
+        $isDelight = ($role === 'delight' || str_contains(strtolower($currentUser->name), 'admind'));
+
+        $query = Item::with(['branchPrices.branch'])->where('is_active', true);
+        $branchQuery = Branch::where('id', '!=', 1)->orderBy('name');
+
+        if ($isHolding) {
+            $branchQuery->whereIn('id', [6, 7]);
+        } elseif ($isDelight) {
+            $branchQuery->whereIn('id', [2, 3, 4, 5]);
+        }
+
+        $items = $query->get();
+        $branches = $branchQuery->get();
+
+        // 2. පද්ධතියේ ඇති බදු අනුපාත ලබා ගැනීම
+        $vatRateSetting = \App\Models\Setting::where('key', 'vat_rate')->value('value') ?? 18;
+        $ssclRateSetting = \App\Models\Setting::where('key', 'sscl_rate')->value('value') ?? 2.5;
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // 3. එක්සෙල් Headers සැකසීම (Dynamic columns based on branch tax setting)
+        $headers = ['Item Code', 'Item Name', 'Category'];
+        foreach ($branches as $branch) {
+            $headers[] = $branch->name . ' (Total)';
+            if ($branch->tax_include) {
+                $headers[] = $branch->name . ' (Base)';
+                $headers[] = $branch->name . ' (Tax)';
+            }
+        }
+        $sheet->fromArray([$headers], null, 'A1');
+        $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->getFont()->setBold(true);
+
+        // 4. දත්ත පේළි ඇතුළත් කිරීම
+        $row = 2;
+        foreach ($items as $item) {
+            $rowData = [
+                $item->item_code,
+                $item->item_name,
+                $item->category
+            ];
+
+            foreach ($branches as $branch) {
+                $bp = $item->branchPrices->firstWhere('branch_id', $branch->id);
+                $price = $bp ? (float)$bp->price : 0;
+
+                // මුළු විකුණුම් මිල ඇතුළත් කිරීම
+                $rowData[] = number_format($price, 2);
+
+                // ශාඛාවට බදු අදාළ නම් පමණක් Base සහ Tax ගණනය කිරීම
+                if ($branch->tax_include) {
+                    // අයිතමයට අදාළ බදු අනුපාත පරීක්ෂාව
+                    $sRate = $item->sscl_applicable ? ($ssclRateSetting / 100) : 0;
+                    $vRate = $item->vat_applicable ? ($vatRateSetting / 100) : 0;
+
+                    // Compounded Tax Factor එක ගණනය කිරීම: (1 + SSCL%) * (1 + VAT%)
+                    $taxFactor = (1 + $sRate) * (1 + $vRate);
+
+                    $basePrice = ($taxFactor > 0) ? ($price / $taxFactor) : $price;
+                    $totalTax = $price - $basePrice;
+
+                    $rowData[] = number_format($basePrice, 2);
+                    $rowData[] = number_format($totalTax, 2);
+                }
+            }
+            $sheet->fromArray([$rowData], null, 'A' . $row);
+            $row++;
+        }
+
+        // 5. තීරු වල ප්‍රමාණය ස්වයංක්‍රීයව සකස් කිරීම
+        foreach (range('A', $sheet->getHighestColumn()) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $fileName = 'item_price_report_' . now()->format('Ymd_His') . '.xlsx';
+
+        // 6. එක්සෙල් ගොනුව StreamedResponse ලෙස ලබා දීම
+        return new \Symfony\Component\HttpFoundation\StreamedResponse(function () use ($spreadsheet) {
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment;filename="' . $fileName . '"',
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
 }

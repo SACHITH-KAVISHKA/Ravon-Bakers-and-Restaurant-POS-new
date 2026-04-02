@@ -41,6 +41,7 @@
                     <th>Company Name</th>
                     <th>Address</th>
                     <th>Telephone</th>
+                    <th>Tax Status</th>
                     <th>Status</th>
                     <th>Users Count</th>
                     <th>Created Date</th>
@@ -72,6 +73,13 @@
                         </small>
                     </td>
                     <td>
+                        @if($branch->tax_include)
+                            <span class="badge bg-info">Included</span>
+                        @else
+                            <span class="badge bg-warning">Excluded</span>
+                        @endif
+                    </td>
+                    <td>
                         @if($branch->status)
                         <span class="badge bg-success">
                             <i class="bi bi-check-circle"></i> Active
@@ -91,7 +99,7 @@
                     <td>
                         <div class="btn-group" role="group">
                             <button class="btn btn-sm btn-outline-warning"
-                                onclick="editBranch({{ $branch->id }}, '{{ addslashes($branch->name) }}', {{ $branch->status }}, '{{ addslashes($branch->address ?? '') }}', '{{ addslashes($branch->telephone ?? '') }}', '{{ addslashes($branch->display_name ?? '') }}', '{{ addslashes($branch->company_name ?? '') }}')"
+                                onclick="editBranch({{ $branch->id }}, '{{ addslashes($branch->name) }}', {{ $branch->status }}, '{{ addslashes($branch->address ?? '') }}', '{{ addslashes($branch->telephone ?? '') }}', '{{ addslashes($branch->display_name ?? '') }}', '{{ addslashes($branch->company_name ?? '') }}', {{ $branch->tax_include ? 1 : 0 }})"
                                 title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -178,6 +186,13 @@
                             placeholder="Enter telephone number">
                         <div class="invalid-feedback" id="branch_telephone_error"></div>
                     </div>
+                    <div class="mb-3">
+                        <label for="branch_tax_include" class="form-label">Tax Calculation</label>
+                        <select class="form-select" id="branch_tax_include" name="tax_include">
+                            <option value="1">Include Tax (VAT/SSCL)</option>
+                            <option value="0">Exclude Tax</option>
+                        </select>
+                    </div>
 
                     <div class="mb-3" id="statusField" style="display: none;">
                         <label for="branch_status" class="form-label">Status</label>
@@ -200,7 +215,7 @@
 </div>
 
 <script>
-    function editBranch(id, name, status, address = '', telephone = '', displayName = '', companyName = '') {
+    function editBranch(id, name, status, address = '', telephone = '', displayName = '', companyName = '', taxInclude = 1) {
         const modal = document.getElementById('addBranchModal');
         const form = document.getElementById('branchForm');
         const title = document.getElementById('addBranchModalLabel');
@@ -223,6 +238,7 @@
         document.getElementById('branch_address').value = address || '';
         document.getElementById('branch_telephone').value = telephone || '';
         document.getElementById('branch_status').value = status;
+        document.getElementById('branch_tax_include').value = taxInclude;
 
         // Show status field for edit
         statusField.style.display = 'block';
@@ -238,6 +254,7 @@
         const title = document.getElementById('addBranchModalLabel');
         const submitText = document.getElementById('submitText');
         const statusField = document.getElementById('statusField');
+        const taxIncludeField = document.getElementById('branch_tax_include');
 
         // Reset modal
         title.textContent = 'Add New Branch';
@@ -246,6 +263,7 @@
         document.getElementById('methodField').value = '';
         document.getElementById('branchId').value = '';
         statusField.style.display = 'none';
+        taxIncludeField.value = 1;
 
         // Reset form
         form.reset();

@@ -78,6 +78,7 @@ class BranchController extends Controller
                 'display_name' => 'nullable|string|max:255',
                 'address' => 'nullable|string|max:500',
                 'telephone' => 'nullable|string|max:20',
+                'tax_include' => 'required|boolean',
             ]);
 
             $branch = Branch::create([
@@ -87,6 +88,7 @@ class BranchController extends Controller
                 'address' => $request->address,
                 'telephone' => $request->telephone,
                 'status' => 1,
+                'tax_include' => $request->tax_include,
             ]);
 
             if ($request->ajax()) {
@@ -147,9 +149,10 @@ class BranchController extends Controller
             'address' => 'nullable|string|max:500',
             'telephone' => 'nullable|string|max:20',
             'status' => 'required|boolean',
+            'tax_include' => 'required|boolean',
         ]);
 
-        $branch->update($request->only(['name', 'company_name', 'display_name', 'address', 'telephone', 'status']));
+        $branch->update($request->only(['name', 'company_name', 'display_name', 'address', 'telephone', 'status', 'tax_include']));
 
         return redirect()->back()->with('success', 'Branch updated successfully!');
     }

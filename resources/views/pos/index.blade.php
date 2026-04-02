@@ -1698,6 +1698,7 @@
 
         const VAT_PERCENT = {{ $vatRate }};
         const SSCL_PERCENT = {{ $ssclRate }};
+        const BRANCH_TAX_INCLUDE = {{ $branchTaxInclude ? 'true' : 'false' }};
 
         let currentImportedOrderId = {{ $importedOrderId ?? 'null' }};
 
@@ -2042,8 +2043,8 @@
                 totalInclusive += lineTotal;
 
                 // Item eke flag eka 1 nam pamanak rate eka ganna, nethnam 0 ganna
-                const sRate = item.sscl_applicable === 1 ? (SSCL_PERCENT / 100) : 0;
-                const vRate = item.vat_applicable === 1 ? (VAT_PERCENT / 100) : 0;
+                const sRate = (BRANCH_TAX_INCLUDE && item.sscl_applicable === 1) ? (SSCL_PERCENT / 100) : 0;
+                const vRate = (BRANCH_TAX_INCLUDE && item.vat_applicable === 1) ? (VAT_PERCENT / 100) : 0;
 
                 const taxFactor = (1 + sRate) * (1 + vRate);
 
@@ -2719,11 +2720,12 @@
             let totalSscl = 0;
 
             cart.forEach(item => {
+
                 const lineTotal = item.price * item.quantity;
                 totalInclusive += lineTotal;
 
-                const sRate = item.sscl_applicable === 1 ? (SSCL_PERCENT / 100) : 0;
-                const vRate = item.vat_applicable === 1 ? (VAT_PERCENT / 100) : 0;
+                const sRate = (BRANCH_TAX_INCLUDE && item.sscl_applicable === 1) ? (SSCL_PERCENT / 100) : 0;
+                const vRate = (BRANCH_TAX_INCLUDE && item.vat_applicable === 1) ? (VAT_PERCENT / 100) : 0;
 
                 const taxFactor = (1 + sRate) * (1 + vRate);
 
@@ -3648,8 +3650,9 @@
 
             cartData.forEach(item => {
                 const lineTotal = item.price * item.quantity;
-                const sRate = item.sscl_applicable === 1 ? (SSCL_PERCENT / 100) : 0;
-                const vRate = item.vat_applicable === 1 ? (VAT_PERCENT / 100) : 0;
+
+                const sRate = (BRANCH_TAX_INCLUDE && item.sscl_applicable === 1) ? (SSCL_PERCENT / 100) : 0;
+                const vRate = (BRANCH_TAX_INCLUDE && item.vat_applicable === 1) ? (VAT_PERCENT / 100) : 0;
 
                 const itemTaxFactor = (1 + sRate) * (1 + vRate);
                 const lineBase = lineTotal / itemTaxFactor;
@@ -3701,7 +3704,9 @@
             pdf.setFontSize(14); pdf.setFont('courier', 'bold');
             pdf.text(branchInfo.name, pageWidth / 2, yPosition, { align: 'center' });
             yPosition += 5;
-
+            pdf.setFontSize(10); pdf.setFont('courier', 'normal');
+            pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, { align: 'center' });
+            yPosition += 4;
             pdf.setFontSize(8); pdf.setFont('courier', 'normal');
             pdf.text(branchInfo.address, pageWidth / 2, yPosition, { align: 'center' });
             yPosition += 4;
@@ -3754,8 +3759,8 @@
 
             cartData.forEach((item) => {
                 checkPageBreak(12);
-                const sRate = item.sscl_applicable === 1 ? (SSCL_PERCENT / 100) : 0;
-                const vRate = item.vat_applicable === 1 ? (VAT_PERCENT / 100) : 0;
+                const sRate = (BRANCH_TAX_INCLUDE && item.sscl_applicable === 1) ? (SSCL_PERCENT / 100) : 0;
+                const vRate = (BRANCH_TAX_INCLUDE && item.vat_applicable === 1) ? (VAT_PERCENT / 100) : 0;
                 const itemTaxFactor = (1 + sRate) * (1 + vRate);
 
                 const itemBaseUnitPrice = item.price / itemTaxFactor;
@@ -3774,24 +3779,27 @@
 
             // --- Totals Block ---
             checkPageBreak(50);
-            yPosition += 2; pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+            yPosition += 2;
+            pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
             yPosition += 6;
 
-            pdf.setFontSize(9);
-            pdf.text('Sub Total (Base):', leftMargin, yPosition);
-            pdf.text(`LKR ${totalBase.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-            yPosition += 5;
+            if (BRANCH_TAX_INCLUDE) {
+                pdf.setFontSize(9);
+                pdf.text('Sub Total (Base):', leftMargin, yPosition);
+                pdf.text(`LKR ${totalBase.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
+                yPosition += 5;
 
-            pdf.text(`SSCL (${SSCL_PERCENT}%):`, leftMargin, yPosition);
-            pdf.text(`LKR ${totalSscl.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-            yPosition += 5;
+                pdf.text(`SSCL (${SSCL_PERCENT}%):`, leftMargin, yPosition);
+                pdf.text(`LKR ${totalSscl.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
+                yPosition += 5;
 
-            pdf.text(`VAT (${VAT_PERCENT}%):`, leftMargin, yPosition);
-            pdf.text(`LKR ${totalVat.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-            yPosition += 6;
+                pdf.text(`VAT (${VAT_PERCENT}%):`, leftMargin, yPosition);
+                pdf.text(`LKR ${totalVat.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
+                yPosition += 6;
 
-            pdf.setLineWidth(0.3); pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-            yPosition += 6;
+                pdf.setLineWidth(0.3); pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+                yPosition += 6;
+            }
 
             pdf.setFont('courier', 'bold'); pdf.setFontSize(11);
             pdf.text('TOTAL:', leftMargin, yPosition);

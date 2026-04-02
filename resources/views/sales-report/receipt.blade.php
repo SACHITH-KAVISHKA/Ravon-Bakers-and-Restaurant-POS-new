@@ -232,8 +232,8 @@
 
                 // Item eke flags check karala rates thiranaya kirima
                 // $item->item kiyanne SaleItem eke parent Item model eka
-                $sRateForItem = ($item->item && $item->item->sscl_applicable) ? ($ssclRate / 100) : 0;
-                $vRateForItem = ($item->item && $item->item->vat_applicable) ? ($vatRate / 100) : 0;
+                $sRateForItem = ($branchTaxInclude && $item->item && $item->item->sscl_applicable) ? ($ssclRate / 100) : 0;
+                $vRateForItem = ($branchTaxInclude && $item->item && $item->item->vat_applicable) ? ($vatRate / 100) : 0;
 
                 // Adala item ekata pamanak tax factor eka hadagamu
                 $itemTaxFactor = (1 + $sRateForItem) * (1 + $vRateForItem);
@@ -253,21 +253,22 @@
         </div>
 
         <div class="totals">
-            <div class="total-row">
-                <span>Sub Total (Base):</span>
-                <span>LKR {{ number_format($sale->subtotal, 2) }}</span>
-            </div>
+            @if($branchTaxInclude)
+                <div class="total-row">
+                    <span>Sub Total (Base):</span>
+                    <span>LKR {{ number_format($sale->subtotal, 2) }}</span>
+                </div>
 
-            <div class="total-row" style="font-size: 11px; color: #555;">
-            <span>SSCL ({{ $ssclRate }}%):</span>
-            <span>LKR {{ number_format($sale->sscl_amount, 2) }}</span>
-            </div>
+                <div class="total-row" style="font-size: 11px; color: #555;">
+                <span>SSCL ({{ $ssclRate }}%):</span>
+                <span>LKR {{ number_format($sale->sscl_amount, 2) }}</span>
+                </div>
 
-            <div class="total-row" style="font-size: 11px; color: #555;">
-                <span>VAT ({{ $vatRate }}%):</span>
-                <span>LKR {{ number_format($sale->vat_amount, 2) }}</span>
-            </div>
-
+                <div class="total-row" style="font-size: 11px; color: #555;">
+                    <span>VAT ({{ $vatRate }}%):</span>
+                    <span>LKR {{ number_format($sale->vat_amount, 2) }}</span>
+                </div>
+            @endif
             <div class="total-row grand-total">
                 <span>TOTAL:</span>
                 <span>LKR {{ number_format($sale->total, 2) }}</span>

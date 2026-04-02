@@ -768,13 +768,14 @@ class SalesReportController extends Controller
     {
         // Load the sale with its related items and branch
         $sale->load(['saleItems', 'branch']);
+        $branchTaxInclude = $sale->branch->tax_include ?? true;
 
         // Give the view access to VAT and SSCL rates from settings
         $vatRate = \App\Models\Setting::where('key', 'vat_rate')->value('value') ?? 18;
         $ssclRate = \App\Models\Setting::where('key', 'sscl_rate')->value('value') ?? 2.5;
 
         // Return the sales report receipt view
-        return view('sales-report.receipt', compact('sale', 'vatRate', 'ssclRate' ));
+        return view('sales-report.receipt', compact('sale', 'vatRate', 'ssclRate', 'branchTaxInclude'));
     }
 
     public function delete(Request $request)

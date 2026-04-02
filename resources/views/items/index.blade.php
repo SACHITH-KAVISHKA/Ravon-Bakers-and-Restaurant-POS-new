@@ -11,11 +11,23 @@
             Item Management
         </h1>
 
-        @if(isset($canManageItems) && $canManageItems)
+        {{-- @if(isset($canManageItems) && $canManageItems)
         <a href="{{ route('items.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Add New Item
         </a>
-        @endif
+        @endif --}}
+
+        <div class="d-flex gap-2">
+            <a href="{{ route('items.export', request()->all()) }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+            </a>
+
+            @if(isset($canManageItems) && $canManageItems)
+            <a href="{{ route('items.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add New Item
+            </a>
+            @endif
+        </div>
     </div>
 
     <div class="card mb-4 border-0 shadow-sm">
@@ -58,7 +70,9 @@
                             @if($branch->id !== 1)
                             <th class="text-center d-none d-lg-table-cell">
                                 {{ $branch->name }}<br>
-                                <small class="fw-normal text-muted" style="font-size: 10px;">(Base + Tax = Total)</small>
+                                    @if($branch->tax_include)
+                                        <small class="fw-normal text-muted" style="font-size: 10px;">(Base + Tax = Total)</small>
+                                    @endif
                             </th>
                             @endif
                             @endforeach
@@ -97,23 +111,29 @@
                             <td class="text-center d-none d-lg-table-cell">
                                 @if($bp)
                                     @php
-                                        $sellingPrice = (float)$bp->price; // DB eke thiyena mudala
+                                        $sellingPrice = (float)$bp->price;
 
-                                        // Tax Factor eka hadaganeema
-                                        $factor = 1;
-                                        if($item->vat_applicable) $factor += ($vRate / 100);
-                                        if($item->sscl_applicable) $factor += ($sRate / 100);
+                                        if($branch->tax_include) {
+                                            // අයිතමයට අදාළ Rates තීරණය කිරීම
+                                            $itemSRate = $item->sscl_applicable ? ($sRate / 100) : 0;
+                                            $itemVRate = $item->vat_applicable ? ($vRate / 100) : 0;
 
-                                        // Backward Calculation
-                                        $basePrice = $sellingPrice / $factor;
-                                        $totalTax = $sellingPrice - $basePrice;
+                                            $factor = (1 + $itemSRate) * (1 + $itemVRate);
+
+                                            // Backward Calculation
+                                            $basePrice = $sellingPrice / $factor;
+                                            $totalTax = $sellingPrice - $basePrice;
+                                        }
                                     @endphp
+
                                     <div class="d-flex flex-column">
                                         <span class="fw-bold text-success">LKR {{ number_format($sellingPrice, 2) }}</span>
-                                        <div class="d-flex justify-content-center gap-2 mt-1" style="font-size: 11px;">
-                                            <span class="text-secondary" title="Base Price">B: {{ number_format($basePrice, 2) }}</span>
-                                            <span class="text-danger" title="Total Tax">T: {{ number_format($totalTax, 2) }}</span>
-                                        </div>
+                                        @if($branch->tax_include)
+                                            <div class="d-flex justify-content-center gap-2 mt-1" style="font-size: 11px;">
+                                                <span class="text-secondary" title="Base Price">B: {{ number_format($basePrice, 2) }}</span>
+                                                <span class="text-danger" title="Total Tax">T: {{ number_format($totalTax, 2) }}</span>
+                                            </div>
+                                        @endif
                                     </div>
                                 @else
                                     <small class="text-muted">—</small>

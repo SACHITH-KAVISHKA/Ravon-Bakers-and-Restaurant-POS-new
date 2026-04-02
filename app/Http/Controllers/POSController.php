@@ -32,6 +32,7 @@ class POSController extends Controller
 
         $user = User::with('branch')->find(Auth::id());
         $userBranchId = (int) $user->branch_id;
+        $branchTaxInclude = $user->branch->tax_include ?? true;
 
         // Fetch Items Logic
         $query = Item::where('is_active', true)
@@ -103,7 +104,7 @@ class POSController extends Controller
         $vatRate = \App\Models\Setting::where('key', 'vat_rate')->value('value') ?? 18;
         $ssclRate = \App\Models\Setting::where('key', 'sscl_rate')->value('value') ?? 2.5;
 
-        return view('pos.index', compact('items', 'importedCart', 'importedOrderId', 'vatRate', 'ssclRate'));
+        return view('pos.index', compact('items', 'importedCart', 'importedOrderId', 'vatRate', 'ssclRate', 'branchTaxInclude'));
     }
 
     public function processSale(Request $request)
@@ -157,6 +158,7 @@ class POSController extends Controller
         $user = Auth::user();
         $userId = (int) ($user->id ?? null);
         $userBranchId = (int) ($user->branch_id ?? null);
+        $branchTaxInclude = (bool) ($user->branch->tax_include ?? true);
 
         // 3. Loop Items & Backward Tax Calculation
         foreach ($request->items as $requestItem) {
@@ -178,8 +180,8 @@ class POSController extends Controller
 
             // --- BACKWARD TAX CALCULATION PER ITEM (START) ---
             // Reverse Factor calculation: (1 + SSCL%) * (1 + VAT%)
-            $sRate = $item->sscl_applicable ? ($ssclRate / 100) : 0;
-            $vRate = $item->vat_applicable ? ($vatRate / 100) : 0;
+            $sRate = ($branchTaxInclude && $item->sscl_applicable) ? ($ssclRate / 100) : 0;
+            $vRate = ($branchTaxInclude && $item->vat_applicable) ? ($vatRate / 100) : 0;
 
             $taxFactor = (1 + $sRate) * (1 + $vRate);
 

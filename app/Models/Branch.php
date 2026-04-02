@@ -19,6 +19,7 @@ class Branch extends Model
         'address',
         'telephone',
         'status',
+        'tax_include',
     ];
 
     /**
@@ -28,6 +29,7 @@ class Branch extends Model
      */
     protected $casts = [
         'status' => 'boolean',
+        'tax_include' => 'boolean',
     ];
 
     /**

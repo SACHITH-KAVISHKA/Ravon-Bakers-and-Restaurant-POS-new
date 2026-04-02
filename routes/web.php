@@ -38,6 +38,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('/items/export', [ItemController::class, 'exportExcel'])->name('items.export');
+
     // Item Management - All users can view, only admin can modify
     Route::resource('items', ItemController::class);
     // Item branch prices management (admin)
@@ -84,6 +86,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/wastage-item-details', [SupervisorController::class, 'getWastageItemDetails'])
                 ->name('wastage-item-details');
         });
+
     });
 
         Route::middleware(['auth', 'can:manage-users'])->group(function () {

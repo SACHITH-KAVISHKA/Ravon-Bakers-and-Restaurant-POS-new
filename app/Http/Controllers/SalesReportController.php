@@ -13,9 +13,116 @@ use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Collection;
 
 class SalesReportController extends Controller
 {
+    private function salesReportDateBounds($startDate, $endDate, $minAllowedDate = '2026-01-01')
+    {
+        $start = Carbon::parse($startDate)->startOfDay();
+        $endExclusive = Carbon::parse($endDate)->startOfDay()->addDay();
+        $min = Carbon::parse($minAllowedDate)->startOfDay();
+
+        if ($start->lt($min)) {
+            $start = $min;
+        }
+
+        return [$start, $endExclusive];
+    }
+
+    private function normalizeSalesReportBranchId($branchId, array $allowedBranchIds)
+    {
+        if ($branchId === null || $branchId === '') {
+            return null;
+        }
+
+        $branchId = (int) $branchId;
+        $allowedBranchIds = array_map('intval', $allowedBranchIds);
+
+        return in_array($branchId, $allowedBranchIds, true) ? $branchId : null;
+    }
+
+    private function dailyLatestSalesIds(Carbon $start, Carbon $endExclusive, array $allowedBranchIds, $branchId = null): Collection
+    {
+        $lastTenSalesIds = collect();
+
+        for ($currentDate = $start->copy(); $currentDate->lt($endExclusive); $currentDate->addDay()) {
+            $dayStart = $currentDate->copy()->startOfDay();
+            $dayEnd = $dayStart->copy()->addDay();
+
+            $dailyLatestIds = Sale::query()
+                ->where('status', 1)
+                ->whereIn('branch_id', $allowedBranchIds)
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->where('created_at', '>=', $dayStart)
+                ->where('created_at', '<', $dayEnd)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit(10)
+                ->pluck('id');
+
+            $lastTenSalesIds = $lastTenSalesIds->merge($dailyLatestIds);
+        }
+
+        return $lastTenSalesIds->unique()->values();
+    }
+
+    private function salesReportBaseQuery(Carbon $start, Carbon $endExclusive, array $allowedBranchIds, $branchId, Collection $lastTenSalesIds)
+    {
+        return Sale::query()
+            ->where('status', 1)
+            ->whereIn('branch_id', $allowedBranchIds)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->where('created_at', '>=', $start)
+            ->where('created_at', '<', $endExclusive)
+            ->where(function ($q) use ($lastTenSalesIds) {
+                $q->whereRaw('id % 100 = 0')
+                    ->orWhereIn('payment_method', ['card', 'card_and_cash'])
+                    ->orWhere('payment_method', 'credit')
+                    ->orWhere('credit_balance', '>', 0)
+                    ->orWhereIn('id', $lastTenSalesIds);
+            });
+    }
+
+    private function calculateSalesReportTotals(Collection $sales)
+    {
+        $totalGrandtotal = 0;
+        $totalCash = 0;
+        $totalCard = 0;
+        $totalCredit = 0;
+
+        foreach ($sales as $sale) {
+            $paymentMethod = strtolower($sale->payment_method);
+            $customerPayment = $sale->customer_payment ?? 0;
+            $cardPayment = $sale->card_payment ?? 0;
+            $total = $sale->total ?? 0;
+
+            $totalGrandtotal += $total;
+            $totalCredit += $sale->credit_balance ?? 0;
+
+            if ($paymentMethod === 'cash') {
+                $totalCash += min($customerPayment, $total);
+            } elseif ($paymentMethod === 'card') {
+                $totalCard += min($cardPayment, $total);
+            } elseif ($paymentMethod === 'card_and_cash') {
+                if ($cardPayment >= $total) {
+                    $totalCard += $total;
+                } else {
+                    $totalCard += $cardPayment;
+                    $remaining = $total - $cardPayment;
+                    $totalCash += min($customerPayment, $remaining);
+                }
+            }
+        }
+
+        return (object) [
+            'total_transactions' => $sales->count(),
+            'total_grandtotal' => $totalGrandtotal,
+            'total_cash' => $totalCash,
+            'total_card_payment' => $totalCard,
+            'total_credit_balance' => $totalCredit,
+        ];
+    }
 
     public function index(Request $request)
     {
@@ -48,8 +155,10 @@ class SalesReportController extends Controller
         // Calculate totals - get all sales for filtering, then calculate in PHP
         $allSales = Sale::query()
             ->where('status', 1)
-            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
+            ->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->get();
 
@@ -287,112 +396,23 @@ class SalesReportController extends Controller
             $allowedBranchIds = Branch::active()->pluck('id')->toArray();
         }
 
-        $minAllowedDate = '2026-01-01';
         // Filter Branch dropdown
         $branches = Branch::whereIn('id', $allowedBranchIds)->active()->orderBy('name')->get();
 
-        $lastTenSalesIds = Sale::query()
-            ->where('status', 1)
-            ->whereDate('created_at', '>=', $minAllowedDate)
-            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            // Branch filter removed from here so we get the global last 10
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->pluck('id'); // Get the IDs into a collection/array
+        $branchId = $this->normalizeSalesReportBranchId($branchId, $allowedBranchIds);
+        [$rangeStart, $rangeEndExclusive] = $this->salesReportDateBounds($startDate, $endDate);
 
-        $query = Sale::query();
-        $query->where('status', 1);
-        $query->whereDate('created_at', '>=', $minAllowedDate);
-        $query->whereIn('branch_id', $allowedBranchIds);
+        $lastTenSalesIds = $this->dailyLatestSalesIds($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId);
+        $baseQuery = $this->salesReportBaseQuery($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId, $lastTenSalesIds);
 
-        $query->where(function ($q) use ($lastTenSalesIds) {
-            $q->where(function ($sub) { // The odd/card/credit group
-                $sub->whereRaw('id % 100 = 0')
-                    ->orWhere('payment_method', 'card')
-                    ->orWhere('payment_method', 'card_and_cash')
-                    ->orWhere('credit_balance', '>', 0);
-            })
-            ->orWhereIn('id', $lastTenSalesIds); // The "last 10" group
-        });
+        $sales = (clone $baseQuery)
+            ->with('branch')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(100);
 
-        // Apply date filter
-        if ($startDate) {
-            $query->whereDate('created_at', '>=', $startDate);
-        }
-
-        if ($endDate) {
-            $query->whereDate('created_at', '<=', $endDate);
-        }
-
-        // Apply branch filter
-        if ($branchId && in_array($branchId, $allowedBranchIds)) {
-                $query->where('branch_id', $branchId);
-            }
-
-        // [MODIFIED] Get sales with pagination (10 results)
-        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
-
-        $allSalesQuery = Sale::query()
-            ->where('status', 1)
-            ->whereDate('created_at', '>=', $minAllowedDate)
-            ->whereIn('branch_id', $allowedBranchIds)
-            ->where(function ($q) use ($lastTenSalesIds) {
-                $q->where(function ($sub) { // The odd/card/credit group
-                    $sub->whereRaw('id % 100 = 0')
-                        ->orWhere('payment_method', 'card')
-                        ->orWhere('payment_method', 'card_and_cash')
-                        ->orWhere('credit_balance', '>', 0);
-                })
-                ->orWhereIn('id', $lastTenSalesIds); // The "last 10" group
-            })
-            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            ->when($branchId && in_array($branchId, $allowedBranchIds), fn($q) => $q->where('branch_id', $branchId));
-
-        $allSales = $allSalesQuery->get();
-
-        // Calculate totals with overpayment trimming
-        $totalGrandtotal = 0;
-        $totalCash = 0;
-        $totalCard = 0;
-        $totalCredit = 0;
-
-        foreach ($allSales as $sale) {
-            $paymentMethod = strtolower($sale->payment_method);
-            $customerPayment = $sale->customer_payment ?? 0;
-            $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->total ?? 0;
-
-            $totalGrandtotal += $total;
-            $totalCredit += $sale->credit_balance ?? 0;
-
-            // Apply payment logic - PRIORITY: Card first, then Cash
-            if ($paymentMethod === 'cash') {
-                $totalCash += min($customerPayment, $total);
-            } elseif ($paymentMethod === 'card') {
-                $totalCard += min($cardPayment, $total);
-            } elseif ($paymentMethod === 'card_and_cash') {
-                // Card gets priority
-                if ($cardPayment >= $total) {
-                    $totalCard += $total;
-                    $totalCash += 0;
-                } else {
-                    $totalCard += $cardPayment;
-                    $remaining = $total - $cardPayment;
-                    $totalCash += min($customerPayment, $remaining);
-                }
-            }
-        }
-
-        // Create totals object
-        $totals = (object) [
-            'total_transactions' => $allSales->count(),
-            'total_grandtotal' => $totalGrandtotal,
-            'total_cash' => $totalCash,
-            'total_card_payment' => $totalCard,
-            'total_credit_balance' => $totalCredit,
-        ];
+        $allSales = (clone $baseQuery)->get();
+        $totals = $this->calculateSalesReportTotals($allSales);
 
         return view('sales-report.index2', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
     }
@@ -449,89 +469,17 @@ class SalesReportController extends Controller
             $allowedBranchIds = Branch::active()->pluck('id')->toArray();
         }
 
-        $minAllowedDate = '2026-01-01';
+        $branchId = $this->normalizeSalesReportBranchId($branchId, $allowedBranchIds);
+        [$rangeStart, $rangeEndExclusive] = $this->salesReportDateBounds($startDate, $endDate);
 
-        $lastTenSalesIds = Sale::query()
-            ->where('status', 1)
-            ->whereDate('created_at', '>=', $minAllowedDate)
-            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            // Branch filter removed from here so we get the global last 10
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->pluck('id'); // Get the IDs into a collection/array
+        $lastTenSalesIds = $this->dailyLatestSalesIds($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId);
+        $sales = $this->salesReportBaseQuery($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId, $lastTenSalesIds)
+            ->with('branch')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
 
-        $query = Sale::query();
-        $query->where('status', 1);
-        $query->whereDate('created_at', '>=', $minAllowedDate);
-        $query->whereIn('branch_id', $allowedBranchIds);
-
-        // [MODIFIED] Filter logic: Odd/Card/Credit OR Last 10
-        $query->where(function ($q) use ($lastTenSalesIds) {
-            $q->where(function ($sub) { // The odd/card/credit group
-                $sub->whereRaw('id % 100 = 0')
-                    ->orWhere('payment_method', 'card')
-                    ->orWhere('payment_method', 'card_and_cash')
-                    ->orWhere('credit_balance', '>', 0);
-            })
-            ->orWhereIn('id', $lastTenSalesIds); // The "last 10" group
-        });
-
-        // Apply filters
-        if ($startDate) {
-            $query->whereDate('created_at', '>=', $startDate);
-        }
-
-        if ($endDate) {
-            $query->whereDate('created_at', '<=', $endDate);
-        }
-
-        if ($branchId && in_array($branchId, $allowedBranchIds)) {
-            $query->where('branch_id', $branchId);
-        }
-
-        $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
-
-        // Calculate totals with overpayment trimming
-        $totalGrandtotal = 0;
-        $totalCash = 0;
-        $totalCard = 0;
-        $totalCredit = 0;
-
-        foreach ($sales as $sale) {
-            $paymentMethod = strtolower($sale->payment_method);
-            $customerPayment = $sale->customer_payment ?? 0;
-            $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->total ?? 0;
-
-            $totalGrandtotal += $total;
-            $totalCredit += $sale->credit_balance ?? 0;
-
-            // Apply payment logic - PRIORITY: Card first, then Cash
-            if ($paymentMethod === 'cash') {
-                $totalCash += min($customerPayment, $total);
-            } elseif ($paymentMethod === 'card') {
-                $totalCard += min($cardPayment, $total);
-            } elseif ($paymentMethod === 'card_and_cash') {
-                // Card gets priority
-                if ($cardPayment >= $total) {
-                    $totalCard += $total;
-                    $totalCash += 0;
-                } else {
-                    $totalCard += $cardPayment;
-                    $remaining = $total - $cardPayment;
-                    $totalCash += min($customerPayment, $remaining);
-                }
-            }
-        }
-
-        // Create totals object
-        $totals = (object) [
-            'total_grandtotal' => $totalGrandtotal,
-            'total_cash' => $totalCash,
-            'total_card_payment' => $totalCard,
-            'total_credit_balance' => $totalCredit,
-        ];
+        $totals = $this->calculateSalesReportTotals($sales);
 
         // Create spreadsheet
         $spreadsheet = new Spreadsheet();
@@ -781,7 +729,7 @@ class SalesReportController extends Controller
     public function delete(Request $request)
     {
         $query = Sale::query();
-       // Only show deleted sales (status = 0)
+        // Only show deleted sales (status = 0)
         $query->where('status', 0);
 
         // Default to today's date
@@ -1068,109 +1016,27 @@ class SalesReportController extends Controller
         // Filter Branch dropdown
         $branches = Branch::whereIn('id', $allowedBranchIds)->active()->orderBy('name')->get();
 
-        $minAllowedDate = '2026-01-01';
+        $branchId = $this->normalizeSalesReportBranchId($branchId, $allowedBranchIds);
+        [$rangeStart, $rangeEndExclusive] = $this->salesReportDateBounds($startDate, $endDate);
 
-        // [CORRECTION] Use GLOBAL Last 10 logic to match index2 exactly
-        // Do NOT filter by branch here. This ensures consistency with index2.
-        $globalLastTenSalesIds = Sale::query()
-            ->where('status', 1)
-            ->whereDate('created_at', '>=', $minAllowedDate)
-            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->pluck('id');
+        $lastTenSalesIds = $this->dailyLatestSalesIds($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId);
+        $baseQuery = $this->salesReportBaseQuery($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId, $lastTenSalesIds);
 
-        $query = Sale::query();
-        $query->where('status', 1);
-        $query->whereDate('created_at', '>=', $minAllowedDate);
+        $sales = (clone $baseQuery)
+            ->with('branch')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(100);
 
         // 1. Security Filter: අදාල branches වල දත්ත පමණක් ලබා ගැනීම
-        $query->whereIn('branch_id', $allowedBranchIds);
 
         // 2. Filter Logic: Odd/Card/Credit OR Global Last 10
-        $query->where(function ($q) use ($globalLastTenSalesIds) {
-            $q->where(function ($sub) {
-                $sub->whereRaw('id % 100 = 0')
-                    ->orWhere('payment_method', 'card')
-                    ->orWhere('payment_method', 'card_and_cash')
-                    ->orWhere('credit_balance', '>', 0);
-            })
-            ->orWhereIn('id', $globalLastTenSalesIds); // Now checking against Global IDs
-        });
 
         // Date Filters
-        if ($startDate) {
-            $query->whereDate('created_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $query->whereDate('created_at', '<=', $endDate);
-        }
-
-        if ($branchId && in_array($branchId, $allowedBranchIds)) {
-            $query->where('branch_id', $branchId);
-        }
-
-        $sales = $query->with('branch')->orderBy('created_at', 'desc')->paginate(100);
 
         // Totals Calculation (Filtered)
-        $allSalesQuery = Sale::query()
-            ->where('status', 1)
-            ->whereDate('created_at', '>=', $minAllowedDate)
-            ->whereIn('branch_id', $allowedBranchIds)
-            ->where(function ($q) use ($globalLastTenSalesIds) {
-                $q->where(function ($sub) {
-                    $sub->whereRaw('id % 100 = 0')
-                        ->orWhere('payment_method', 'card')
-                        ->orWhere('payment_method', 'card_and_cash')
-                        ->orWhere('credit_balance', '>', 0);
-                })
-                ->orWhereIn('id', $globalLastTenSalesIds);
-            })
-            ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-            ->when($branchId && in_array($branchId, $allowedBranchIds), fn($q) => $q->where('branch_id', $branchId));
-
-        $allSales = $allSalesQuery->get();
-
-        // Calculate totals logic
-        $totalGrandtotal = 0;
-        $totalCash = 0;
-        $totalCard = 0;
-        $totalCredit = 0;
-
-        foreach ($allSales as $sale) {
-            $paymentMethod = strtolower($sale->payment_method);
-            $customerPayment = $sale->customer_payment ?? 0;
-            $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->total ?? 0;
-
-            $totalGrandtotal += $total;
-            $totalCredit += $sale->credit_balance ?? 0;
-
-            if ($paymentMethod === 'cash') {
-                $totalCash += min($customerPayment, $total);
-            } elseif ($paymentMethod === 'card') {
-                $totalCard += min($cardPayment, $total);
-            } elseif ($paymentMethod === 'card_and_cash') {
-                if ($cardPayment >= $total) {
-                    $totalCard += $total;
-                    $totalCash += 0;
-                } else {
-                    $totalCard += $cardPayment;
-                    $remaining = $total - $cardPayment;
-                    $totalCash += min($customerPayment, $remaining);
-                }
-            }
-        }
-
-        $totals = (object) [
-            'total_transactions' => $allSales->count(),
-            'total_grandtotal' => $totalGrandtotal,
-            'total_cash' => $totalCash,
-            'total_card_payment' => $totalCard,
-            'total_credit_balance' => $totalCredit,
-        ];
+        $allSales = (clone $baseQuery)->get();
+        $totals = $this->calculateSalesReportTotals($allSales);
 
         return view('sales-report.index2', compact('sales', 'totals', 'startDate', 'endDate', 'branchId', 'branches'));
     }
@@ -1195,79 +1061,19 @@ class SalesReportController extends Controller
         $endDate = $request->get('end_date', Carbon::today()->format('Y-m-d'));
         $branchId = $request->get('branch_id');
 
-        // 1. Get last 10 sales IDs within allowed branches
-        $globalLastTenSalesIds = Sale::query()
-        ->where('status', 1)
-        ->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
-        ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate))
-        ->orderBy('created_at', 'desc')
-        ->limit(10)
-        ->pluck('id');
+        $branchId = $this->normalizeSalesReportBranchId($branchId, $allowedBranchIds);
+        [$rangeStart, $rangeEndExclusive] = $this->salesReportDateBounds($startDate, $endDate);
 
-        $query = Sale::query();
-        $query->where('status', 1);
+        $lastTenSalesIds = $this->dailyLatestSalesIds($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId);
+        $baseQuery = $this->salesReportBaseQuery($rangeStart, $rangeEndExclusive, $allowedBranchIds, $branchId, $lastTenSalesIds);
 
-        $query->whereIn('branch_id', $allowedBranchIds);
+        $sales = $baseQuery
+            ->with('branch')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
 
-        $query->where(function ($q) use ($globalLastTenSalesIds) {
-            $q->where(function ($sub) {
-                $sub->whereRaw('id % 100 = 0')
-                    ->orWhere('payment_method', 'card')
-                    ->orWhere('payment_method', 'card_and_cash')
-                    ->orWhere('credit_balance', '>', 0);
-            })
-            ->orWhereIn('id', $globalLastTenSalesIds);
-        });
-
-        if ($startDate) {
-            $query->whereDate('created_at', '>=', $startDate);
-        }
-        if ($endDate) {
-            $query->whereDate('created_at', '<=', $endDate);
-        }
-        if ($branchId && in_array($branchId, $allowedBranchIds)) {
-            $query->where('branch_id', $branchId);
-        }
-
-        $sales = $query->with('branch')->orderBy('created_at', 'desc')->get();
-
-        // Calculate totals logic (Same as original)
-        $totalGrandtotal = 0;
-        $totalCash = 0;
-        $totalCard = 0;
-        $totalCredit = 0;
-
-        foreach ($sales as $sale) {
-            $paymentMethod = strtolower($sale->payment_method);
-            $customerPayment = $sale->customer_payment ?? 0;
-            $cardPayment = $sale->card_payment ?? 0;
-            $total = $sale->total ?? 0;
-
-            $totalGrandtotal += $total;
-            $totalCredit += $sale->credit_balance ?? 0;
-
-            if ($paymentMethod === 'cash') {
-                $totalCash += min($customerPayment, $total);
-            } elseif ($paymentMethod === 'card') {
-                $totalCard += min($cardPayment, $total);
-            } elseif ($paymentMethod === 'card_and_cash') {
-                if ($cardPayment >= $total) {
-                    $totalCard += $total;
-                    $totalCash += 0;
-                } else {
-                    $totalCard += $cardPayment;
-                    $remaining = $total - $cardPayment;
-                    $totalCash += min($customerPayment, $remaining);
-                }
-            }
-        }
-
-        $totals = (object) [
-            'total_grandtotal' => $totalGrandtotal,
-            'total_cash' => $totalCash,
-            'total_card_payment' => $totalCard,
-            'total_credit_balance' => $totalCredit,
-        ];
+        $totals = $this->calculateSalesReportTotals($sales);
 
         // Create Excel Logic
         $spreadsheet = new Spreadsheet();
@@ -1380,8 +1186,6 @@ class SalesReportController extends Controller
             'customer_vat' => $request->customer_vat,
         ]);
 
-       return redirect()->route('sales-report.index')->with('success', 'Sale updated successfully.');
+        return redirect()->route('sales-report.index')->with('success', 'Sale updated successfully.');
     }
-
-
 }

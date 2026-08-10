@@ -854,6 +854,9 @@
                         <span>Create Transfer</span>
                     </a>
                 </li>
+                @endif
+
+                @if((auth()->user()->role === 'staff' && auth()->user()->branch_id) || auth()->user()->role === 'admin')
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('staff.orders.*') ? 'active' : '' }}"
                         href="{{ route('staff.orders.index') }}">

@@ -121,6 +121,7 @@ class POSController extends Controller
             'customer_payment' => 'nullable|numeric|min:0',
             'card_payment' => 'nullable|numeric|min:0',
             'order_id' => 'nullable|exists:orders,id',
+            'is_pickme' => 'nullable|boolean',
         ]);
 
         // --- 1. TAX RATES LOAD (DATABASE SETTINGS TABLE EKEN) ---
@@ -160,6 +161,8 @@ class POSController extends Controller
         $userBranchId = (int) ($user->branch_id ?? null);
         $branchTaxInclude = (bool) ($user->branch->tax_include ?? true);
 
+        $isPickMeOrder = (bool) $request->input('is_pickme', false);
+
         // 3. Loop Items & Backward Tax Calculation
         foreach ($request->items as $requestItem) {
             $item = Item::find($requestItem['id']);
@@ -167,12 +170,16 @@ class POSController extends Controller
 
             $quantity = (float) $requestItem['quantity'];
 
-            // Price Logic
-            if ($user && $user->role === 'staff' && $userBranchId) {
+            if ($isPickMeOrder) {
+                $unitPriceInclusive = $item->branchPrices()->where('branch_id', 8)->first()?->price;
+                // Fallback: යම් හෙයකින් මිලක් නැතිනම් සාමාන්‍ය මිල ගනී
+                if (!$unitPriceInclusive) {
+                    $unitPriceInclusive = $item->branchPrices()->where('branch_id', $userBranchId)->first()?->price
+                                        ?? ($item->branchPrices()->first()?->price ?? 0);
+                }
+            } else {
                 $unitPriceInclusive = $item->branchPrices()->where('branch_id', $userBranchId)->first()?->price
                                     ?? ($item->branchPrices()->first()?->price ?? 0);
-            } else {
-                $unitPriceInclusive = $item->branchPrices()->first()?->price ?? 0;
             }
 
             $lineTotalInclusive = $unitPriceInclusive * $quantity;
@@ -253,15 +260,16 @@ class POSController extends Controller
                 $receiptNo, $totalBaseAmount, $totalVatAmount, $totalSsclAmount, $total, $request,
                 $saleItemsData, $kotItems, $botItems, $orderType,
                 $customerPayment, $cardPayment, $balance, $creditBalance,
-                &$saleId, $orderId, $user, $userId, $userBranchId
+                &$saleId, $orderId, $user, $userId, $userBranchId, $isPickMeOrder
             ) {
 
+                $saleBranchId = $isPickMeOrder ? 8 : ($userBranchId ?: null);
                 // A. Create Sale Record
                 $sale = Sale::create([
                     'receipt_no' => $receiptNo,
                     'terminal' => '01',
                     'user_id' => $userId ?: null,
-                    'branch_id' => $userBranchId ?: null,
+                    'branch_id' => $saleBranchId,
                     'user_name' => $user->name ?? null,
                     'subtotal' => $totalBaseAmount,   // Badu rahitha base amount eka (Subtotal)
                     'sscl_amount' => $totalSsclAmount, // Save SSCL

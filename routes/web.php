@@ -228,6 +228,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [App\Http\Controllers\OrderController::class, 'create'])->name('create');
             Route::post('/store', [App\Http\Controllers\OrderController::class, 'store'])->name('store');
             Route::get('/{order}', [App\Http\Controllers\OrderController::class, 'show'])->name('show');
+            Route::delete('/{order}', [App\Http\Controllers\OrderController::class, 'destroy'])->name('destroy');
         });
 
         // ---- Recent Invoices Route ---

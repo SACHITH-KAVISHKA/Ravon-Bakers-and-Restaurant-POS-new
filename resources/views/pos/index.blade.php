@@ -1452,17 +1452,22 @@
                     @foreach($allItemsSorted as $item)
                     @php
                     $displayPrice = $item->pos_price ?? ($item->branchPrices->first()?->price ?? 0);
+                    $pickmeBranchPrice = $item->branchPrices->firstWhere('branch_id', 8)?->price ?? 0;
                     @endphp
                     <div class="item-card"
                         data-category="{{ $item->category }}"
                         data-item-id="{{ $item->id }}"
                         data-item-name="{{ $item->item_name }}"
                         data-item-price="{{ $displayPrice }}"
+                        data-pickme-price="{{ $pickmeBranchPrice }}"
                         data-vat="{{ $item->vat_applicable ? 1 : 0 }}"
                         data-sscl="{{ $item->sscl_applicable ? 1 : 0 }}"
                         onclick="addToCartFromCard(this)">
                         <div class="item-name">{{ $item->item_name }}</div>
                         <div class="item-price">LKR {{ number_format($displayPrice, 2) }}</div>
+                        @if($pickmeBranchPrice > 0)
+                            <small class="text-muted d-block" style="font-size: 10px;">PickMe: LKR {{ number_format($pickmeBranchPrice, 2) }}</small>
+                        @endif
                     </div>
                     @endforeach
                 </div>
@@ -1473,6 +1478,18 @@
                 <!-- Receipt Info -->
                 <div class="receipt-info">
                     <div class="receipt-id">RECEIPT: <span id="receipt-no">{{ 'RCP' . now()->format('ymd') . str_pad(\App\Models\Sale::whereDate('created_at', now()->toDateString())->count() + 1, 4, '0', STR_PAD_LEFT) }}</span></div>
+                </div>
+                <!-- Order Type Selection for Pricing -->
+                <div class="p-2 bg-light border-bottom">
+                    <label class="form-label small fw-bold text-secondary mb-1">ORDER TYPE (PRICING)</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary flex-fill active" id="order-type-local" onclick="changePriceTier('local')">
+                            <i class="bi bi-shop"></i> Normal Price
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning flex-fill" id="order-type-pickme" onclick="changePriceTier('pickme')">
+                            <i class="bi bi-bicycle"></i> PickMe Price
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Cart Section -->
@@ -1883,15 +1900,60 @@
         let cardPayment = 0;
         let activeInput = 'customer'; // Track which input is currently active
 
+        // PickMe Branch ID එක (Database එකේ වැටෙන ID එක මෙතනට දාන්න)
+        const PICKME_BRANCH_ID = 8;
+        let currentPriceTier = 'local'; // default configuration
+
+        function changePriceTier(tier) {
+            currentPriceTier = tier;
+            document.getElementById('order-type-local').classList.toggle('active', tier === 'local');
+            document.getElementById('order-type-pickme').classList.toggle('active', tier === 'pickme');
+
+
+            const removedItems = [];
+
+            cart = cart.filter(cartItem => {
+                const cardElement = document.querySelector(`.item-card[data-item-id="${cartItem.id}"]`);
+                if (!cardElement) return true;
+
+                if (tier === 'pickme') {
+                    const pickmePrice = parseFloat(cardElement.dataset.pickmePrice);
+                    if (!cardElement.dataset.pickmePrice || isNaN(pickmePrice) || pickmePrice <= 0) {
+                        removedItems.push(cartItem.name);
+                        return false;
+                    }
+                    cartItem.price = pickmePrice;
+                } else {
+                    cartItem.price = parseFloat(cardElement.dataset.itemPrice);
+                }
+                return true;
+            });
+
+            if (removedItems.length > 0) {
+                showError('No PickMe price - removed: ' + removedItems.join(', '));
+            }
+
+            updateCartDisplay();
+        }
+
         // Add item to cart from card click
         function addToCartFromCard(card) {
             const itemId = parseInt(card.dataset.itemId);
             const itemName = card.dataset.itemName;
-            const price = parseFloat(card.dataset.itemPrice);
+            let price = parseFloat(card.dataset.itemPrice);
             const vatFlag = parseInt(card.dataset.vat) || 0;
             const ssclFlag = parseInt(card.dataset.sscl) || 0;
             const itemType = card.dataset.itemType || 'Kitchen';
             const category = card.dataset.category || '';
+
+            if (currentPriceTier === 'pickme') {
+                if (card.dataset.pickmePrice && parseFloat(card.dataset.pickmePrice) > 0) {
+                    price = parseFloat(card.dataset.pickmePrice);
+                } else {
+                    showError(itemName + ' - PickMe price not set for this item');
+                    return;
+                }
+            }
 
             if (isNaN(price) || price <= 0) {
                 console.error('Invalid price:', card.dataset.itemPrice);
@@ -2001,36 +2063,6 @@
             updateBOTButtonVisibility();
         }
 
-        // Update totals
-        // function updateTotals() {
-        //     let subtotal = 0;
-
-        //     // Calculate subtotal from cart items
-        //     if (cart && cart.length > 0) {
-        //         subtotal = cart.reduce((sum, item) => {
-        //             const itemPrice = parseFloat(item.price) || 0;
-        //             const itemQuantity = parseInt(item.quantity) || 0;
-        //             return sum + (itemPrice * itemQuantity);
-        //         }, 0);
-        //     }
-
-        //     const total = subtotal; // No discount or tax
-
-        //     // Update subtotal element if it exists
-        //     const subtotalElement = document.getElementById('subtotal');
-        //     if (subtotalElement) {
-        //         subtotalElement.textContent = `LKR ${subtotal.toFixed(2)}`;
-        //     }
-
-        //     // Update total element
-        //     const totalElement = document.getElementById('total');
-        //     if (totalElement) {
-        //         totalElement.textContent = `LKR ${total.toFixed(2)}`;
-        //     }
-
-        //     // Update checkout button based on cart
-        //     updateCheckoutButton();
-        // }
 
         function updateTotals() {
             let totalInclusive = 0;
@@ -2064,34 +2096,7 @@
             document.getElementById('total').textContent = `LKR ${totalInclusive.toFixed(2)}`;
         }
 
-        // function updateTotals() {
-        //     let totalInclusive = 0;
-        //     let totalBase = 0;
-        //     let totalVat = 0;
-        //     let totalSscl = 0;
 
-        //     // Cart එකේ තියෙන අයිතම වල Inclusive මුළු එකතුව ගන්න
-        //     if (cart && cart.length > 0) {
-        //         totalInclusive = cart.reduce((sum, item) => {
-        //             return sum + (item.price * item.quantity);
-        //         }, 0);
-        //     }
-
-        //     // Dynamic Factor එක හැදීම (උදා: (1 + 0.025) * (1 + 0.18) = 1.2095)
-        //     const taxFactor = (1 + (SSCL_PERCENT / 100)) * (1 + (VAT_PERCENT / 100));
-
-        //     const baseAmount = totalInclusive / taxFactor;
-        //     const ssclAmount = baseAmount * (SSCL_PERCENT / 100);
-        //     const vatAmount = (baseAmount + ssclAmount) * (VAT_PERCENT / 100);
-
-        //     // UI එකට Update කිරීම
-        //     document.getElementById('subtotal-display').textContent = `LKR ${baseAmount.toFixed(2)}`;
-        //     document.getElementById('sscl-display').textContent = `LKR ${ssclAmount.toFixed(2)}`;
-        //     document.getElementById('vat-display').textContent = `LKR ${vatAmount.toFixed(2)}`;
-        //     document.getElementById('total').textContent = `LKR ${totalInclusive.toFixed(2)}`;
-
-        //     updateCheckoutButton();
-        // }
 
         // Update checkout button state and text
         function updateCheckoutButton() {
@@ -2617,101 +2622,6 @@
             updateModalTotals();
         }
 
-        // // Update modal totals
-        // function updateModalTotals() {
-
-        //     const totalInclusive = getTotalAmount(); // මෙය Inclusive Total එක ලබා දෙයි
-
-        //     // බදු වෙන් කිරීම
-        //     const baseAmount = totalInclusive / 1.2095;
-        //     const ssclAmount = baseAmount * 0.025;
-        //     const vatAmount = (baseAmount + ssclAmount) * 0.18;
-
-        //     // const ssclAmount = subtotal * ssclRate;
-        //     // const taxableAmount = subtotal + ssclAmount;
-        //     // const vatAmount = taxableAmount * vatRate;
-        //     // const grandTotal = taxableAmount + vatAmount;
-
-        //     // Modal එකේ පෙන්වීම
-        //     document.getElementById('modal-subtotal').textContent = baseAmount.toFixed(2);
-        //     document.getElementById('modal-sscl').textContent = ssclAmount.toFixed(2);
-        //     document.getElementById('modal-vat').textContent = vatAmount.toFixed(2);
-        //     document.getElementById('modal-total').textContent = totalInclusive.toFixed(2);
-
-        //     let balance = 0;
-        //     let creditAmount = 0;
-        //     const total = totalInclusive;
-
-        //     // Calculate based on payment method
-        //     if (modalSelectedPaymentMethod === 'CASH') {
-        //         // CASH: show cash amount and calculate balance/credit
-        //         document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
-        //         document.getElementById('modal-card-amount').textContent = '0.00';
-
-        //         if (modalCustomerPayment < total) {
-        //             // Insufficient payment - calculate credit
-        //             creditAmount = total - modalCustomerPayment;
-        //             balance = 0;
-        //         } else {
-        //             // Sufficient payment - calculate change
-        //             balance = modalCustomerPayment - total;
-        //         }
-        //     } else if (modalSelectedPaymentMethod === 'CARD') {
-        //         // CARD: card amount and calculate balance/credit
-        //         document.getElementById('modal-cash-amount').textContent = '0.00';
-        //         document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
-
-        //         if (modalCardPayment < total) {
-        //             // Insufficient payment - calculate credit
-        //             creditAmount = total - modalCardPayment;
-        //             balance = 0;
-        //         } else if (modalCardPayment > total) {
-        //             // Overpayment - show balance (change)
-        //             balance = modalCardPayment - total;
-        //             creditAmount = 0;
-        //         } else {
-        //             // Exact payment
-        //             balance = 0;
-        //             creditAmount = 0;
-        //         }
-        //     } else if (modalSelectedPaymentMethod === 'CARD & CASH') {
-        //         // CARD & CASH: show both amounts and calculate balance/credit
-        //         document.getElementById('modal-cash-amount').textContent = modalCustomerPayment.toFixed(2);
-        //         document.getElementById('modal-card-amount').textContent = modalCardPayment.toFixed(2);
-        //         const totalPaid = modalCustomerPayment + modalCardPayment;
-
-        //         if (totalPaid < total) {
-        //             // Insufficient payment - calculate credit
-        //             creditAmount = total - totalPaid;
-        //             balance = 0;
-        //         } else {
-        //             // Sufficient payment - calculate change
-        //             balance = totalPaid - total;
-        //         }
-        //     } else if (modalSelectedPaymentMethod === 'CREDIT') {
-        //         // CREDIT: entire amount as credit
-        //         document.getElementById('modal-cash-amount').textContent = '0.00';
-        //         document.getElementById('modal-card-amount').textContent = '0.00';
-        //         creditAmount = total;
-        //         balance = 0;
-        //     }
-
-        //     // Update balance display
-        //     document.getElementById('modal-balance').textContent = balance.toFixed(2);
-
-        //     // Update credit display
-        //     const creditElement = document.getElementById('modal-credit');
-        //     const creditRow = document.getElementById('modal-credit-row');
-
-        //     if (creditElement && creditRow) {
-        //         creditElement.textContent = creditAmount.toFixed(2);
-        //         // Show/hide credit row based on whether there's credit
-        //         creditRow.style.display = creditAmount > 0 ? 'flex' : 'none';
-        //     }
-
-        //     // Update print button state after totals are updated
-        //     toggleModalPrintButton();
-        // }
 
         function updateModalTotals() {
             let totalInclusive = 0;
@@ -2919,16 +2829,12 @@
                 balance: balance,
                 credit_balance: creditBalance, // Store credit balance for CREDIT method
                 total: total,
-                order_id: currentImportedOrderId
+                order_id: currentImportedOrderId,
+                is_pickme: (currentPriceTier === 'pickme')
             };
 
-            // Process the payment - Prevent double submission
-            const printBtn = document.getElementById('modal-print-btn');
-
-            // Check if already processing
-            if (printBtn.disabled) {
-                return;
-            }
+        const printBtn = document.getElementById('modal-print-btn');
+            if (printBtn.disabled && printBtn.innerHTML.includes('Processing')) return;
 
             printBtn.disabled = true;
             printBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
@@ -2943,14 +2849,10 @@
                     body: JSON.stringify(orderData)
                 })
                 .then(response => response.json())
-                // MODIFIED: Added async to handle await for printing
                 .then(async (data) => {
-                        if (data.success || data.receipt_no) {
-                        // Show success modal briefly
-                        // MODIFIED: Changed message to indicate printing
+                    if (data.success || data.receipt_no) {
                         showSuccess('Payment Successful! Printing...');
 
-                        // Store cart data before clearing for PDF generation
                         window.lastSaleData = {
                             cart: [...cart],
                             paymentMethod: modalSelectedPaymentMethod,
@@ -2960,36 +2862,25 @@
                             backendData: data
                         };
 
-                        // Hide payment modal
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
-                        modal.hide();
+                        const modalElement = document.getElementById('paymentModal');
+                        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) modalInstance.hide();
 
-                        // --- QZ TRAY MODIFICATION ---
                         try {
-                            // Generate AND Print PDF receipt using QZ Tray
-                            // This function is now async
-                            // 1. Print Recipt
                             await downloadReceiptPDF();
-
-                            // 2. Print BOT if beverage items are present
                             if (hasBeverageItems()) {
-                                console.log("Beverage items detected. Printing BOT...");
                                 await downloadBOTPDF(false);
                             }
                         } catch (printError) {
-                            // The printPDFwithQZ function already showed an error modal
-                            console.error("Printing failed after successful payment:", printError);
-                            // You can add another notification here if needed
-                            showError("Payment was SUCCESSFUL, but printing failed. Check QZ Tray.");
+                            console.error("Printing failed:", printError);
+                            showError("Payment was SUCCESSFUL, but printing failed.");
                         }
-                        // --- END MODIFICATION ---
 
-                        // Clear the cart and start new order
                         cart = [];
                         updateCartDisplay();
-                        updateBOTButtonVisibility();
+                        updateTotals();
                     } else {
-                        showError(data.message || 'Error processing payment');
+                        showError(data.error || data.message || 'Error processing payment');
                     }
                 })
                 .catch(error => {
@@ -3192,439 +3083,7 @@
 
             updateCartDisplay();
         }
-        // // MODIFIED: Changed to an async function to support 'await'
-        // // Download receipt as PDF - DYNAMIC LENGTH VERSION
-        // async function downloadReceiptPDF() {
-        //     try {
-        //         const {
-        //             jsPDF
-        //         } = window.jspdf;
 
-        //         // Get stored cart data or use current cart
-        //         const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
-        //         const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
-        //         const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ?
-        //             parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) :
-        //             (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
-        //         const cardPaymentAmount = window.lastSaleData?.backendData?.card_payment ?
-        //             parseFloat(window.lastSaleData.backendData.card_payment.replace(/,/g, '')) :
-        //             (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
-
-        //         // Calculate totals from cart
-        //         const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-        //         // Calculate balance based on payment method
-        //         let balance = 0;
-        //         let totalPaid = 0;
-
-        //         if (paymentMethod === 'CASH') {
-        //             totalPaid = customerPaymentAmount;
-        //             balance = customerPaymentAmount - subtotal;
-        //         } else if (paymentMethod === 'CARD & CASH') {
-        //             totalPaid = customerPaymentAmount + cardPaymentAmount;
-        //             balance = totalPaid - subtotal;
-        //         } else if (paymentMethod === 'CARD') {
-        //             totalPaid = cardPaymentAmount; // Use actual card payment amount
-        //             balance = cardPaymentAmount - subtotal; // Could be negative (credit)
-        //         } else if (paymentMethod === 'CREDIT') {
-        //             totalPaid = 0;
-        //             balance = -subtotal; // Negative balance for credit
-        //         }
-
-        //         // Build receipt data object from cart
-        //         const receiptData = {
-        //             receiptNo: window.lastSaleData?.backendData?.receipt_no || document.getElementById('receipt-no').textContent,
-        //             userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
-        //             date: new Date().toLocaleDateString('en-GB'),
-        //             time: new Date().toLocaleTimeString('en-GB', {
-        //                 hour12: false
-        //             }),
-        //             subtotal: window.lastSaleData?.backendData?.subtotal || subtotal.toFixed(2),
-        //             total: window.lastSaleData?.backendData?.total || subtotal.toFixed(2),
-        //             paymentMethod: paymentMethod,
-        //             showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
-        //             showCardCashDetails: paymentMethod === 'CARD & CASH',
-        //             customerPayment: customerPaymentAmount.toFixed(2),
-        //             cardPayment: cardPaymentAmount.toFixed(2),
-        //             amountPaid: totalPaid.toFixed(2),
-        //             balance: window.lastSaleData?.backendData?.balance || balance.toFixed(2),
-        //             items: cartData.map(item => ({
-        //                 name: item.name,
-        //                 quantity: item.quantity,
-        //                 unitPrice: item.price.toFixed(2),
-        //                 totalPrice: (item.price * item.quantity).toFixed(2)
-        //             }))
-        //         };
-
-        //         // Create PDF with fixed width (80mm) and let height be dynamic
-        //         const pdf = new jsPDF({
-        //             orientation: 'portrait',
-        //             unit: 'mm',
-        //             format: [80, 297] // Start with A4 height, will extend if needed
-        //         });
-
-        //         let yPosition = 10;
-        //         const pageWidth = 80;
-        //         const pageHeight = 297; // A4 height in mm
-        //         const leftMargin = 5;
-        //         const rightMargin = 5;
-        //         const maxPageHeight = pageHeight - 20; // Leave margin at bottom
-
-        //         // Helper function to check if we need a new page
-        //         function checkPageBreak(requiredSpace) {
-        //             if (yPosition + requiredSpace > maxPageHeight) {
-        //                 pdf.addPage();
-        //                 yPosition = 10;
-
-        //                 // Add simplified header for continuation pages
-        //                 // Add circular logo if available
-        //                 if (circularLogoBase64) {
-        //                     try {
-        //                         const logoSize = 16;
-        //                         const logoX = pageWidth / 2 - logoSize / 2;
-        //                         const logoY = yPosition;
-
-        //                         pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
-        //                         yPosition += 20;
-        //                     } catch (e) {
-        //                         console.error('Error adding logo to continuation page:', e);
-        //                         yPosition += 20;
-        //                     }
-        //                 } else {
-        //                     yPosition += 20;
-        //                 }
-
-        //                 pdf.setFontSize(12);
-        //                 pdf.setFont('courier', 'bold');
-        //                 // Use branch display name for continuation pages
-        //                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-        //                     align: 'center'
-        //                 });
-        //                 yPosition += 6;
-
-        //                 pdf.setFontSize(8);
-        //                 pdf.setFont('courier', 'normal');
-        //                 pdf.text('(Continued)', pageWidth / 2, yPosition, {
-        //                     align: 'center'
-        //                 });
-        //                 yPosition += 8;
-
-        //                 // Separator line
-        //                 pdf.setLineWidth(0.3);
-        //                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //                 yPosition += 6;
-
-        //                 return true;
-        //             }
-        //             return false;
-        //         }
-
-        //         // Header section - only on first page
-        //         // Add circular logo if available
-        //         if (circularLogoBase64) {
-        //             try {
-        //                 const logoSize = 16;
-        //                 const logoX = pageWidth / 2 - logoSize / 2;
-        //                 const logoY = yPosition;
-
-        //                 pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
-        //                 yPosition += 20;
-        //             } catch (e) {
-        //                 console.error('Error adding logo to PDF:', e);
-        //                 yPosition += 20;
-        //             }
-        //         } else {
-        //             yPosition += 20;
-        //         }
-
-        //         // Branch name
-        //         pdf.setFontSize(14);
-        //         pdf.setFont('courier', 'bold');
-        //         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 5;
-
-        //         // Company name (if exists)
-        //         if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
-        //             pdf.setFontSize(9);
-        //             pdf.setFont('courier', 'normal');
-        //             pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
-        //                 align: 'center'
-        //             });
-        //             yPosition += 4;
-        //         }
-
-        //         // Branch address and phone
-        //         pdf.setFontSize(8);
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-        //         pdf.text('Tel: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 6;
-
-        //         // Separator line
-        //         pdf.setLineWidth(0.5);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         yPosition += 6;
-
-        //         // Receipt information
-        //         pdf.setFontSize(9);
-        //         pdf.setFont('courier', 'normal');
-
-        //         checkPageBreak(25); // Check space for receipt info block
-
-        //         pdf.text('RECEIPT NO:', leftMargin, yPosition);
-        //         pdf.text(receiptData.receiptNo, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('USER:', leftMargin, yPosition);
-        //         pdf.text(receiptData.userName, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('DATE:', leftMargin, yPosition);
-        //         pdf.text(receiptData.date, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('TIME:', leftMargin, yPosition);
-        //         pdf.text(receiptData.time, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 8;
-
-        //         // Items section
-        //         checkPageBreak(15); // Check space for items header
-
-        //         pdf.setLineWidth(0.3);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         yPosition += 6;
-
-        //         // Process each item with automatic page breaks
-        //         receiptData.items.forEach((item, index) => {
-        //             checkPageBreak(12); // Each item needs about 12mm space
-
-        //             // Item name and total price
-        //             pdf.setFont('courier', 'bold');
-        //             pdf.setFontSize(9);
-
-        //             // Truncate long item names if necessary
-        //             let itemName = item.name;
-        //             if (itemName.length > 22) {
-        //                 itemName = itemName.substring(0, 19) + '...';
-        //             }
-
-        //             pdf.text(itemName, leftMargin, yPosition);
-        //             pdf.text(`LKR ${item.totalPrice}`, pageWidth - rightMargin, yPosition, {
-        //                 align: 'right'
-        //             });
-        //             yPosition += 4;
-
-        //             // Quantity and unit price
-        //             pdf.setFont('courier', 'normal');
-        //             pdf.setFontSize(8);
-        //             pdf.text(`${item.quantity} x LKR ${item.unitPrice}`, leftMargin + 2, yPosition);
-        //             yPosition += 6;
-        //         });
-
-        //         // Totals section
-        //         checkPageBreak(40); // Check space for totals and footer
-
-        //         yPosition += 2;
-        //         pdf.setLineDashPattern([1, 1], 0);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         pdf.setLineDashPattern([], 0);
-        //         yPosition += 6;
-
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.setFontSize(9);
-        //         pdf.text('Sub Total:', leftMargin, yPosition);
-        //         pdf.text(`LKR ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 6;
-
-        //         pdf.setFont('courier', 'bold');
-        //         pdf.setFontSize(11);
-        //         pdf.text('TOTAL:', leftMargin, yPosition);
-        //         pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 8;
-
-        //         // Payment information
-        //         pdf.setFontSize(9);
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text('Payment Method:', leftMargin, yPosition);
-        //         pdf.text(receiptData.paymentMethod, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 6;
-
-        //         if (receiptData.showCashDetails) {
-        //             if (receiptData.showCardCashDetails) {
-        //                 // For CARD & CASH payment method
-        //                 pdf.text('Customer Payment:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.customerPayment}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 pdf.text('Card Payment:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 // Remove commas before parsing to handle formatted numbers correctly
-        //                 const cashAmount = parseFloat(receiptData.customerPayment.replace(/,/g, '')) || 0;
-        //                 const cardAmount = parseFloat(receiptData.cardPayment.replace(/,/g, '')) || 0;
-        //                 const totalPaid = (cashAmount + cardAmount).toFixed(2);
-
-        //                 pdf.text('Total Paid:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${totalPaid}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 // Use the balance value from backend (already calculated correctly)
-        //                 const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
-
-        //                 if (balanceValue > 0) {
-        //                     // Overpaid - show balance
-        //                     pdf.text('Balance:', leftMargin, yPosition);
-        //                     pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
-        //                         align: 'right'
-        //                     });
-        //                     yPosition += 5;
-        //                 } else if (balanceValue < 0) {
-        //                     // Underpaid - show credit balance
-        //                     pdf.text('Credit Balance:', leftMargin, yPosition);
-        //                     pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
-        //                         align: 'right'
-        //                     });
-        //                     yPosition += 5;
-        //                 }
-        //                 yPosition += 1;
-        //             } else {
-        //                 // For CASH only payment method
-        //                 pdf.text('Amount Paid:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 // Balance (common for CASH)
-        //                 pdf.text('Balance:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 6;
-        //             }
-        //         } else if (receiptData.paymentMethod === 'CARD') {
-        //             // For CARD only payment method
-        //             pdf.text('Card Payment:', leftMargin, yPosition);
-        //             pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
-        //                 align: 'right'
-        //             });
-        //             yPosition += 5;
-
-        //             // Show balance when overpaid or credit balance when underpaid
-        //             // Use the balance value from backend (already calculated correctly)
-        //             const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
-
-        //             if (balanceValue > 0) {
-        //                 // Overpaid - show balance (change)
-        //                 pdf.text('Balance:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-        //             } else if (balanceValue < 0) {
-        //                 // Underpaid - show credit balance
-        //                 pdf.text('Credit Balance:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-        //             }
-        //             yPosition += 1;
-        //         } else if (receiptData.paymentMethod === 'CREDIT') {
-        //             // For CREDIT payment method
-        //             pdf.text('Amount Due:', leftMargin, yPosition);
-        //             pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
-        //                 align: 'right'
-        //             });
-        //             yPosition += 5;
-
-        //             // For CREDIT payments we intentionally omit printing a 'Credit Balance' on the receipt.
-        //             yPosition += 6;
-        //         }
-
-        //         // Footer
-        //         yPosition += 4;
-        //         pdf.setLineDashPattern([1, 1], 0);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         pdf.setLineDashPattern([], 0);
-        //         yPosition += 8;
-
-        //         pdf.setFontSize(8);
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text('Thank you for visiting', pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-        //         pdf.setFont('courier', 'bold');
-        //         // Footer prints the branch display name
-        //         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text('Come again!', pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 8;
-        //         pdf.setFontSize(6);
-        //         pdf.text('System by SKM Labs', pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-
-
-        //         // --- QZ TRAY MODIFICATION ---
-        //         // MODIFIED: 'iframe' logic REMOVED
-        //         // The PDF is now generated, get the blob
-        //         // Generate Base64 String
-        //         const pdfBase64 = pdf.output('datauristring').split(',')[1]; // Base64 කොටස පමණක් ලබා ගැනීම
-
-        //         const receiptPrinterName = "XP-80C"; // Set your receipt printer name here
-        //         await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
-
-        //         console.log("Receipt PDF has been sent to QZ Tray.");
-        //         // --- END QZ TRAY MODIFICATION ---
-
-        //     } catch (error) {
-        //         console.error('PDF Error:', error);
-
-        //         // --- QZ TRAY MODIFICATION ---
-        //         // QZ Tray errors (like "websocket") will be caught by printPDFwithQZ
-        //         // This catches jsPDF errors
-        //         if (!error.message || !error.message.includes('QZ')) {
-        //             alert('Failed to generate PDF: ' + error.message);
-        //         }
-        //         // Re-throw to be caught by processModalPayment
-        //         throw error;
-        //     }
-        // }
 
         async function downloadReceiptPDF() {
         try {
@@ -3884,536 +3343,6 @@
             alert('Failed to generate PDF: ' + error.message);
         }
     }
-
-        // async function downloadReceiptPDF() {
-        //     try {
-        //         const {
-        //             jsPDF
-        //         } = window.jspdf;
-
-        //         // Get stored cart data or use current cart
-        //         const cartData = window.lastSaleData ? window.lastSaleData.cart : cart;
-        //         const totalInclusive = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        //         const paymentMethod = window.lastSaleData ? window.lastSaleData.paymentMethod : selectedPaymentMethod;
-        //         const customerPaymentAmount = window.lastSaleData?.backendData?.customer_payment ?
-        //             parseFloat(window.lastSaleData.backendData.customer_payment.replace(/,/g, '')) :
-        //             (window.lastSaleData ? window.lastSaleData.customerPayment : (typeof modalCustomerPayment !== 'undefined' ? modalCustomerPayment : 0));
-        //         const cardPaymentAmount = window.lastSaleData?.backendData?.card_payment ?
-        //             parseFloat(window.lastSaleData.backendData.card_payment.replace(/,/g, '')) :
-        //             (window.lastSaleData ? window.lastSaleData.cardPayment : (typeof modalCardPayment !== 'undefined' ? modalCardPayment : 0));
-
-        //         // Calculate totals from cart
-        //         const subtotal = cartData.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-        //         // Dynamic Tax Calculation (Reverse)
-        //         const taxFactor = (1 + (SSCL_PERCENT / 100)) * (1 + (VAT_PERCENT / 100));
-        //         const baseAmount = totalInclusive / taxFactor;
-        //         const ssclAmount = baseAmount * (SSCL_PERCENT / 100);
-        //         const vatAmount = (baseAmount + ssclAmount) * (VAT_PERCENT / 100);
-
-
-        //         // Calculate balance based on payment method
-        //         let balance = 0;
-        //         let totalPaid = 0;
-
-        //         if (paymentMethod === 'CASH') {
-        //             totalPaid = customerPaymentAmount;
-        //             balance = customerPaymentAmount - subtotal;
-        //         } else if (paymentMethod === 'CARD & CASH') {
-        //             totalPaid = customerPaymentAmount + cardPaymentAmount;
-        //             balance = totalPaid - subtotal;
-        //         } else if (paymentMethod === 'CARD') {
-        //             totalPaid = cardPaymentAmount; // Use actual card payment amount
-        //             balance = cardPaymentAmount - subtotal; // Could be negative (credit)
-        //         } else if (paymentMethod === 'CREDIT') {
-        //             totalPaid = 0;
-        //             balance = -subtotal; // Negative balance for credit
-        //         }
-
-        //         // Build receipt data object from cart
-        //         const receiptData = {
-        //             receiptNo: window.lastSaleData?.backendData?.receipt_no || document.getElementById('receipt-no').textContent,
-        //             userName: window.lastSaleData?.backendData?.user_name || '{{ Auth::user()->name }}',
-
-        //             // --- orderIdDisplay and customerName added ---
-        //             orderIdDisplay: window.lastSaleData?.backendData?.order_id_display || null,
-        //             customerName: window.lastSaleData?.backendData?.customer_name || null,
-        //             // ---------------------------------------------------
-
-        //             date: new Date().toLocaleDateString('en-GB'),
-        //             time: new Date().toLocaleTimeString('en-GB', {
-        //                 hour12: false
-        //             }),
-        //             subtotal: window.lastSaleData?.backendData?.subtotal || subtotal.toFixed(2),
-        //             total: window.lastSaleData?.backendData?.total || subtotal.toFixed(2),
-        //             paymentMethod: paymentMethod,
-        //             showCashDetails: paymentMethod === 'CASH' || paymentMethod === 'CARD & CASH',
-        //             showCardCashDetails: paymentMethod === 'CARD & CASH',
-        //             customerPayment: customerPaymentAmount.toFixed(2),
-        //             cardPayment: cardPaymentAmount.toFixed(2),
-        //             amountPaid: totalPaid.toFixed(2),
-        //             balance: window.lastSaleData?.backendData?.balance || balance.toFixed(2),
-        //             items: cartData.map(item => ({
-        //                 name: item.name,
-        //                 quantity: item.quantity,
-        //                 unitPrice: item.price.toFixed(2),
-        //                 totalPrice: (item.price * item.quantity).toFixed(2)
-        //             }))
-        //         };
-
-        //         // Create PDF with fixed width (80mm) and let height be dynamic
-        //         const pdf = new jsPDF({
-        //             orientation: 'portrait',
-        //             unit: 'mm',
-        //             format: [80, 297] // Start with A4 height, will extend if needed
-        //         });
-
-        //         let yPosition = 10;
-        //         const pageWidth = 80;
-        //         const pageHeight = 297; // A4 height in mm
-        //         const leftMargin = 5;
-        //         const rightMargin = 5;
-        //         const maxPageHeight = pageHeight - 20; // Leave margin at bottom
-
-        //         // Helper function to check if we need a new page
-        //         function checkPageBreak(requiredSpace) {
-        //             if (yPosition + requiredSpace > maxPageHeight) {
-        //                 pdf.addPage();
-        //                 yPosition = 10;
-
-        //                 // Add simplified header for continuation pages
-        //                 // Add circular logo if available
-        //                 if (circularLogoBase64) {
-        //                     try {
-        //                         const logoSize = 16;
-        //                         const logoX = pageWidth / 2 - logoSize / 2;
-        //                         const logoY = yPosition;
-
-        //                         pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
-        //                         yPosition += 20;
-        //                     } catch (e) {
-        //                         console.error('Error adding logo to continuation page:', e);
-        //                         yPosition += 20;
-        //                     }
-        //                 } else {
-        //                     yPosition += 20;
-        //                 }
-
-        //                 pdf.setFontSize(12);
-        //                 pdf.setFont('courier', 'bold');
-        //                 // Use branch display name for continuation pages
-        //                 pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-        //                     align: 'center'
-        //                 });
-        //                 yPosition += 6;
-
-        //                 pdf.setFontSize(8);
-        //                 pdf.setFont('courier', 'normal');
-        //                 pdf.text('(Continued)', pageWidth / 2, yPosition, {
-        //                     align: 'center'
-        //                 });
-        //                 yPosition += 8;
-
-        //                 // Separator line
-        //                 pdf.setLineWidth(0.3);
-        //                 pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //                 yPosition += 6;
-
-        //                 return true;
-        //             }
-        //             return false;
-        //         }
-
-        //         // Header section - only on first page
-        //         // Add circular logo if available
-        //         if (circularLogoBase64) {
-        //             try {
-        //                 const logoSize = 16;
-        //                 const logoX = pageWidth / 2 - logoSize / 2;
-        //                 const logoY = yPosition;
-
-        //                 pdf.addImage(circularLogoBase64, 'JPEG', logoX, logoY, logoSize, logoSize);
-        //                 yPosition += 20;
-        //             } catch (e) {
-        //                 console.error('Error adding logo to PDF:', e);
-        //                 yPosition += 20;
-        //             }
-        //         } else {
-        //             yPosition += 20;
-        //         }
-
-        //         // Branch name
-        //         pdf.setFontSize(14);
-        //         pdf.setFont('courier', 'bold');
-        //         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 5;
-
-        //         // Company name (if exists)
-        //         if (branchInfo.companyName && branchInfo.companyName.trim() !== '') {
-        //             pdf.setFontSize(9);
-        //             pdf.setFont('courier', 'normal');
-        //             pdf.text(branchInfo.companyName, pageWidth / 2, yPosition, {
-        //                 align: 'center'
-        //             });
-        //             yPosition += 4;
-        //         }
-
-        //         // Branch address and phone
-        //         pdf.setFontSize(8);
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text(branchInfo.address, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-        //         pdf.text('Tel: ' + branchInfo.telephone, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-
-        //         if (branchInfo.vatRegNo && branchInfo.vatRegNo.trim() !== '') {
-        //         pdf.text('VAT Reg No: ' + branchInfo.vatRegNo, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-        //         }
-        //         yPosition += 2;
-
-        //         // // Separator line
-        //         // pdf.setLineWidth(0.5);
-        //         // pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         // yPosition += 6;
-
-        //         // Receipt information
-        //         pdf.setFontSize(12);
-        //         pdf.setFont('courier', 'bold');
-        //         pdf.text('INVOICE', pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 6;
-
-        //         // Receipt information
-        //         pdf.setFontSize(9);
-        //         pdf.setFont('courier', 'normal');
-
-        //         checkPageBreak(25); // Check space for receipt info block
-
-        //         pdf.text('CUSTOMER:', leftMargin, yPosition);
-        //         pdf.text('Cash Customer', pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('CUSTOMER VAT:', leftMargin, yPosition);
-        //         pdf.text('Not eligible for VAT', pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('INVOICE NO:', leftMargin, yPosition);
-        //         pdf.text(receiptData.receiptNo, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('USER:', leftMargin, yPosition);
-        //         pdf.text(receiptData.userName, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('DATE:', leftMargin, yPosition);
-        //         pdf.text(receiptData.date, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         pdf.text('TIME:', leftMargin, yPosition);
-        //         pdf.text(receiptData.time, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 5;
-
-        //         // --- ADDED: Order ID & Customer Name Printing ---
-
-        //         // 1. Order ID (if exists)
-        //         if (receiptData.orderIdDisplay) {
-        //             pdf.text('ORDER ID:', leftMargin, yPosition);
-        //             pdf.text(receiptData.orderIdDisplay, pageWidth - rightMargin, yPosition, { align: 'right' });
-        //             yPosition += 5;
-        //         }
-
-        //         // 2. Customer Name (if exists)
-        //         if (receiptData.customerName) {
-        //             pdf.text('Ordered By:', leftMargin, yPosition);
-
-        //             // Optional formatting
-        //             let cName = receiptData.customerName;
-        //             if(cName.length > 20) {
-        //                 cName = cName.substring(0, 19) + '..';
-        //             }
-
-        //             pdf.text(cName, pageWidth - rightMargin, yPosition, { align: 'right' });
-        //             yPosition += 5;
-        //         }
-
-        //         // Add extra space before the line
-        //         yPosition += 3;
-        //         // ------------------------------------------------
-
-        //         // Items section
-        //         checkPageBreak(15); // Check space for items header
-
-        //         pdf.setLineWidth(0.3);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         yPosition += 6;
-
-        //         // Process each item with automatic page breaks
-        //         receiptData.items.forEach((item, index) => {
-        //             checkPageBreak(12); // Each item needs about 12mm space
-
-        //             const itemBaseUnitPrice = parseFloat(item.unitPrice) / taxFactor;
-        //             const itemBaseLineTotal = itemBaseUnitPrice * item.quantity;
-
-        //             // Item name and total price
-        //             pdf.setFont('courier', 'bold');
-        //             pdf.setFontSize(9);
-
-        //             // Truncate long item names if necessary
-        //             let itemName = item.name;
-        //             if (itemName.length > 22) {
-        //                 itemName = itemName.substring(0, 19) + '...';
-        //             }
-
-        //             pdf.text(itemName, leftMargin, yPosition);
-        //             pdf.text(`LKR ${itemBaseLineTotal.toFixed(2)}`, pageWidth - rightMargin, yPosition, {
-        //                 align: 'right'
-        //             });
-        //             yPosition += 4;
-
-        //             // Quantity and unit price
-        //             pdf.setFont('courier', 'normal');
-        //             pdf.setFontSize(8);
-        //             pdf.text(`${item.quantity} x LKR ${itemBaseUnitPrice.toFixed(2)}`, leftMargin + 2, yPosition);
-        //             yPosition += 6;
-        //         });
-
-        //         // Totals section
-        //         checkPageBreak(40); // Check space for totals and footer
-
-        //         yPosition += 2;
-        //         pdf.setLineDashPattern([1, 1], 0);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         pdf.setLineDashPattern([], 0);
-        //         yPosition += 6;
-
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.setFontSize(9);
-        //         // pdf.text('Sub Total:', leftMargin, yPosition);
-        //         // pdf.text(`LKR ${receiptData.subtotal}`, pageWidth - rightMargin, yPosition, {
-        //         //     align: 'right'
-        //         // });
-        //         // yPosition += 6;
-
-        //         // pdf.setFont('courier', 'bold');
-        //         // pdf.setFontSize(11);
-        //         // pdf.text('TOTAL:', leftMargin, yPosition);
-        //         // pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
-        //         //     align: 'right'
-        //         // });
-        //         // yPosition += 8;
-
-        //         // 1. Base Amount (Sub Total)
-        //         pdf.text('Sub Total (Base):', leftMargin, yPosition);
-        //         pdf.text(`LKR ${baseAmount.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-        //         yPosition += 5;
-
-        //         // 2. SSCL Dynamic Label
-        //         pdf.text(`SSCL (${SSCL_PERCENT}%):`, leftMargin, yPosition);
-        //         pdf.text(`LKR ${ssclAmount.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-        //         yPosition += 5;
-
-        //         // 3. VAT Dynamic Label
-        //         pdf.text(`VAT (${VAT_PERCENT}%):`, leftMargin, yPosition);
-        //         pdf.text(`LKR ${vatAmount.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-        //         yPosition += 6;
-
-        //         pdf.setLineWidth(0.3);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         yPosition += 6;
-
-        //         // 4. Grand Total
-        //         pdf.setFont('courier', 'bold');
-        //         pdf.setFontSize(11);
-        //         pdf.text('TOTAL:', leftMargin, yPosition);
-        //         pdf.text(`LKR ${totalInclusive.toFixed(2)}`, pageWidth - rightMargin, yPosition, { align: 'right' });
-        //         yPosition += 8;
-
-        //         // Payment information
-        //         pdf.setFontSize(9);
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text('Payment Method:', leftMargin, yPosition);
-        //         pdf.text(receiptData.paymentMethod, pageWidth - rightMargin, yPosition, {
-        //             align: 'right'
-        //         });
-        //         yPosition += 6;
-
-        //         if (receiptData.showCashDetails) {
-        //             if (receiptData.showCardCashDetails) {
-        //                 // For CARD & CASH payment method
-        //                 pdf.text('Customer Payment:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.customerPayment}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 pdf.text('Card Payment:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 // Remove commas before parsing to handle formatted numbers correctly
-        //                 const cashAmount = parseFloat(receiptData.customerPayment.replace(/,/g, '')) || 0;
-        //                 const cardAmount = parseFloat(receiptData.cardPayment.replace(/,/g, '')) || 0;
-        //                 const totalPaid = (cashAmount + cardAmount).toFixed(2);
-
-        //                 pdf.text('Total Paid:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${totalPaid}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 // Use the balance value from backend (already calculated correctly)
-        //                 const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
-
-        //                 if (balanceValue > 0) {
-        //                     // Overpaid - show balance
-        //                     pdf.text('Balance:', leftMargin, yPosition);
-        //                     pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
-        //                         align: 'right'
-        //                     });
-        //                     yPosition += 5;
-        //                 } else if (balanceValue < 0) {
-        //                     // Underpaid - show credit balance
-        //                     pdf.text('Credit Balance:', leftMargin, yPosition);
-        //                     pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
-        //                         align: 'right'
-        //                     });
-        //                     yPosition += 5;
-        //                 }
-        //                 yPosition += 1;
-        //             } else {
-        //                 // For CASH only payment method
-        //                 pdf.text('Amount Paid:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.amountPaid}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-
-        //                 // Balance (common for CASH)
-        //                 pdf.text('Balance:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 6;
-        //             }
-        //         } else if (receiptData.paymentMethod === 'CARD') {
-        //             // For CARD only payment method
-        //             pdf.text('Card Payment:', leftMargin, yPosition);
-        //             pdf.text(`LKR ${receiptData.cardPayment}`, pageWidth - rightMargin, yPosition, {
-        //                 align: 'right'
-        //             });
-        //             yPosition += 5;
-
-        //             // Show balance when overpaid or credit balance when underpaid
-        //             // Use the balance value from backend (already calculated correctly)
-        //             const balanceValue = parseFloat(receiptData.balance.replace(/,/g, '')) || 0;
-
-        //             if (balanceValue > 0) {
-        //                 // Overpaid - show balance (change)
-        //                 pdf.text('Balance:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${receiptData.balance}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-        //             } else if (balanceValue < 0) {
-        //                 // Underpaid - show credit balance
-        //                 pdf.text('Credit Balance:', leftMargin, yPosition);
-        //                 pdf.text(`LKR ${Math.abs(balanceValue).toFixed(2)}`, pageWidth - rightMargin, yPosition, {
-        //                     align: 'right'
-        //                 });
-        //                 yPosition += 5;
-        //             }
-        //             yPosition += 1;
-        //         } else if (receiptData.paymentMethod === 'CREDIT') {
-        //             // For CREDIT payment method
-        //             pdf.text('Amount Due:', leftMargin, yPosition);
-        //             pdf.text(`LKR ${receiptData.total}`, pageWidth - rightMargin, yPosition, {
-        //                 align: 'right'
-        //             });
-        //             yPosition += 5;
-
-        //             // For CREDIT payments we intentionally omit printing a 'Credit Balance' on the receipt.
-        //             yPosition += 6;
-        //         }
-
-        //         // Footer
-        //         yPosition += 4;
-        //         pdf.setLineDashPattern([1, 1], 0);
-        //         pdf.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
-        //         pdf.setLineDashPattern([], 0);
-        //         yPosition += 8;
-
-        //         pdf.setFontSize(8);
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text('Thank you for visiting', pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-        //         pdf.setFont('courier', 'bold');
-        //         // Footer prints the branch display name
-        //         pdf.text(branchInfo.name, pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 4;
-        //         pdf.setFont('courier', 'normal');
-        //         pdf.text('Come again!', pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-        //         yPosition += 5;
-        //         pdf.setFontSize(6);
-        //         pdf.text('System by Jayawardena Group', pageWidth / 2, yPosition, {
-        //             align: 'center'
-        //         });
-
-
-        //         // --- QZ TRAY MODIFICATION ---
-        //         // MODIFIED: 'iframe' logic REMOVED
-        //         // The PDF is now generated, get the blob
-        //         // Generate Base64 String
-        //         const pdfBase64 = pdf.output('datauristring').split(',')[1];
-
-        //         const receiptPrinterName = "OutletPOS"; // Set your receipt printer name here
-        //         await printPDFwithQZ(pdfBase64, receiptPrinterName, "Receipt");
-
-        //         console.log("Receipt PDF has been sent to QZ Tray.");
-        //         // --- END QZ TRAY MODIFICATION ---
-
-        //     } catch (error) {
-        //         console.error('PDF Error:', error);
-
-        //         // --- QZ TRAY MODIFICATION ---
-        //         // QZ Tray errors (like "websocket") will be caught by printPDFwithQZ
-        //         // This catches jsPDF errors
-        //         if (!error.message || !error.message.includes('QZ')) {
-        //             alert('Failed to generate PDF: ' + error.message);
-        //         }
-        //         // Re-throw to be caught by processModalPayment
-        //         throw error;
-        //     }
-        // }
 
 
             // MODIFIED: Added 'showAlerts = true' parameter

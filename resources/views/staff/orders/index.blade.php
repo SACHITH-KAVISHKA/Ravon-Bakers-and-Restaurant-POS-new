@@ -130,6 +130,15 @@
                                         <a href="{{ route('pos.index', ['import_order' => $order->id]) }}" class="btn btn-sm btn-success" title="Send to POS">
                                             <i class="bi bi-cart-plus"></i> POS
                                         </a>
+                                        @if(auth()->user()->role === 'admin')
+                                        <form action="{{ route('staff.orders.destroy', $order->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this order?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

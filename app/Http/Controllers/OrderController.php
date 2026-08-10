@@ -160,4 +160,18 @@ class OrderController extends Controller
 
         return view('staff.orders.show', compact('order'));
     }
+
+    // Delete Order (Admin only)
+    public function destroy($id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Only admin can delete orders.');
+        }
+
+        $order = Order::findOrFail($id);
+        $order->order_status = 0;
+        $order->save();
+
+        return redirect()->route('staff.orders.index')->with('success', 'Order deleted successfully.');
+    }
 }
